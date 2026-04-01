@@ -105,12 +105,13 @@ export default function NewGamePage() {
                 onChange={(e) => setOpponent(e.target.value)}
                 placeholder="Team name"
                 required
+                className="h-12 text-base"
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="date">Date</Label>
-                <Input id="date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+                <Input id="date" type="date" value={date} onChange={(e) => setDate(e.target.value)} className="h-12 text-base" />
               </div>
               <div>
                 <Label>Location</Label>
@@ -119,7 +120,7 @@ export default function NewGamePage() {
                     type="button"
                     variant={location === "home" ? "default" : "outline"}
                     onClick={() => setLocation("home")}
-                    className="flex-1"
+                    className="flex-1 h-12 text-base active:scale-95 transition-transform"
                   >
                     Home
                   </Button>
@@ -127,7 +128,7 @@ export default function NewGamePage() {
                     type="button"
                     variant={location === "away" ? "default" : "outline"}
                     onClick={() => setLocation("away")}
-                    className="flex-1"
+                    className="flex-1 h-12 text-base active:scale-95 transition-transform"
                   >
                     Away
                   </Button>
@@ -155,39 +156,38 @@ export default function NewGamePage() {
                     className={`flex items-center gap-3 rounded-lg border p-3 transition-colors ${
                       isSelected ? "bg-accent" : ""
                     }`}
+                    onClick={() => togglePlayer(player.id)}
                   >
                     <input
                       type="checkbox"
                       checked={isSelected}
-                      onChange={() => togglePlayer(player.id)}
-                      className="h-4 w-4"
+                      onChange={() => {}}
+                      className="h-5 w-5 pointer-events-none"
                     />
                     {isSelected && (
                       <span className="text-sm font-bold text-muted-foreground w-5">{orderIdx + 1}</span>
                     )}
-                    <span className="font-medium flex-1">
+                    <span className="font-medium flex-1 text-base">
                       #{player.number} {player.name}
                     </span>
                     {isSelected && (
-                      <div className="flex gap-1">
-                        <Button
+                      <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+                        <button
                           type="button"
-                          variant="ghost"
-                          size="sm"
+                          className="h-10 w-10 flex items-center justify-center rounded-lg border text-lg active:bg-accent active:scale-95 transition-all disabled:opacity-30"
                           onClick={() => movePlayer(player.id, "up")}
                           disabled={orderIdx === 0}
                         >
                           &uarr;
-                        </Button>
-                        <Button
+                        </button>
+                        <button
                           type="button"
-                          variant="ghost"
-                          size="sm"
+                          className="h-10 w-10 flex items-center justify-center rounded-lg border text-lg active:bg-accent active:scale-95 transition-all disabled:opacity-30"
                           onClick={() => movePlayer(player.id, "down")}
                           disabled={orderIdx === selectedPlayers.length - 1}
                         >
                           &darr;
-                        </Button>
+                        </button>
                       </div>
                     )}
                   </div>

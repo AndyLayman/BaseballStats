@@ -34,10 +34,10 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+      <div className="flex items-center justify-between gap-4">
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Dashboard</h1>
         <Link href="/games/new">
-          <Button>New Game</Button>
+          <Button className="h-11 px-5 text-base active:scale-95 transition-transform">New Game</Button>
         </Link>
       </div>
 

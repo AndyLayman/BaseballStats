@@ -91,26 +91,26 @@ export default function GameDetailPage() {
       {/* Box Score */}
       {lineup.length > 0 && (
         <Card>
-          <CardHeader>
+          <CardHeader className="px-3 sm:px-6">
             <CardTitle>Box Score</CardTitle>
           </CardHeader>
-          <CardContent className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-8">#</TableHead>
-                  <TableHead>Player</TableHead>
-                  {innings.map((inn) => (
-                    <TableHead key={inn} className="text-center w-16">
-                      {inn}
-                    </TableHead>
-                  ))}
-                  <TableHead className="text-center">AB</TableHead>
-                  <TableHead className="text-center">H</TableHead>
-                  <TableHead className="text-center">RBI</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+          <CardContent className="px-0 sm:px-6">
+            <div className="overflow-x-auto">
+              <Table className="min-w-0">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="sticky left-0 bg-background z-10 min-w-[120px]">Player</TableHead>
+                    {innings.map((inn) => (
+                      <TableHead key={inn} className="text-center w-12 px-1">
+                        {inn}
+                      </TableHead>
+                    ))}
+                    <TableHead className="text-center px-2">AB</TableHead>
+                    <TableHead className="text-center px-2">H</TableHead>
+                    <TableHead className="text-center px-2">RBI</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                 {lineup.map((entry) => {
                   const playerPAs = appearances.filter((pa) => pa.player_id === entry.player_id);
                   const ab = playerPAs.filter((pa) => pa.is_at_bat).length;
@@ -119,16 +119,16 @@ export default function GameDetailPage() {
 
                   return (
                     <TableRow key={entry.id}>
-                      <TableCell className="font-bold text-muted-foreground">{entry.batting_order}</TableCell>
-                      <TableCell>
-                        <Link href={`/players/${entry.player_id}`} className="hover:underline">
+                      <TableCell className="sticky left-0 bg-background z-10">
+                        <Link href={`/players/${entry.player_id}`} className="hover:underline font-medium">
+                          <span className="text-muted-foreground mr-1">{entry.batting_order}.</span>
                           {entry.player?.name ?? `Player ${entry.player_id}`}
                         </Link>
                       </TableCell>
                       {innings.map((inn) => {
                         const innPAs = playerPAs.filter((pa) => pa.inning === inn);
                         return (
-                          <TableCell key={inn} className="text-center text-sm">
+                          <TableCell key={inn} className="text-center text-xs sm:text-sm px-1 whitespace-nowrap">
                             {innPAs.map((pa) => pa.scorebook_notation || pa.result).join(", ") || ""}
                           </TableCell>
                         );
@@ -140,7 +140,8 @@ export default function GameDetailPage() {
                   );
                 })}
               </TableBody>
-            </Table>
+              </Table>
+            </div>
           </CardContent>
         </Card>
       )}

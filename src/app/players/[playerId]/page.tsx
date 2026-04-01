@@ -92,59 +92,85 @@ export default function PlayerDetailPage() {
       )}
 
       <Tabs defaultValue="batting">
-        <TabsList>
-          <TabsTrigger value="batting">Batting</TabsTrigger>
-          <TabsTrigger value="fielding">Fielding</TabsTrigger>
-          <TabsTrigger value="gamelog">Game Log</TabsTrigger>
+        <TabsList className="w-full sm:w-auto">
+          <TabsTrigger value="batting" className="flex-1 sm:flex-none">Batting</TabsTrigger>
+          <TabsTrigger value="fielding" className="flex-1 sm:flex-none">Fielding</TabsTrigger>
+          <TabsTrigger value="gamelog" className="flex-1 sm:flex-none">Game Log</TabsTrigger>
         </TabsList>
 
         <TabsContent value="batting">
           {battingStats && Number(battingStats.at_bats) > 0 ? (
             <Card>
-              <CardHeader>
+              <CardHeader className="px-3 sm:px-6">
                 <CardTitle>Season Batting Stats</CardTitle>
               </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>G</TableHead>
-                      <TableHead>PA</TableHead>
-                      <TableHead>AB</TableHead>
-                      <TableHead>H</TableHead>
-                      <TableHead>2B</TableHead>
-                      <TableHead>3B</TableHead>
-                      <TableHead>HR</TableHead>
-                      <TableHead>RBI</TableHead>
-                      <TableHead>BB</TableHead>
-                      <TableHead>SO</TableHead>
-                      <TableHead>SB</TableHead>
-                      <TableHead>AVG</TableHead>
-                      <TableHead>OBP</TableHead>
-                      <TableHead>SLG</TableHead>
-                      <TableHead>OPS</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    <TableRow>
-                      <TableCell>{battingStats.games}</TableCell>
-                      <TableCell>{battingStats.plate_appearances}</TableCell>
-                      <TableCell>{battingStats.at_bats}</TableCell>
-                      <TableCell>{battingStats.hits}</TableCell>
-                      <TableCell>{battingStats.doubles}</TableCell>
-                      <TableCell>{battingStats.triples}</TableCell>
-                      <TableCell>{battingStats.home_runs}</TableCell>
-                      <TableCell>{battingStats.rbis}</TableCell>
-                      <TableCell>{battingStats.walks}</TableCell>
-                      <TableCell>{battingStats.strikeouts}</TableCell>
-                      <TableCell>{battingStats.stolen_bases}</TableCell>
-                      <TableCell className="font-bold">{formatAvg(Number(battingStats.avg))}</TableCell>
-                      <TableCell>{formatAvg(Number(battingStats.obp))}</TableCell>
-                      <TableCell>{formatAvg(Number(battingStats.slg))}</TableCell>
-                      <TableCell>{formatAvg(Number(battingStats.ops))}</TableCell>
-                    </TableRow>
-                  </TableBody>
-                </Table>
+              <CardContent className="px-3 sm:px-6">
+                {/* Mobile: stat grid. Desktop: table */}
+                <div className="grid grid-cols-3 sm:grid-cols-5 gap-3 sm:hidden">
+                  {[
+                    { label: "G", value: battingStats.games },
+                    { label: "AB", value: battingStats.at_bats },
+                    { label: "H", value: battingStats.hits },
+                    { label: "2B", value: battingStats.doubles },
+                    { label: "3B", value: battingStats.triples },
+                    { label: "HR", value: battingStats.home_runs },
+                    { label: "RBI", value: battingStats.rbis },
+                    { label: "BB", value: battingStats.walks },
+                    { label: "SO", value: battingStats.strikeouts },
+                    { label: "SB", value: battingStats.stolen_bases },
+                    { label: "AVG", value: formatAvg(Number(battingStats.avg)) },
+                    { label: "OBP", value: formatAvg(Number(battingStats.obp)) },
+                    { label: "SLG", value: formatAvg(Number(battingStats.slg)) },
+                    { label: "OPS", value: formatAvg(Number(battingStats.ops)) },
+                  ].map((s) => (
+                    <div key={s.label} className="text-center p-2 rounded-lg bg-muted/50">
+                      <div className="text-lg font-bold tabular-nums">{s.value}</div>
+                      <div className="text-[11px] text-muted-foreground font-medium">{s.label}</div>
+                    </div>
+                  ))}
+                </div>
+                <div className="hidden sm:block overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>G</TableHead>
+                        <TableHead>PA</TableHead>
+                        <TableHead>AB</TableHead>
+                        <TableHead>H</TableHead>
+                        <TableHead>2B</TableHead>
+                        <TableHead>3B</TableHead>
+                        <TableHead>HR</TableHead>
+                        <TableHead>RBI</TableHead>
+                        <TableHead>BB</TableHead>
+                        <TableHead>SO</TableHead>
+                        <TableHead>SB</TableHead>
+                        <TableHead>AVG</TableHead>
+                        <TableHead>OBP</TableHead>
+                        <TableHead>SLG</TableHead>
+                        <TableHead>OPS</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      <TableRow>
+                        <TableCell>{battingStats.games}</TableCell>
+                        <TableCell>{battingStats.plate_appearances}</TableCell>
+                        <TableCell>{battingStats.at_bats}</TableCell>
+                        <TableCell>{battingStats.hits}</TableCell>
+                        <TableCell>{battingStats.doubles}</TableCell>
+                        <TableCell>{battingStats.triples}</TableCell>
+                        <TableCell>{battingStats.home_runs}</TableCell>
+                        <TableCell>{battingStats.rbis}</TableCell>
+                        <TableCell>{battingStats.walks}</TableCell>
+                        <TableCell>{battingStats.strikeouts}</TableCell>
+                        <TableCell>{battingStats.stolen_bases}</TableCell>
+                        <TableCell className="font-bold">{formatAvg(Number(battingStats.avg))}</TableCell>
+                        <TableCell>{formatAvg(Number(battingStats.obp))}</TableCell>
+                        <TableCell>{formatAvg(Number(battingStats.slg))}</TableCell>
+                        <TableCell>{formatAvg(Number(battingStats.ops))}</TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                </div>
               </CardContent>
             </Card>
           ) : (
@@ -155,32 +181,49 @@ export default function PlayerDetailPage() {
         <TabsContent value="fielding">
           {fieldingStats && Number(fieldingStats.total_chances) > 0 ? (
             <Card>
-              <CardHeader>
+              <CardHeader className="px-3 sm:px-6">
                 <CardTitle>Season Fielding Stats</CardTitle>
               </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>G</TableHead>
-                      <TableHead>PO</TableHead>
-                      <TableHead>A</TableHead>
-                      <TableHead>E</TableHead>
-                      <TableHead>TC</TableHead>
-                      <TableHead>FLD%</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    <TableRow>
-                      <TableCell>{fieldingStats.games}</TableCell>
-                      <TableCell>{fieldingStats.putouts}</TableCell>
-                      <TableCell>{fieldingStats.assists}</TableCell>
-                      <TableCell>{fieldingStats.errors}</TableCell>
-                      <TableCell>{fieldingStats.total_chances}</TableCell>
-                      <TableCell className="font-bold">{Number(fieldingStats.fielding_pct).toFixed(3)}</TableCell>
-                    </TableRow>
-                  </TableBody>
-                </Table>
+              <CardContent className="px-3 sm:px-6">
+                <div className="grid grid-cols-3 gap-3 sm:hidden">
+                  {[
+                    { label: "G", value: fieldingStats.games },
+                    { label: "PO", value: fieldingStats.putouts },
+                    { label: "A", value: fieldingStats.assists },
+                    { label: "E", value: fieldingStats.errors },
+                    { label: "TC", value: fieldingStats.total_chances },
+                    { label: "FLD%", value: Number(fieldingStats.fielding_pct).toFixed(3) },
+                  ].map((s) => (
+                    <div key={s.label} className="text-center p-2 rounded-lg bg-muted/50">
+                      <div className="text-lg font-bold tabular-nums">{s.value}</div>
+                      <div className="text-[11px] text-muted-foreground font-medium">{s.label}</div>
+                    </div>
+                  ))}
+                </div>
+                <div className="hidden sm:block">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>G</TableHead>
+                        <TableHead>PO</TableHead>
+                        <TableHead>A</TableHead>
+                        <TableHead>E</TableHead>
+                        <TableHead>TC</TableHead>
+                        <TableHead>FLD%</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      <TableRow>
+                        <TableCell>{fieldingStats.games}</TableCell>
+                        <TableCell>{fieldingStats.putouts}</TableCell>
+                        <TableCell>{fieldingStats.assists}</TableCell>
+                        <TableCell>{fieldingStats.errors}</TableCell>
+                        <TableCell>{fieldingStats.total_chances}</TableCell>
+                        <TableCell className="font-bold">{Number(fieldingStats.fielding_pct).toFixed(3)}</TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                </div>
               </CardContent>
             </Card>
           ) : (
