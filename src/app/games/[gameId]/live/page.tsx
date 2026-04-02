@@ -706,11 +706,50 @@ export default function LiveScoringPage() {
         </Card>
       )}
 
-      {/* Warning if our lineup is empty */}
-      {isOurBatting && !batter && (
-        <Card className="border-destructive/30 bg-destructive/5">
-          <CardContent className="p-4 text-center">
-            <div className="text-sm text-muted-foreground">No lineup set for this game. Add players to the game lineup to start scoring.</div>
+      {/* Lineup builder if our lineup is empty */}
+      {isOurBatting && !batter && gameState && (
+        <Card className="glass animate-slide-up">
+          <CardHeader className="pb-2 px-3 sm:px-6">
+            <CardTitle className="text-lg text-gradient">Set Batting Order</CardTitle>
+          </CardHeader>
+          <CardContent className="px-3 sm:px-6 pb-3 space-y-3">
+            <p className="text-sm text-muted-foreground">No lineup set for this game. Tap players in batting order:</p>
+            {gameState.lineup.length > 0 && (
+              <div className="text-xs text-muted-foreground">
+                Current order: {gameState.lineup.map((l, i) => `${i + 1}. ${gameState.players.find((p) => p.id === l.player_id)?.name}`).join(", ")}
+              </div>
+            )}
+            <div className="grid grid-cols-2 gap-2">
+              {gameState.players
+                .filter((p) => !gameState.lineup.some((l) => l.player_id === p.id))
+                .sort((a, b) => a.name.localeCompare(b.name))
+                .map((p) => (
+                  <button
+                    key={p.id}
+                    className="h-11 rounded-xl text-sm font-semibold border-2 border-border/50 bg-muted/30 hover:bg-accent hover:border-border active:scale-95 transition-all"
+                    onClick={async () => {
+                      const order = gameState.lineup.length + 1;
+                      await supabase.from("game_lineup").insert({
+                        game_id: gameId,
+                        player_id: p.id,
+                        batting_order: order,
+                      });
+                      const newLineup = [...gameState.lineup, { id: "", game_id: gameId, player_id: p.id, batting_order: order, position: "" }];
+                      setGameState({ ...gameState, lineup: newLineup });
+                    }}
+                  >
+                    #{p.number} {p.name}
+                  </button>
+                ))}
+            </div>
+            {gameState.lineup.length > 0 && (
+              <Button
+                className="w-full h-11 text-sm font-semibold bg-gradient-to-r from-emerald-500 via-blue-500 to-purple-500 text-white"
+                onClick={() => setGameState({ ...gameState })}
+              >
+                Start Scoring ({gameState.lineup.length} batters)
+              </Button>
+            )}
           </CardContent>
         </Card>
       )}
