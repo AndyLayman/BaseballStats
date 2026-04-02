@@ -98,6 +98,7 @@ export default function PlayersPage() {
                   <TableHead className="text-center whitespace-nowrap">G</TableHead>
                   <TableHead className="text-center whitespace-nowrap">PA</TableHead>
                   <TableHead className="text-center whitespace-nowrap">AB</TableHead>
+                  <TableHead className="text-center whitespace-nowrap">H</TableHead>
                   <TableHead className="text-center whitespace-nowrap">1B</TableHead>
                   <TableHead className="text-center whitespace-nowrap">2B</TableHead>
                   <TableHead className="text-center whitespace-nowrap">3B</TableHead>
@@ -128,6 +129,7 @@ export default function PlayersPage() {
                     <TableCell className="text-center tabular-nums">{p.games}</TableCell>
                     <TableCell className="text-center tabular-nums">{p.plate_appearances}</TableCell>
                     <TableCell className="text-center tabular-nums">{p.at_bats}</TableCell>
+                    <TableCell className="text-center tabular-nums">{p.hits}</TableCell>
                     <TableCell className="text-center tabular-nums">{p.singles}</TableCell>
                     <TableCell className="text-center tabular-nums">{p.doubles}</TableCell>
                     <TableCell className="text-center tabular-nums">{p.triples}</TableCell>
