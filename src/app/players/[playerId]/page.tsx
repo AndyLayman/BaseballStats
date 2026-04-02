@@ -76,7 +76,7 @@ export default function PlayerDetailPage() {
       <div className="flex items-center gap-4">
         {player.photo_file ? (
           <img
-            src={player.photo_file}
+            src={supabase.storage.from("player-2-photo").getPublicUrl(player.photo_file).data.publicUrl}
             alt={player.name}
             className="h-16 w-16 rounded-full object-cover border border-primary/30"
           />
