@@ -78,7 +78,7 @@ export function SprayChart({
       <line x1="150" y1="280" x2="290" y2="140" stroke="url(#field-grad)" strokeWidth="1.5" opacity="0.4" />
 
       {/* Outfield fence arc */}
-      <path d="M 10 140 A 198 198 0 0 1 290 140" fill="none" stroke="url(#field-grad)" strokeWidth="2" opacity="0.5" />
+      <path d="M 10 155 A 160 160 0 0 1 290 155" fill="none" stroke="url(#field-grad)" strokeWidth="2" opacity="0.5" />
 
       {/* Infield diamond fill */}
       <path d="M 150 280 L 80 210 L 150 140 L 220 210 Z" fill="url(#field-grad-dim)" />
