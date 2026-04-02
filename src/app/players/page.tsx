@@ -92,6 +92,7 @@ export default function PlayersPage() {
                 <TableRow className="border-border/50">
                   <TableHead className="sticky left-0 z-10 bg-zinc-950 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.3)] text-center w-10 px-2">#</TableHead>
                   <TableHead className="whitespace-nowrap">Name</TableHead>
+                  <TableHead className="text-center whitespace-nowrap">AVG</TableHead>
                   <TableHead className="text-center whitespace-nowrap">G</TableHead>
                   <TableHead className="text-center whitespace-nowrap">PA</TableHead>
                   <TableHead className="text-center whitespace-nowrap">AB</TableHead>
@@ -103,7 +104,6 @@ export default function PlayersPage() {
                   <TableHead className="text-center whitespace-nowrap">BB</TableHead>
                   <TableHead className="text-center whitespace-nowrap">SO</TableHead>
                   <TableHead className="text-center whitespace-nowrap">SB</TableHead>
-                  <TableHead className="text-center whitespace-nowrap">AVG</TableHead>
                   <TableHead className="text-center whitespace-nowrap">OBP</TableHead>
                   <TableHead className="text-center whitespace-nowrap">SLG</TableHead>
                   <TableHead className="text-center whitespace-nowrap">OPS</TableHead>
@@ -120,6 +120,9 @@ export default function PlayersPage() {
                         {p.name}
                       </Link>
                     </TableCell>
+                    <TableCell className="text-center tabular-nums font-bold text-primary">
+                      {p.at_bats > 0 ? formatAvg(p.avg) : "---"}
+                    </TableCell>
                     <TableCell className="text-center tabular-nums">{p.games}</TableCell>
                     <TableCell className="text-center tabular-nums">{p.plate_appearances}</TableCell>
                     <TableCell className="text-center tabular-nums">{p.at_bats}</TableCell>
@@ -131,9 +134,6 @@ export default function PlayersPage() {
                     <TableCell className="text-center tabular-nums">{p.walks}</TableCell>
                     <TableCell className="text-center tabular-nums">{p.strikeouts}</TableCell>
                     <TableCell className="text-center tabular-nums">{p.stolen_bases}</TableCell>
-                    <TableCell className="text-center tabular-nums font-bold text-primary">
-                      {p.at_bats > 0 ? formatAvg(p.avg) : "---"}
-                    </TableCell>
                     <TableCell className="text-center tabular-nums">
                       {p.at_bats > 0 ? formatAvg(p.obp) : "---"}
                     </TableCell>
