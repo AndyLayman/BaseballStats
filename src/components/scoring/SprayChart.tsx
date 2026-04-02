@@ -51,7 +51,7 @@ export function SprayChart({
   return (
     <svg
       viewBox="0 0 300 300"
-      className={`w-full max-w-[300px] select-none ${interactive ? "cursor-crosshair" : ""} ${className}`}
+      className={`w-full select-none ${interactive ? "cursor-crosshair" : ""} ${className}`}
       onClick={handleClick}
       onTouchEnd={handleTouch}
     >
