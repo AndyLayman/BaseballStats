@@ -841,7 +841,13 @@ export default function LiveScoringPage() {
                         ? `${color} text-white border-transparent shadow-lg`
                         : "bg-muted/30 text-foreground border-border/50 hover:bg-accent hover:border-border"
                     }`}
-                    onClick={() => setSelectedResult(result)}
+                    onClick={() => {
+                      setSelectedResult(result);
+                      // Auto-select hit type based on result
+                      if (result === "GO") setHitType("GB");
+                      else if (result === "FO") setHitType("FB");
+                      else if (result === "DP") setHitType("GB");
+                    }}
                   >
                     {label}
                   </button>
