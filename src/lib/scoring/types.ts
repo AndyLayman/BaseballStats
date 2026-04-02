@@ -4,6 +4,7 @@ export interface Player {
   id: number;
   name: string;
   number: string;
+  active: boolean;
   bats: "Right" | "Left" | "Switch" | null;
   throws: "Right" | "Left" | null;
   photo_file: string | null;

@@ -42,7 +42,7 @@ export default function NewGamePage() {
       const { data } = await supabase.from("players").select("*").order("sort_order");
       const allPlayers: Player[] = data ?? [];
       setPlayers(allPlayers);
-      setSelectedPlayers(allPlayers.map((p) => p.id));
+      setSelectedPlayers(allPlayers.filter((p) => p.active).map((p) => p.id));
       setPositions({});
     }
     load();

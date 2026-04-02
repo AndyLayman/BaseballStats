@@ -738,7 +738,7 @@ export default function LiveScoringPage() {
             )}
             <div className="grid grid-cols-2 gap-2">
               {gameState.players
-                .filter((p) => !gameState.lineup.some((l) => l.player_id === p.id))
+                .filter((p) => p.active && !gameState.lineup.some((l) => l.player_id === p.id))
                 .sort((a, b) => a.name.localeCompare(b.name))
                 .map((p) => (
                   <button
