@@ -16,6 +16,7 @@ import {
   addOpponentBatter,
 } from "@/lib/scoring/game-engine";
 import { sprayToPosition, generateNotation } from "@/lib/scoring/scorebook";
+import { getDefaultRunnerAdvances } from "@/lib/scoring/baseball-rules";
 import { isAtBat, isHit, totalBases } from "@/lib/stats/calculations";
 import type { GameState, PlateAppearanceResult, RecordAtBatPayload, RunnerAdvance, Player, GameLineup, OpponentBatter, HitType } from "@/lib/scoring/types";
 
@@ -190,26 +191,11 @@ export default function LiveScoringPage() {
   );
 
   function buildRunnerAdvances(result: PlateAppearanceResult, state: GameState): RunnerAdvance[] {
-    const advances: RunnerAdvance[] = [];
-    if (["HR", "3B"].includes(result)) {
-      if (state.runnerThird) advances.push({ from: "third", to: "home" });
-      if (state.runnerSecond) advances.push({ from: "second", to: "home" });
-      if (state.runnerFirst) advances.push({ from: "first", to: "home" });
-    } else if (result === "2B") {
-      if (state.runnerThird) advances.push({ from: "third", to: "home" });
-      if (state.runnerSecond) advances.push({ from: "second", to: "home" });
-      if (state.runnerFirst) advances.push({ from: "first", to: "third" });
-    } else if (["1B", "BB", "HBP", "E", "ROE", "FC"].includes(result)) {
-      if (state.runnerThird) advances.push({ from: "third", to: "home" });
-      if (state.runnerSecond) advances.push({ from: "second", to: "third" });
-      if (state.runnerFirst) advances.push({ from: "first", to: "second" });
-    } else if (result === "DP") {
-      // Runner on 1st is forced out at 2nd (handled by engine)
-      // Remaining runners advance
-      if (state.runnerThird) advances.push({ from: "third", to: "home" });
-      if (state.runnerSecond) advances.push({ from: "second", to: "third" });
-    }
-    return advances;
+    return getDefaultRunnerAdvances(result, {
+      first: state.runnerFirst,
+      second: state.runnerSecond,
+      third: state.runnerThird,
+    });
   }
 
   async function handleConfirmAtBat() {

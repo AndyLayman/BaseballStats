@@ -1,4 +1,6 @@
-import type { PlateAppearanceResult } from "./types";
+import type { PlateAppearanceResult, BaseRunner } from "./types";
+import type { BaseState } from "./baseball-rules";
+import { getDefaultDoublePlayResult } from "./baseball-rules";
 
 // Baseball position numbers
 const POSITIONS: Record<number, string> = {
@@ -43,7 +45,8 @@ export function sprayToPosition(x: number, y: number): number {
 }
 
 // Generate scorebook notation from result and field position
-export function generateNotation(result: PlateAppearanceResult, fieldPosition: number | null): string {
+// Optional baseState enables context-aware DP notation via the rules engine
+export function generateNotation(result: PlateAppearanceResult, fieldPosition: number | null, baseState?: BaseState): string {
   switch (result) {
     case "1B":
       return fieldPosition ? `1B-${fieldPosition}` : "1B";
@@ -70,8 +73,13 @@ export function generateNotation(result: PlateAppearanceResult, fieldPosition: n
     case "FO":
       return fieldPosition ? `F${fieldPosition}` : "FO";
     case "DP": {
+      // Use rules engine for context-aware DP notation when base state is available
+      if (baseState) {
+        const dpResult = getDefaultDoublePlayResult(baseState, fieldPosition);
+        return dpResult.notation;
+      }
+      // Fallback: standard GDP notation by field position
       if (!fieldPosition) return "DP";
-      // Double play: e.g. 6-4-3 (SS to 2B to 1B) or 4-6-3
       if (fieldPosition === 6) return "6-4-3";
       if (fieldPosition === 4) return "4-6-3";
       if (fieldPosition === 5) return "5-4-3";
