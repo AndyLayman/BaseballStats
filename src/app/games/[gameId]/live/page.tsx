@@ -58,6 +58,11 @@ export default function LiveScoringPage() {
   const [rbis, setRbis] = useState(0);
   const [hitType, setHitType] = useState<HitType | null>(null);
   const [sbRunner, setSbRunner] = useState<"first" | "second" | "third" | null>(null);
+  const [halfInningTransition, setHalfInningTransition] = useState<{
+    fromHalf: "top" | "bottom";
+    inning: number;
+    score: { us: number; them: number };
+  } | null>(null);
   const [runnerAdvanceOverrides, setRunnerAdvanceOverrides] = useState<RunnerAdvance[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [playLog, setPlayLog] = useState<{ notation: string; playerName: string; inning: number; team: "us" | "them" }[]>([]);
@@ -235,6 +240,17 @@ export default function LiveScoringPage() {
     const newState = isOpponent
       ? recordOpponentAtBat(gameState, payload)
       : recordAtBat(gameState, payload);
+
+    // Detect half-inning switch
+    const halfChanged = newState.currentHalf !== gameState.currentHalf || newState.currentInning !== gameState.currentInning;
+    if (halfChanged) {
+      setHalfInningTransition({
+        fromHalf: gameState.currentHalf,
+        inning: gameState.currentInning,
+        score: { us: newState.ourScore, them: newState.opponentScore },
+      });
+      setTimeout(() => setHalfInningTransition(null), 3000);
+    }
 
     // Update UI immediately (optimistic) — don't wait for DB
     setGameState(newState);
@@ -937,6 +953,70 @@ export default function LiveScoringPage() {
             </div>
           </CardContent>
         </Card>
+      )}
+      {/* Half-inning transition overlay */}
+      {halfInningTransition && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-background/90 backdrop-blur-md"
+          onClick={() => setHalfInningTransition(null)}
+        >
+          <div className="text-center animate-slide-up space-y-4">
+            {/* Animated baseball */}
+            <div className="flex justify-center">
+              <svg viewBox="0 0 24 24" className="h-20 w-20" fill="none" strokeWidth="1.5" style={{ animation: "spin-slow 2s ease-in-out" }}>
+                <defs>
+                  <linearGradient id="trans-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="oklch(0.75 0.17 165)" />
+                    <stop offset="50%" stopColor="oklch(0.72 0.14 220)" />
+                    <stop offset="100%" stopColor="oklch(0.70 0.12 280)" />
+                  </linearGradient>
+                </defs>
+                <circle cx="12" cy="12" r="10.5" stroke="url(#trans-grad)" />
+                <path d="M 6.5 3.5 Q 4 8 6 12 Q 8 16 6.5 20.5" stroke="url(#trans-grad)" strokeLinecap="round" />
+                <path d="M 17.5 3.5 Q 20 8 18 12 Q 16 16 17.5 20.5" stroke="url(#trans-grad)" strokeLinecap="round" />
+              </svg>
+            </div>
+
+            {/* Score */}
+            <div className="flex items-center justify-center gap-6">
+              <div className="text-center">
+                <div className="text-5xl font-extrabold tabular-nums text-gradient-bright">{halfInningTransition.score.us}</div>
+                <div className="text-xs text-muted-foreground uppercase tracking-wider mt-1">Us</div>
+              </div>
+              <div className="text-2xl text-muted-foreground font-bold">—</div>
+              <div className="text-center">
+                <div className="text-5xl font-extrabold tabular-nums text-gradient-bright">{halfInningTransition.score.them}</div>
+                <div className="text-xs text-muted-foreground uppercase tracking-wider mt-1">Them</div>
+              </div>
+            </div>
+
+            {/* Inning label */}
+            <div className="space-y-1">
+              <div className="text-lg font-bold text-gradient">
+                {halfInningTransition.fromHalf === "top" ? "Mid" : "End"} {halfInningTransition.inning}
+              </div>
+              <div className="text-sm text-muted-foreground">
+                {halfInningTransition.fromHalf === "top"
+                  ? "Switching to offense"
+                  : halfInningTransition.inning < 6 ? "Switching to defense" : "Switching to defense"}
+              </div>
+            </div>
+
+            {/* Tap to dismiss */}
+            <div className="text-xs text-muted-foreground/50 mt-6 animate-pulse">
+              Tap to continue
+            </div>
+          </div>
+
+          <style>{`
+            @keyframes spin-slow {
+              0% { transform: rotate(0deg) scale(0.5); opacity: 0; }
+              30% { transform: rotate(180deg) scale(1.1); opacity: 1; }
+              50% { transform: rotate(360deg) scale(1); }
+              100% { transform: rotate(360deg) scale(1); }
+            }
+          `}</style>
+        </div>
       )}
     </div>
   );
