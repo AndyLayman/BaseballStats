@@ -1,7 +1,9 @@
-import type { PlateAppearanceResult } from "./types";
+import type { PlateAppearanceResult, BaseRunner, GameLineup, Player } from "./types";
+import type { BaseState } from "./baseball-rules";
+import { getDefaultDoublePlayResult } from "./baseball-rules";
 
-// Baseball position numbers
-const POSITIONS: Record<number, string> = {
+// Baseball position numbers (Retrosheet standard: 1=P through 9=RF)
+export const POSITIONS: Record<number, string> = {
   1: "P",
   2: "C",
   3: "1B",
@@ -11,6 +13,11 @@ const POSITIONS: Record<number, string> = {
   7: "LF",
   8: "CF",
   9: "RF",
+};
+
+// Reverse lookup: position abbreviation → number
+export const POSITION_NUMBERS: Record<string, number> = {
+  P: 1, C: 2, "1B": 3, "2B": 4, "3B": 5, SS: 6, LF: 7, CF: 8, RF: 9,
 };
 
 // Convert spray chart coordinates to fielding position number
@@ -43,7 +50,8 @@ export function sprayToPosition(x: number, y: number): number {
 }
 
 // Generate scorebook notation from result and field position
-export function generateNotation(result: PlateAppearanceResult, fieldPosition: number | null): string {
+// Optional baseState enables context-aware DP notation via the rules engine
+export function generateNotation(result: PlateAppearanceResult, fieldPosition: number | null, baseState?: BaseState): string {
   switch (result) {
     case "1B":
       return fieldPosition ? `1B-${fieldPosition}` : "1B";
@@ -70,8 +78,13 @@ export function generateNotation(result: PlateAppearanceResult, fieldPosition: n
     case "FO":
       return fieldPosition ? `F${fieldPosition}` : "FO";
     case "DP": {
+      // Use rules engine for context-aware DP notation when base state is available
+      if (baseState) {
+        const dpResult = getDefaultDoublePlayResult(baseState, fieldPosition);
+        return dpResult.notation;
+      }
+      // Fallback: standard GDP notation by field position
       if (!fieldPosition) return "DP";
-      // Double play: e.g. 6-4-3 (SS to 2B to 1B) or 4-6-3
       if (fieldPosition === 6) return "6-4-3";
       if (fieldPosition === 4) return "4-6-3";
       if (fieldPosition === 5) return "5-4-3";
@@ -88,6 +101,169 @@ export function generateNotation(result: PlateAppearanceResult, fieldPosition: n
     default:
       return result;
   }
+}
+
+// === Fielding Play Generation ===
+
+export interface GeneratedFieldingPlay {
+  positionNumber: number;
+  playType: "PO" | "A" | "E";
+  description: string;
+}
+
+/**
+ * Parse scorebook notation into fielding plays (putouts, assists, errors).
+ *
+ * Follows Retrosheet convention:
+ *   - In a fielding sequence like "6-4-3", the LAST fielder gets the putout (PO),
+ *     all preceding fielders get assists (A).
+ *   - "3U" = unassisted putout by 1B (PO only, no assists)
+ *   - "F8" = fly out caught by CF (PO to position 8)
+ *   - "K" = strikeout (PO to catcher, position 2)
+ *   - "E6" = error by SS (E to position 6)
+ *   - "6-4-3" DP = SS assist, 2B putout+assist, 1B putout
+ *     (two separate outs: 6→4 is first out, then 4→3 is second out)
+ *
+ * For double plays with a dash sequence like "6-4-3":
+ *   First out (force at 2nd):  6=A, 4=PO
+ *   Second out (batter at 1st): 4=A, 3=PO
+ */
+export function parseNotationToFieldingPlays(
+  notation: string,
+  result: PlateAppearanceResult
+): GeneratedFieldingPlay[] {
+  const plays: GeneratedFieldingPlay[] = [];
+
+  // Strikeout: catcher gets putout
+  if (result === "SO" || notation === "K") {
+    plays.push({ positionNumber: 2, playType: "PO", description: notation });
+    return plays;
+  }
+
+  // Error: E followed by position number
+  if (result === "E" || result === "ROE") {
+    const match = notation.match(/E(\d)/);
+    if (match) {
+      plays.push({ positionNumber: parseInt(match[1]), playType: "E", description: notation });
+    }
+    return plays;
+  }
+
+  // Fly out: F followed by position number
+  if (result === "FO") {
+    const match = notation.match(/F(\d)/);
+    if (match) {
+      plays.push({ positionNumber: parseInt(match[1]), playType: "PO", description: notation });
+    }
+    return plays;
+  }
+
+  // Ground out or DP: parse dash-separated fielding sequence
+  if (result === "GO" || result === "DP" || result === "FC" || result === "SAC") {
+    // Extract the fielding sequence — strip prefixes like "SAC ", "FC ", "DP ", "L"-DP
+    let sequence = notation
+      .replace(/^(SAC|FC|DP|LDP|FDP)\s*/i, "")
+      .replace(/^L\d+-DP$/i, "")  // Line drive DP like "L6-DP"
+      .replace(/-DP$/i, "");       // trailing -DP
+
+    // Line drive DP: "L6-DP" → outfielder gets PO (catch), runner doubled off
+    if (notation.match(/^L(\d)-DP$/)) {
+      const pos = parseInt(notation.match(/^L(\d)/)?.[1] ?? "0");
+      if (pos >= 1 && pos <= 9) {
+        plays.push({ positionNumber: pos, playType: "PO", description: notation });
+        // The doubling-off throw goes back to the base — but we don't know who caught it
+        // without more info, so just credit the catch
+      }
+      return plays;
+    }
+
+    // Fly DP: "F8-DP" → outfielder catches, throw to base
+    if (notation.match(/^F(\d)-DP$/)) {
+      const pos = parseInt(notation.match(/^F(\d)/)?.[1] ?? "0");
+      if (pos >= 1 && pos <= 9) {
+        plays.push({ positionNumber: pos, playType: "PO", description: notation });
+      }
+      return plays;
+    }
+
+    // Unassisted: "3U"
+    if (sequence.match(/^(\d)U$/)) {
+      const pos = parseInt(sequence[0]);
+      plays.push({ positionNumber: pos, playType: "PO", description: notation });
+      return plays;
+    }
+
+    // Standard dash sequence: "6-4-3", "5-4-3", "4-3", "1-3", etc.
+    const fielders = sequence.split("-").map((s) => parseInt(s.trim())).filter((n) => n >= 1 && n <= 9);
+
+    if (fielders.length === 0) return plays;
+
+    if (result === "DP" && fielders.length >= 3) {
+      // Double play: two separate outs within the sequence
+      // e.g., "6-4-3": first out = 6(A), 4(PO); second out = 4(A), 3(PO)
+      // Split at the middle fielder who gets both a PO and an A
+      const mid = Math.floor(fielders.length / 2);
+
+      // First out: fielders[0..mid] — last one gets PO, rest get A
+      for (let i = 0; i < mid; i++) {
+        plays.push({ positionNumber: fielders[i], playType: "A", description: notation });
+      }
+      plays.push({ positionNumber: fielders[mid], playType: "PO", description: notation });
+
+      // Second out: fielders[mid..end] — last one gets PO, rest get A
+      plays.push({ positionNumber: fielders[mid], playType: "A", description: notation });
+      for (let i = mid + 1; i < fielders.length - 1; i++) {
+        plays.push({ positionNumber: fielders[i], playType: "A", description: notation });
+      }
+      plays.push({ positionNumber: fielders[fielders.length - 1], playType: "PO", description: notation });
+    } else {
+      // Single out: last fielder gets PO, all others get A
+      for (let i = 0; i < fielders.length - 1; i++) {
+        plays.push({ positionNumber: fielders[i], playType: "A", description: notation });
+      }
+      plays.push({ positionNumber: fielders[fielders.length - 1], playType: "PO", description: notation });
+    }
+
+    return plays;
+  }
+
+  // Hits (1B, 2B, 3B, HR), BB, HBP — no fielding plays
+  return plays;
+}
+
+/**
+ * Resolve a fielding position number to a player ID using the game lineup.
+ *
+ * Uses the player's position from the players table (mapped through lineup)
+ * to find which player_id is playing that position number.
+ *
+ * Position number mapping (Retrosheet standard):
+ *   1=P, 2=C, 3=1B, 4=2B, 5=3B, 6=SS, 7=LF, 8=CF, 9=RF
+ */
+export function resolvePositionToPlayerId(
+  positionNumber: number,
+  lineup: GameLineup[],
+  players: Player[]
+): number | null {
+  const posAbbrev = POSITIONS[positionNumber];
+  if (!posAbbrev) return null;
+
+  // First check game_lineup positions (game-specific overrides)
+  for (const entry of lineup) {
+    if (entry.position.toUpperCase() === posAbbrev) {
+      return entry.player_id;
+    }
+  }
+
+  // Fall back to player's default position from the players table
+  for (const entry of lineup) {
+    const player = players.find((p) => p.id === entry.player_id);
+    if (player && player.position?.toUpperCase() === posAbbrev) {
+      return player.id;
+    }
+  }
+
+  return null;
 }
 
 // Get a color for spray chart markers based on result

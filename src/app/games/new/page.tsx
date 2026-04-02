@@ -9,6 +9,19 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { Player } from "@/lib/scoring/types";
 
+const FIELD_POSITIONS = [
+  { value: "P", label: "P" },
+  { value: "C", label: "C" },
+  { value: "1B", label: "1B" },
+  { value: "2B", label: "2B" },
+  { value: "3B", label: "3B" },
+  { value: "SS", label: "SS" },
+  { value: "LF", label: "LF" },
+  { value: "CF", label: "CF" },
+  { value: "RF", label: "RF" },
+  { value: "DH", label: "DH" },
+];
+
 export default function NewGamePage() {
   const router = useRouter();
   const [opponent, setOpponent] = useState("");
@@ -16,14 +29,21 @@ export default function NewGamePage() {
   const [location, setLocation] = useState<"home" | "away">("home");
   const [players, setPlayers] = useState<Player[]>([]);
   const [selectedPlayers, setSelectedPlayers] = useState<number[]>([]);
+  const [positions, setPositions] = useState<Record<number, string>>({});
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     async function load() {
       const { data } = await supabase.from("players").select("*").order("sort_order");
-      const allPlayers = data ?? [];
+      const allPlayers: Player[] = data ?? [];
       setPlayers(allPlayers);
       setSelectedPlayers(allPlayers.map((p) => p.id));
+      // Pre-fill positions from each player's default position
+      const defaultPositions: Record<number, string> = {};
+      for (const p of allPlayers) {
+        if (p.position) defaultPositions[p.id] = p.position;
+      }
+      setPositions(defaultPositions);
     }
     load();
   }, []);
@@ -50,7 +70,7 @@ export default function NewGamePage() {
       game_id: game.id,
       player_id: playerId,
       batting_order: idx + 1,
-      position: "",
+      position: positions[playerId] || "",
     }));
 
     await supabase.from("game_lineup").insert(lineupRows);
@@ -178,9 +198,22 @@ export default function NewGamePage() {
                     )}
                     <span className="font-medium flex-1 text-base">
                       #{player.number} {player.name}
+                      {!isSelected && player.position && (
+                        <span className="ml-1 text-xs text-muted-foreground">({player.position})</span>
+                      )}
                     </span>
                     {isSelected && (
-                      <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                        <select
+                          value={positions[player.id] || ""}
+                          onChange={(e) => setPositions((prev) => ({ ...prev, [player.id]: e.target.value }))}
+                          className="h-10 rounded-lg border border-border/50 bg-input/50 px-2 text-sm font-bold text-center appearance-none cursor-pointer focus:border-primary/50 focus:outline-none"
+                        >
+                          <option value="">Pos</option>
+                          {FIELD_POSITIONS.map((pos) => (
+                            <option key={pos.value} value={pos.value}>{pos.label}</option>
+                          ))}
+                        </select>
                         <button
                           type="button"
                           className="h-10 w-10 flex items-center justify-center rounded-lg border border-border/50 text-lg active:bg-accent active:scale-95 transition-all disabled:opacity-30"

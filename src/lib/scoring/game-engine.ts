@@ -1,4 +1,4 @@
-import type { GameState, RecordAtBatPayload, RunnerAdvance, BaseRunner, OpponentBatter } from "./types";
+import type { GameState, RecordAtBatPayload, RunnerAdvance, BaseRunner, OpponentBatter, PlateAppearanceResult } from "./types";
 import { isAtBat, isHit, totalBases } from "../stats/calculations";
 
 export function createInitialGameState(
@@ -19,7 +19,7 @@ export function createInitialGameState(
     ourScore: 0,
     opponentScore: 0,
     lineup: lineup.map((l) => ({ ...l, id: "", game_id: gameId, position: "" })),
-    players: players.map((p) => ({ ...p, number: "", photo_file: null, intro_file: null, song_file: null, combo_file: null, sort_order: 0 })),
+    players: players.map((p) => ({ ...p, number: "", position: "", photo_file: null, intro_file: null, song_file: null, combo_file: null, sort_order: 0 })),
     opponentLineup: [],
   };
 }
@@ -38,7 +38,6 @@ export function getCurrentBatter(state: GameState): BaseRunner | null {
 
 export function getCurrentOpponentBatter(state: GameState): BaseRunner | null {
   if (state.opponentLineup.length === 0) return null;
-  // If index is beyond known lineup, return null to prompt adding a new batter
   if (state.opponentBatterIndex >= state.opponentLineup.length) return null;
   const batter = state.opponentLineup[state.opponentBatterIndex];
   return {
@@ -55,115 +54,137 @@ export function addOpponentBatter(state: GameState, batter: OpponentBatter): Gam
   };
 }
 
-export function recordAtBat(state: GameState, payload: RecordAtBatPayload): GameState {
-  const newState = { ...state };
-  const result = payload.result;
+// --- Results where the batter is out (does not reach base) ---
+const BATTER_OUT_RESULTS: PlateAppearanceResult[] = ["GO", "FO", "SAC", "SO", "DP"];
 
-  // Process runner advances
-  let runsScored = 0;
-  for (const advance of payload.runnerAdvances) {
-    if (advance.to === "home") {
-      runsScored++;
+// --- Results where the batter reaches a base ---
+const BATTER_ON_FIRST: PlateAppearanceResult[] = ["1B", "BB", "HBP", "E", "ROE", "FC"];
+
+/**
+ * Count outs recorded by a play result.
+ *
+ * Follows Chadwick's dp_flag logic:
+ *   - DP = 2 outs (batter + one runner, per runnerAdvances with to="out")
+ *   - All other out results = 1 out (batter only by default)
+ *   - Runners put out via runnerAdvances to="out" add additional outs
+ *     (for FC the batter reaches but a runner is out)
+ */
+function countOutsForResult(result: PlateAppearanceResult, runnerAdvances: RunnerAdvance[]): number {
+  let outs = 0;
+
+  // Batter out?
+  if (BATTER_OUT_RESULTS.includes(result)) {
+    outs += 1;
+  }
+
+  // Runners explicitly put out via advances (Retrosheet "X" notation: 1X2, 2XH, etc.)
+  for (const advance of runnerAdvances) {
+    if (advance.to === "out") {
+      outs += 1;
     }
   }
-  newState.ourScore = state.ourScore + runsScored;
 
-  // Apply runner advances (process from third base back to avoid conflicts)
+  return outs;
+}
+
+/**
+ * Unified function to apply a play result to the game state.
+ *
+ * This replaces the previous separate logic for recordAtBat/recordOpponentAtBat
+ * with a single, rules-correct implementation based on Retrosheet/Chadwick:
+ *
+ * 1. Process runner advances (including outs via to="out")
+ * 2. Place batter on the appropriate base (or not, if out)
+ * 3. Count outs from both batter result and runner advances
+ * 4. Handle HR batter scoring
+ * 5. Switch half-inning if 3+ outs reached
+ *
+ * Runner advances use Retrosheet notation semantics:
+ *   { from: "first", to: "third" }   = runner advances 1st → 3rd  (1-3)
+ *   { from: "second", to: "home" }   = runner scores from 2nd     (2-H)
+ *   { from: "first", to: "out" }     = runner out advancing        (1X2)
+ *   { from: "third", to: "home" }    = runner scores from 3rd     (3-H)
+ */
+function applyPlayResult(
+  state: GameState,
+  result: PlateAppearanceResult,
+  runnerAdvances: RunnerAdvance[],
+  batterRunner: BaseRunner | null,
+  scoreField: "ourScore" | "opponentScore"
+): { newFirst: BaseRunner | null; newSecond: BaseRunner | null; newThird: BaseRunner | null; runsScored: number; outsRecorded: number } {
+  // Start from current base state
   let newFirst: BaseRunner | null = state.runnerFirst;
   let newSecond: BaseRunner | null = state.runnerSecond;
   let newThird: BaseRunner | null = state.runnerThird;
+  let runsScored = 0;
 
-  // Clear runners that advanced
-  for (const advance of payload.runnerAdvances) {
+  // Step 1: Clear runners from their origin bases
+  for (const advance of runnerAdvances) {
     if (advance.from === "third") newThird = null;
     else if (advance.from === "second") newSecond = null;
     else if (advance.from === "first") newFirst = null;
   }
 
-  // Place runners at destinations
-  for (const advance of payload.runnerAdvances) {
-    if (advance.to === "third") {
-      const runner = getRunnerByBase(state, advance.from);
-      if (runner) newThird = runner;
+  // Step 2: Place runners at their destinations (skip "out" and "home")
+  for (const advance of runnerAdvances) {
+    const runner = getRunnerByBase(state, advance.from);
+    if (!runner) continue;
+
+    if (advance.to === "home") {
+      runsScored++;
+    } else if (advance.to === "third") {
+      newThird = runner;
     } else if (advance.to === "second") {
-      const runner = getRunnerByBase(state, advance.from);
-      if (runner) newSecond = runner;
+      newSecond = runner;
     } else if (advance.to === "first") {
-      const runner = getRunnerByBase(state, advance.from);
-      if (runner) newFirst = runner;
+      newFirst = runner;
     }
+    // "out" — runner is already cleared from origin, not placed anywhere
   }
 
-  // Place batter based on result
-  const batter = getCurrentBatter(state);
-  if (batter) {
-    const batterRunner: BaseRunner = { playerId: batter.playerId, opponentBatterId: null, playerName: batter.playerName };
-    if (result === "1B" || result === "BB" || result === "HBP" || result === "E" || result === "ROE" || result === "FC") {
+  // Step 3: Place batter based on result
+  if (batterRunner) {
+    if (BATTER_ON_FIRST.includes(result)) {
       newFirst = batterRunner;
     } else if (result === "2B") {
       newSecond = batterRunner;
     } else if (result === "3B") {
       newThird = batterRunner;
+    } else if (result === "HR") {
+      runsScored++; // batter scores
     }
-    // HR: batter scores (already counted in runsScored from runnerAdvances typically, but add 1 for the batter)
-    if (result === "HR") {
-      newState.ourScore += 1; // batter scores
-    }
+    // Batter-out results: batter does not go on base
   }
 
-  // Check for outs
-  const isOut = ["GO", "FO", "FC", "SAC", "DP"].includes(result) || result === "SO";
-  let outs = state.outs;
-  if (isOut) {
-    outs += result === "DP" ? 2 : 1;
-    // On an out, batter doesn't go to base (except FC where they do - already handled above)
-    if (result !== "FC") {
-      // Don't place batter on base
-      // Revert the batter placement for non-FC outs
-      if (result === "GO" || result === "FO" || result === "SAC" || result === "SO" || result === "DP") {
-        // Batter is out, not on base
-        newFirst = state.runnerFirst;
-        newSecond = state.runnerSecond;
-        newThird = state.runnerThird;
-        // DP: runner on 1st is forced out at 2nd
-        if (result === "DP") {
-          newFirst = null;
-        }
-        // Re-apply runner advances only
-        for (const advance of payload.runnerAdvances) {
-          if (advance.from === "third") newThird = null;
-          else if (advance.from === "second") newSecond = null;
-          else if (advance.from === "first") newFirst = null;
-        }
-        for (const advance of payload.runnerAdvances) {
-          if (advance.to === "third") {
-            const runner = getRunnerByBase(state, advance.from);
-            if (runner) newThird = runner;
-          } else if (advance.to === "second") {
-            const runner = getRunnerByBase(state, advance.from);
-            if (runner) newSecond = runner;
-          } else if (advance.to === "first") {
-            const runner = getRunnerByBase(state, advance.from);
-            if (runner) newFirst = runner;
-          }
-        }
-      }
-    }
-  }
+  // Step 4: Count outs
+  const outsRecorded = countOutsForResult(result, runnerAdvances);
 
-  newState.runnerFirst = newFirst;
-  newState.runnerSecond = newSecond;
-  newState.runnerThird = newThird;
-  newState.outs = outs;
+  return { newFirst, newSecond, newThird, runsScored, outsRecorded };
+}
 
-  // Advance to next batter
-  newState.currentBatterIndex = (state.currentBatterIndex + 1) % state.lineup.length;
+export function recordAtBat(state: GameState, payload: RecordAtBatPayload): GameState {
+  const batter = getCurrentBatter(state);
+  const batterRunner: BaseRunner | null = batter
+    ? { playerId: batter.playerId, opponentBatterId: null, playerName: batter.playerName }
+    : null;
 
-  // Check for 3 outs -> switch half
+  const { newFirst, newSecond, newThird, runsScored, outsRecorded } = applyPlayResult(
+    state, payload.result, payload.runnerAdvances, batterRunner, "ourScore"
+  );
+
+  const newState: GameState = {
+    ...state,
+    runnerFirst: newFirst,
+    runnerSecond: newSecond,
+    runnerThird: newThird,
+    ourScore: state.ourScore + runsScored,
+    outs: state.outs + outsRecorded,
+    currentBatterIndex: (state.currentBatterIndex + 1) % state.lineup.length,
+  };
+
   if (newState.outs >= 3) {
     return switchHalf(newState);
   }
-
   return newState;
 }
 
@@ -184,108 +205,28 @@ function getRunnerByBase(
 }
 
 export function recordOpponentAtBat(state: GameState, payload: RecordAtBatPayload): GameState {
-  const newState = { ...state };
-  const result = payload.result;
-
-  // Process runner advances
-  let runsScored = 0;
-  for (const advance of payload.runnerAdvances) {
-    if (advance.to === "home") {
-      runsScored++;
-    }
-  }
-  newState.opponentScore = state.opponentScore + runsScored;
-
-  // Apply runner advances (process from third base back to avoid conflicts)
-  let newFirst: BaseRunner | null = state.runnerFirst;
-  let newSecond: BaseRunner | null = state.runnerSecond;
-  let newThird: BaseRunner | null = state.runnerThird;
-
-  // Clear runners that advanced
-  for (const advance of payload.runnerAdvances) {
-    if (advance.from === "third") newThird = null;
-    else if (advance.from === "second") newSecond = null;
-    else if (advance.from === "first") newFirst = null;
-  }
-
-  // Place runners at destinations
-  for (const advance of payload.runnerAdvances) {
-    if (advance.to === "third") {
-      const runner = getRunnerByBase(state, advance.from);
-      if (runner) newThird = runner;
-    } else if (advance.to === "second") {
-      const runner = getRunnerByBase(state, advance.from);
-      if (runner) newSecond = runner;
-    } else if (advance.to === "first") {
-      const runner = getRunnerByBase(state, advance.from);
-      if (runner) newFirst = runner;
-    }
-  }
-
-  // Place batter based on result
   const batter = getCurrentOpponentBatter(state);
-  if (batter) {
-    const batterRunner: BaseRunner = { playerId: null, opponentBatterId: batter.opponentBatterId, playerName: batter.playerName };
-    if (result === "1B" || result === "BB" || result === "HBP" || result === "E" || result === "ROE" || result === "FC") {
-      newFirst = batterRunner;
-    } else if (result === "2B") {
-      newSecond = batterRunner;
-    } else if (result === "3B") {
-      newThird = batterRunner;
-    }
-    if (result === "HR") {
-      newState.opponentScore += 1;
-    }
-  }
+  const batterRunner: BaseRunner | null = batter
+    ? { playerId: null, opponentBatterId: batter.opponentBatterId, playerName: batter.playerName }
+    : null;
 
-  // Check for outs
-  const isOut = ["GO", "FO", "FC", "SAC", "DP"].includes(result) || result === "SO";
-  let outs = state.outs;
-  if (isOut) {
-    outs += result === "DP" ? 2 : 1;
-    if (result !== "FC") {
-      if (result === "GO" || result === "FO" || result === "SAC" || result === "SO" || result === "DP") {
-        newFirst = state.runnerFirst;
-        newSecond = state.runnerSecond;
-        newThird = state.runnerThird;
-        // DP: runner on 1st is forced out at 2nd
-        if (result === "DP") {
-          newFirst = null;
-        }
-        for (const advance of payload.runnerAdvances) {
-          if (advance.from === "third") newThird = null;
-          else if (advance.from === "second") newSecond = null;
-          else if (advance.from === "first") newFirst = null;
-        }
-        for (const advance of payload.runnerAdvances) {
-          if (advance.to === "third") {
-            const runner = getRunnerByBase(state, advance.from);
-            if (runner) newThird = runner;
-          } else if (advance.to === "second") {
-            const runner = getRunnerByBase(state, advance.from);
-            if (runner) newSecond = runner;
-          } else if (advance.to === "first") {
-            const runner = getRunnerByBase(state, advance.from);
-            if (runner) newFirst = runner;
-          }
-        }
-      }
-    }
-  }
+  const { newFirst, newSecond, newThird, runsScored, outsRecorded } = applyPlayResult(
+    state, payload.result, payload.runnerAdvances, batterRunner, "opponentScore"
+  );
 
-  newState.runnerFirst = newFirst;
-  newState.runnerSecond = newSecond;
-  newState.runnerThird = newThird;
-  newState.outs = outs;
+  const newState: GameState = {
+    ...state,
+    runnerFirst: newFirst,
+    runnerSecond: newSecond,
+    runnerThird: newThird,
+    opponentScore: state.opponentScore + runsScored,
+    outs: state.outs + outsRecorded,
+    opponentBatterIndex: state.opponentBatterIndex + 1,
+  };
 
-  // Advance to next opponent batter (don't wrap — let UI prompt for new batters on first cycle)
-  newState.opponentBatterIndex = state.opponentBatterIndex + 1;
-
-  // Check for 3 outs -> switch half
   if (newState.outs >= 3) {
     return switchHalf(newState);
   }
-
   return newState;
 }
 

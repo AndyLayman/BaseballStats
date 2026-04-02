@@ -15,7 +15,8 @@ import {
   recordOpponentAtBat,
   addOpponentBatter,
 } from "@/lib/scoring/game-engine";
-import { sprayToPosition, generateNotation } from "@/lib/scoring/scorebook";
+import { sprayToPosition, generateNotation, parseNotationToFieldingPlays, resolvePositionToPlayerId } from "@/lib/scoring/scorebook";
+import { getDefaultRunnerAdvances, canDoublePlay } from "@/lib/scoring/baseball-rules";
 import { isAtBat, isHit, totalBases } from "@/lib/stats/calculations";
 import type { GameState, PlateAppearanceResult, RecordAtBatPayload, RunnerAdvance, Player, GameLineup, OpponentBatter, HitType } from "@/lib/scoring/types";
 
@@ -57,6 +58,7 @@ export default function LiveScoringPage() {
   const [rbis, setRbis] = useState(0);
   const [stolenBases, setStolenBases] = useState(0);
   const [hitType, setHitType] = useState<HitType | null>(null);
+  const [runnerAdvanceOverrides, setRunnerAdvanceOverrides] = useState<RunnerAdvance[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [playLog, setPlayLog] = useState<{ notation: string; playerName: string; inning: number; team: "us" | "them" }[]>([]);
   const [newOpponentName, setNewOpponentName] = useState("");
@@ -190,26 +192,11 @@ export default function LiveScoringPage() {
   );
 
   function buildRunnerAdvances(result: PlateAppearanceResult, state: GameState): RunnerAdvance[] {
-    const advances: RunnerAdvance[] = [];
-    if (["HR", "3B"].includes(result)) {
-      if (state.runnerThird) advances.push({ from: "third", to: "home" });
-      if (state.runnerSecond) advances.push({ from: "second", to: "home" });
-      if (state.runnerFirst) advances.push({ from: "first", to: "home" });
-    } else if (result === "2B") {
-      if (state.runnerThird) advances.push({ from: "third", to: "home" });
-      if (state.runnerSecond) advances.push({ from: "second", to: "home" });
-      if (state.runnerFirst) advances.push({ from: "first", to: "third" });
-    } else if (["1B", "BB", "HBP", "E", "ROE", "FC"].includes(result)) {
-      if (state.runnerThird) advances.push({ from: "third", to: "home" });
-      if (state.runnerSecond) advances.push({ from: "second", to: "third" });
-      if (state.runnerFirst) advances.push({ from: "first", to: "second" });
-    } else if (result === "DP") {
-      // Runner on 1st is forced out at 2nd (handled by engine)
-      // Remaining runners advance
-      if (state.runnerThird) advances.push({ from: "third", to: "home" });
-      if (state.runnerSecond) advances.push({ from: "second", to: "third" });
-    }
-    return advances;
+    return getDefaultRunnerAdvances(result, {
+      first: state.runnerFirst,
+      second: state.runnerSecond,
+      third: state.runnerThird,
+    });
   }
 
   async function handleConfirmAtBat() {
@@ -221,9 +208,14 @@ export default function LiveScoringPage() {
     const isBattedBall = !NON_BATTED.includes(selectedResult);
 
     const fieldPosition = sprayPoint ? sprayToPosition(sprayPoint.x, sprayPoint.y) : null;
-    const autoNotation = generateNotation(selectedResult, fieldPosition);
+    const baseState = {
+      first: gameState.runnerFirst,
+      second: gameState.runnerSecond,
+      third: gameState.runnerThird,
+    };
+    const autoNotation = generateNotation(selectedResult, fieldPosition, baseState);
     const notation = notationOverride ?? autoNotation;
-    const runnerAdvances = buildRunnerAdvances(selectedResult, gameState);
+    const runnerAdvances = runnerAdvanceOverrides ?? buildRunnerAdvances(selectedResult, gameState);
 
     const payload: RecordAtBatPayload = {
       result: selectedResult,
@@ -251,6 +243,7 @@ export default function LiveScoringPage() {
     setSprayPoint(null);
     setHitType(null);
     setNotationOverride(null);
+    setRunnerAdvanceOverrides(null);
     setRbis(0);
     setStolenBases(0);
 
@@ -275,6 +268,29 @@ export default function LiveScoringPage() {
       is_hit: isHit(selectedResult),
       total_bases: totalBases(selectedResult),
     });
+
+    // Auto-generate fielding plays when opponent is batting (our defense)
+    if (isOpponent) {
+      const fieldingPlays = parseNotationToFieldingPlays(notation, selectedResult);
+      const fieldingRows = fieldingPlays
+        .map((fp) => {
+          const playerId = resolvePositionToPlayerId(fp.positionNumber, gameState.lineup, gameState.players);
+          if (!playerId) return null;
+          return {
+            game_id: gameId,
+            player_id: playerId,
+            inning: gameState.currentInning,
+            play_type: fp.playType,
+            description: fp.description,
+          };
+        })
+        .filter((row): row is NonNullable<typeof row> => row !== null);
+
+      if (fieldingRows.length > 0) {
+        supabase.from("fielding_plays").insert(fieldingRows);
+      }
+    }
+
     persistState(newState);
   }
 
@@ -304,13 +320,22 @@ export default function LiveScoringPage() {
 
     const { data: lastPA } = await supabase
       .from("plate_appearances")
-      .select("id")
+      .select("id, scorebook_notation, inning, team")
       .eq("game_id", gameId)
       .order("created_at", { ascending: false })
       .limit(1)
       .single();
     if (lastPA) {
       await supabase.from("plate_appearances").delete().eq("id", lastPA.id);
+      // Also remove fielding plays generated for this at-bat (opponent batting = our defense)
+      if (lastPA.team === "them" && lastPA.scorebook_notation) {
+        await supabase
+          .from("fielding_plays")
+          .delete()
+          .eq("game_id", gameId)
+          .eq("inning", lastPA.inning)
+          .eq("description", lastPA.scorebook_notation);
+      }
     }
   }
 
@@ -500,19 +525,34 @@ export default function LiveScoringPage() {
             </CardHeader>
             <CardContent className="px-3 sm:px-6 pb-3">
               <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-                {RESULT_BUTTONS.map(({ result, label, color }) => (
-                  <button
-                    key={result}
-                    className={`h-14 sm:h-12 rounded-xl text-base font-bold border-2 transition-all active:scale-95 select-none ${
-                      selectedResult === result
-                        ? `${color} text-white border-transparent shadow-lg`
-                        : "bg-muted/30 text-foreground border-border/50 hover:bg-accent hover:border-border"
-                    }`}
-                    onClick={() => setSelectedResult(result)}
-                  >
-                    {label}
-                  </button>
-                ))}
+                {RESULT_BUTTONS.map(({ result, label, color }) => {
+                  const baseState = {
+                    first: gameState.runnerFirst,
+                    second: gameState.runnerSecond,
+                    third: gameState.runnerThird,
+                  };
+                  // DP requires at least one runner; FC requires at least one runner
+                  const disabled =
+                    (result === "DP" && !canDoublePlay(baseState)) ||
+                    (result === "FC" && !canDoublePlay(baseState));
+
+                  return (
+                    <button
+                      key={result}
+                      disabled={disabled}
+                      className={`h-14 sm:h-12 rounded-xl text-base font-bold border-2 transition-all active:scale-95 select-none ${
+                        disabled
+                          ? "opacity-30 cursor-not-allowed bg-muted/10 text-muted-foreground border-border/20"
+                          : selectedResult === result
+                            ? `${color} text-white border-transparent shadow-lg`
+                            : "bg-muted/30 text-foreground border-border/50 hover:bg-accent hover:border-border"
+                      }`}
+                      onClick={() => !disabled && setSelectedResult(result)}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
               </div>
             </CardContent>
           </Card>
@@ -589,13 +629,114 @@ export default function LiveScoringPage() {
             </Card>
           )}
 
+          {/* Runner Advance Editor — only show when result selected and runners on base */}
+          {selectedResult && gameState && (gameState.runnerFirst || gameState.runnerSecond || gameState.runnerThird) && (() => {
+            const defaults = buildRunnerAdvances(selectedResult, gameState);
+            const advances = runnerAdvanceOverrides ?? defaults;
+
+            // Possible destinations for each base runner
+            const DEST_OPTIONS: Record<string, { to: RunnerAdvance["to"]; label: string }[]> = {
+              third: [
+                { to: "home", label: "Scores" },
+                { to: "third", label: "Holds 3rd" },
+                { to: "out", label: "Out" },
+              ],
+              second: [
+                { to: "home", label: "Scores" },
+                { to: "third", label: "To 3rd" },
+                { to: "second", label: "Holds 2nd" },
+                { to: "out", label: "Out" },
+              ],
+              first: [
+                { to: "home", label: "Scores" },
+                { to: "third", label: "To 3rd" },
+                { to: "second", label: "To 2nd" },
+                { to: "first", label: "Holds 1st" },
+                { to: "out", label: "Out" },
+              ],
+            };
+
+            const runners: { base: "first" | "second" | "third"; name: string }[] = [];
+            if (gameState.runnerThird) runners.push({ base: "third", name: gameState.runnerThird.playerName });
+            if (gameState.runnerSecond) runners.push({ base: "second", name: gameState.runnerSecond.playerName });
+            if (gameState.runnerFirst) runners.push({ base: "first", name: gameState.runnerFirst.playerName });
+
+            function getAdvanceTo(base: "first" | "second" | "third"): RunnerAdvance["to"] {
+              const adv = advances.find((a) => a.from === base);
+              return adv ? adv.to : base; // default: holds current base
+            }
+
+            function setAdvanceTo(base: "first" | "second" | "third", to: RunnerAdvance["to"]) {
+              const current = runnerAdvanceOverrides ?? [...defaults];
+              const filtered = current.filter((a) => a.from !== base);
+              if (to !== base) {
+                filtered.push({ from: base, to });
+              }
+              setRunnerAdvanceOverrides(filtered);
+            }
+
+            const isEdited = runnerAdvanceOverrides !== null;
+
+            return (
+              <Card className="glass animate-slide-up">
+                <CardHeader className="pb-2 px-3 sm:px-6">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-lg text-gradient">Runners</CardTitle>
+                    {isEdited && (
+                      <button
+                        className="text-xs text-primary font-semibold hover:underline"
+                        onClick={() => setRunnerAdvanceOverrides(null)}
+                      >
+                        Reset
+                      </button>
+                    )}
+                  </div>
+                </CardHeader>
+                <CardContent className="px-3 sm:px-6 pb-3 space-y-2">
+                  {runners.map(({ base, name }) => {
+                    const currentTo = getAdvanceTo(base);
+                    const options = DEST_OPTIONS[base];
+                    const baseLabel = base === "first" ? "1st" : base === "second" ? "2nd" : "3rd";
+                    return (
+                      <div key={base} className="flex items-center gap-2">
+                        <div className="w-20 shrink-0">
+                          <div className="text-xs text-muted-foreground uppercase tracking-wider">{baseLabel}</div>
+                          <div className="text-sm font-semibold truncate">{name}</div>
+                        </div>
+                        <div className="flex gap-1 flex-1 flex-wrap">
+                          {options.map(({ to, label }) => (
+                            <button
+                              key={to}
+                              className={`h-9 px-3 rounded-lg text-xs font-bold border-2 transition-all active:scale-95 select-none ${
+                                currentTo === to
+                                  ? to === "home"
+                                    ? "bg-emerald-600 text-white border-transparent shadow-md"
+                                    : to === "out"
+                                      ? "bg-red-600 text-white border-transparent shadow-md"
+                                      : "bg-primary text-primary-foreground border-transparent shadow-md"
+                                  : "bg-muted/30 text-foreground border-border/50 hover:bg-accent"
+                              }`}
+                              onClick={() => setAdvanceTo(base, to)}
+                            >
+                              {label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </CardContent>
+              </Card>
+            );
+          })()}
+
           {/* Confirm bar — sticky at bottom */}
           {selectedResult && (
             <div className="fixed bottom-0 left-0 right-0 p-3 glass-strong border-t border-border/50 z-40">
               <div className="flex gap-2 items-center">
                 <input
                   type="text"
-                  value={notationOverride !== null ? notationOverride : (sprayPoint ? generateNotation(selectedResult, sprayToPosition(sprayPoint.x, sprayPoint.y)) : selectedResult)}
+                  value={notationOverride !== null ? notationOverride : (sprayPoint ? generateNotation(selectedResult, sprayToPosition(sprayPoint.x, sprayPoint.y), { first: gameState.runnerFirst, second: gameState.runnerSecond, third: gameState.runnerThird }) : selectedResult)}
                   onChange={(e) => setNotationOverride(e.target.value)}
                   className="h-14 flex-1 rounded-xl border-2 border-border/50 bg-muted/30 px-4 text-center text-lg font-bold tabular-nums placeholder:text-muted-foreground/50 focus:border-primary/50 focus:outline-none transition-colors"
                 />
