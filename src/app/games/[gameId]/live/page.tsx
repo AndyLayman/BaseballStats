@@ -15,7 +15,7 @@ import {
   recordOpponentAtBat,
   addOpponentBatter,
 } from "@/lib/scoring/game-engine";
-import { sprayToPosition, generateNotation } from "@/lib/scoring/scorebook";
+import { sprayToPosition, generateNotation, parseNotationToFieldingPlays, resolvePositionToPlayerId } from "@/lib/scoring/scorebook";
 import { getDefaultRunnerAdvances, canDoublePlay } from "@/lib/scoring/baseball-rules";
 import { isAtBat, isHit, totalBases } from "@/lib/stats/calculations";
 import type { GameState, PlateAppearanceResult, RecordAtBatPayload, RunnerAdvance, Player, GameLineup, OpponentBatter, HitType } from "@/lib/scoring/types";
@@ -266,6 +266,29 @@ export default function LiveScoringPage() {
       is_hit: isHit(selectedResult),
       total_bases: totalBases(selectedResult),
     });
+
+    // Auto-generate fielding plays when opponent is batting (our defense)
+    if (isOpponent) {
+      const fieldingPlays = parseNotationToFieldingPlays(notation, selectedResult);
+      const fieldingRows = fieldingPlays
+        .map((fp) => {
+          const playerId = resolvePositionToPlayerId(fp.positionNumber, gameState.lineup, gameState.players);
+          if (!playerId) return null;
+          return {
+            game_id: gameId,
+            player_id: playerId,
+            inning: gameState.currentInning,
+            play_type: fp.playType,
+            description: fp.description,
+          };
+        })
+        .filter((row): row is NonNullable<typeof row> => row !== null);
+
+      if (fieldingRows.length > 0) {
+        supabase.from("fielding_plays").insert(fieldingRows);
+      }
+    }
+
     persistState(newState);
   }
 
@@ -295,13 +318,22 @@ export default function LiveScoringPage() {
 
     const { data: lastPA } = await supabase
       .from("plate_appearances")
-      .select("id")
+      .select("id, scorebook_notation, inning, team")
       .eq("game_id", gameId)
       .order("created_at", { ascending: false })
       .limit(1)
       .single();
     if (lastPA) {
       await supabase.from("plate_appearances").delete().eq("id", lastPA.id);
+      // Also remove fielding plays generated for this at-bat (opponent batting = our defense)
+      if (lastPA.team === "them" && lastPA.scorebook_notation) {
+        await supabase
+          .from("fielding_plays")
+          .delete()
+          .eq("game_id", gameId)
+          .eq("inning", lastPA.inning)
+          .eq("description", lastPA.scorebook_notation);
+      }
     }
   }
 

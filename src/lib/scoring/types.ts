@@ -4,6 +4,7 @@ export interface Player {
   id: number;
   name: string;
   number: string;
+  position: string;
   photo_file: string | null;
   intro_file: string | null;
   song_file: string | null;
