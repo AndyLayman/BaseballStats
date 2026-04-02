@@ -192,7 +192,7 @@ export default function LiveScoringPage() {
         supabase.from("games").update({
           our_score: state.ourScore,
           opponent_score: state.opponentScore,
-          innings_played: state.currentInning,
+          innings_played: state.currentHalf === "top" ? state.currentInning - 1 : state.currentInning,
         }).eq("id", gameId),
       ]);
     },
@@ -420,7 +420,7 @@ export default function LiveScoringPage() {
       status: "final",
       our_score: gameState.ourScore,
       opponent_score: gameState.opponentScore,
-      innings_played: gameState.currentInning,
+      innings_played: gameState.currentHalf === "top" ? gameState.currentInning - 1 : gameState.currentInning,
     }).eq("id", gameId);
     router.push(`/games/${gameId}`);
   }
