@@ -224,9 +224,17 @@ function TrajectoryPath({
   // Unit direction and perpendicular (for arc control points)
   const ux = dx / dist;
   const uy = dy / dist;
-  // Perpendicular (rotated 90 degrees CCW) — points "up" relative to the trajectory
-  const px = -uy;
-  const py = ux;
+  // Perpendicular — always points toward center of field (x=150)
+  // CCW perpendicular is (-uy, ux); flip it if the ball is hit to the right
+  // so the arc curves inward rather than outward
+  const midX = (fromX + toX) / 2;
+  const ccwX = -uy;
+  const ccwY = ux;
+  // Check if CCW perpendicular points toward center (x=150)
+  const towardCenter = (150 - midX) * ccwX;
+  const sign = towardCenter >= 0 ? 1 : -1;
+  const px = ccwX * sign;
+  const py = ccwY * sign;
 
   const color = "oklch(0.75 0.17 165)";
 
