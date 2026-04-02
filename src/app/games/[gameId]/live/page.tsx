@@ -58,6 +58,7 @@ export default function LiveScoringPage() {
   const [rbis, setRbis] = useState(0);
   const [stolenBases, setStolenBases] = useState(0);
   const [hitType, setHitType] = useState<HitType | null>(null);
+  const [runnerAdvanceOverrides, setRunnerAdvanceOverrides] = useState<RunnerAdvance[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [playLog, setPlayLog] = useState<{ notation: string; playerName: string; inning: number; team: "us" | "them" }[]>([]);
   const [newOpponentName, setNewOpponentName] = useState("");
@@ -214,7 +215,7 @@ export default function LiveScoringPage() {
     };
     const autoNotation = generateNotation(selectedResult, fieldPosition, baseState);
     const notation = notationOverride ?? autoNotation;
-    const runnerAdvances = buildRunnerAdvances(selectedResult, gameState);
+    const runnerAdvances = runnerAdvanceOverrides ?? buildRunnerAdvances(selectedResult, gameState);
 
     const payload: RecordAtBatPayload = {
       result: selectedResult,
@@ -242,6 +243,7 @@ export default function LiveScoringPage() {
     setSprayPoint(null);
     setHitType(null);
     setNotationOverride(null);
+    setRunnerAdvanceOverrides(null);
     setRbis(0);
     setStolenBases(0);
 
@@ -626,6 +628,107 @@ export default function LiveScoringPage() {
               </CardContent>
             </Card>
           )}
+
+          {/* Runner Advance Editor — only show when result selected and runners on base */}
+          {selectedResult && gameState && (gameState.runnerFirst || gameState.runnerSecond || gameState.runnerThird) && (() => {
+            const defaults = buildRunnerAdvances(selectedResult, gameState);
+            const advances = runnerAdvanceOverrides ?? defaults;
+
+            // Possible destinations for each base runner
+            const DEST_OPTIONS: Record<string, { to: RunnerAdvance["to"]; label: string }[]> = {
+              third: [
+                { to: "home", label: "Scores" },
+                { to: "third", label: "Holds 3rd" },
+                { to: "out", label: "Out" },
+              ],
+              second: [
+                { to: "home", label: "Scores" },
+                { to: "third", label: "To 3rd" },
+                { to: "second", label: "Holds 2nd" },
+                { to: "out", label: "Out" },
+              ],
+              first: [
+                { to: "home", label: "Scores" },
+                { to: "third", label: "To 3rd" },
+                { to: "second", label: "To 2nd" },
+                { to: "first", label: "Holds 1st" },
+                { to: "out", label: "Out" },
+              ],
+            };
+
+            const runners: { base: "first" | "second" | "third"; name: string }[] = [];
+            if (gameState.runnerThird) runners.push({ base: "third", name: gameState.runnerThird.playerName });
+            if (gameState.runnerSecond) runners.push({ base: "second", name: gameState.runnerSecond.playerName });
+            if (gameState.runnerFirst) runners.push({ base: "first", name: gameState.runnerFirst.playerName });
+
+            function getAdvanceTo(base: "first" | "second" | "third"): RunnerAdvance["to"] {
+              const adv = advances.find((a) => a.from === base);
+              return adv ? adv.to : base; // default: holds current base
+            }
+
+            function setAdvanceTo(base: "first" | "second" | "third", to: RunnerAdvance["to"]) {
+              const current = runnerAdvanceOverrides ?? [...defaults];
+              const filtered = current.filter((a) => a.from !== base);
+              if (to !== base) {
+                filtered.push({ from: base, to });
+              }
+              setRunnerAdvanceOverrides(filtered);
+            }
+
+            const isEdited = runnerAdvanceOverrides !== null;
+
+            return (
+              <Card className="glass animate-slide-up">
+                <CardHeader className="pb-2 px-3 sm:px-6">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-lg text-gradient">Runners</CardTitle>
+                    {isEdited && (
+                      <button
+                        className="text-xs text-primary font-semibold hover:underline"
+                        onClick={() => setRunnerAdvanceOverrides(null)}
+                      >
+                        Reset
+                      </button>
+                    )}
+                  </div>
+                </CardHeader>
+                <CardContent className="px-3 sm:px-6 pb-3 space-y-2">
+                  {runners.map(({ base, name }) => {
+                    const currentTo = getAdvanceTo(base);
+                    const options = DEST_OPTIONS[base];
+                    const baseLabel = base === "first" ? "1st" : base === "second" ? "2nd" : "3rd";
+                    return (
+                      <div key={base} className="flex items-center gap-2">
+                        <div className="w-20 shrink-0">
+                          <div className="text-xs text-muted-foreground uppercase tracking-wider">{baseLabel}</div>
+                          <div className="text-sm font-semibold truncate">{name}</div>
+                        </div>
+                        <div className="flex gap-1 flex-1 flex-wrap">
+                          {options.map(({ to, label }) => (
+                            <button
+                              key={to}
+                              className={`h-9 px-3 rounded-lg text-xs font-bold border-2 transition-all active:scale-95 select-none ${
+                                currentTo === to
+                                  ? to === "home"
+                                    ? "bg-emerald-600 text-white border-transparent shadow-md"
+                                    : to === "out"
+                                      ? "bg-red-600 text-white border-transparent shadow-md"
+                                      : "bg-primary text-primary-foreground border-transparent shadow-md"
+                                  : "bg-muted/30 text-foreground border-border/50 hover:bg-accent"
+                              }`}
+                              onClick={() => setAdvanceTo(base, to)}
+                            >
+                              {label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </CardContent>
+              </Card>
+            );
+          })()}
 
           {/* Confirm bar — sticky at bottom */}
           {selectedResult && (
