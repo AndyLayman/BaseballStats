@@ -221,7 +221,7 @@ export default function PlayersPage() {
         </CardHeader>
         <CardContent className="px-0">
           <div className="overflow-x-auto">
-            <Table>
+            <Table className="[&_td]:py-3">
               <TableHeader>
                 <TableRow className="border-border/50">
                   <TableHead className="sticky left-0 z-10 bg-zinc-950 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.3)] text-center w-10 px-2">#</TableHead>
