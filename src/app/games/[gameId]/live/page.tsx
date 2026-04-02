@@ -610,7 +610,9 @@ export default function LiveScoringPage() {
                     second: gameState.runnerSecond,
                     third: gameState.runnerThird,
                   };
-                  // Hide non-batted results once a spray dot is placed
+                  // No spray dot: only show non-batted results (BB, K, HBP)
+                  if (!sprayPoint && !NON_BATTED.includes(result)) return false;
+                  // Spray dot placed: hide non-batted results
                   if (sprayPoint && NON_BATTED.includes(result)) return false;
                   // Hide DP/FC when no runners on base
                   if ((result === "DP" || result === "FC") && !canDoublePlay(baseState)) return false;
