@@ -242,7 +242,7 @@ function TrajectoryPath({
   const shadowLine = (
     <line
       x1={fromX} y1={fromY} x2={toX} y2={toY}
-      stroke={color} strokeWidth="1" strokeDasharray="4 3" opacity="0.2"
+      stroke="black" strokeWidth="1" opacity="0.25"
     />
   );
 
