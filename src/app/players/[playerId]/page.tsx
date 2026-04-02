@@ -79,7 +79,11 @@ export default function PlayerDetailPage() {
         </div>
         <div>
           <h1 className="text-3xl font-extrabold tracking-tight text-gradient">{player.name}</h1>
-          <p className="text-muted-foreground">#{player.number}</p>
+          <p className="text-sm text-muted-foreground">
+            {player.bats || player.throws
+              ? `Bats: ${player.bats ?? "—"}, Throws: ${player.throws ?? "—"}`
+              : `#${player.number}`}
+          </p>
         </div>
       </div>
 

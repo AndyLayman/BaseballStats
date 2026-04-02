@@ -5,6 +5,8 @@ export interface Player {
   name: string;
   number: string;
   position: string;
+  bats: "Right" | "Left" | "Switch" | null;
+  throws: "Right" | "Left" | null;
   photo_file: string | null;
   intro_file: string | null;
   song_file: string | null;
