@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
 import { MobileNav } from "@/components/mobile-nav";
+import { LiveGameTicker } from "@/components/live-game-ticker";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -92,6 +93,9 @@ export default function RootLayout({
               </div>
               <span className="hidden sm:inline text-gradient font-extrabold tracking-tight">BaseballStats</span>
             </Link>
+
+            {/* Live game ticker — shows when a game is in progress */}
+            <LiveGameTicker />
 
             {/* Desktop nav */}
             <nav className="hidden md:flex items-center gap-1">
