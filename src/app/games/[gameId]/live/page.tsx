@@ -706,6 +706,15 @@ export default function LiveScoringPage() {
         </Card>
       )}
 
+      {/* Warning if our lineup is empty */}
+      {isOurBatting && !batter && (
+        <Card className="border-destructive/30 bg-destructive/5">
+          <CardContent className="p-4 text-center">
+            <div className="text-sm text-muted-foreground">No lineup set for this game. Add players to the game lineup to start scoring.</div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* At-bat flow — shared for both halves */}
       {activeBatter && (
         <>
