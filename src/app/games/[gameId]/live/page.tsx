@@ -16,7 +16,7 @@ import {
   addOpponentBatter,
 } from "@/lib/scoring/game-engine";
 import { sprayToPosition, generateNotation } from "@/lib/scoring/scorebook";
-import { getDefaultRunnerAdvances } from "@/lib/scoring/baseball-rules";
+import { getDefaultRunnerAdvances, canDoublePlay } from "@/lib/scoring/baseball-rules";
 import { isAtBat, isHit, totalBases } from "@/lib/stats/calculations";
 import type { GameState, PlateAppearanceResult, RecordAtBatPayload, RunnerAdvance, Player, GameLineup, OpponentBatter, HitType } from "@/lib/scoring/types";
 
@@ -207,7 +207,12 @@ export default function LiveScoringPage() {
     const isBattedBall = !NON_BATTED.includes(selectedResult);
 
     const fieldPosition = sprayPoint ? sprayToPosition(sprayPoint.x, sprayPoint.y) : null;
-    const autoNotation = generateNotation(selectedResult, fieldPosition);
+    const baseState = {
+      first: gameState.runnerFirst,
+      second: gameState.runnerSecond,
+      third: gameState.runnerThird,
+    };
+    const autoNotation = generateNotation(selectedResult, fieldPosition, baseState);
     const notation = notationOverride ?? autoNotation;
     const runnerAdvances = buildRunnerAdvances(selectedResult, gameState);
 
@@ -486,19 +491,34 @@ export default function LiveScoringPage() {
             </CardHeader>
             <CardContent className="px-3 sm:px-6 pb-3">
               <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-                {RESULT_BUTTONS.map(({ result, label, color }) => (
-                  <button
-                    key={result}
-                    className={`h-14 sm:h-12 rounded-xl text-base font-bold border-2 transition-all active:scale-95 select-none ${
-                      selectedResult === result
-                        ? `${color} text-white border-transparent shadow-lg`
-                        : "bg-muted/30 text-foreground border-border/50 hover:bg-accent hover:border-border"
-                    }`}
-                    onClick={() => setSelectedResult(result)}
-                  >
-                    {label}
-                  </button>
-                ))}
+                {RESULT_BUTTONS.map(({ result, label, color }) => {
+                  const baseState = {
+                    first: gameState.runnerFirst,
+                    second: gameState.runnerSecond,
+                    third: gameState.runnerThird,
+                  };
+                  // DP requires at least one runner; FC requires at least one runner
+                  const disabled =
+                    (result === "DP" && !canDoublePlay(baseState)) ||
+                    (result === "FC" && !canDoublePlay(baseState));
+
+                  return (
+                    <button
+                      key={result}
+                      disabled={disabled}
+                      className={`h-14 sm:h-12 rounded-xl text-base font-bold border-2 transition-all active:scale-95 select-none ${
+                        disabled
+                          ? "opacity-30 cursor-not-allowed bg-muted/10 text-muted-foreground border-border/20"
+                          : selectedResult === result
+                            ? `${color} text-white border-transparent shadow-lg`
+                            : "bg-muted/30 text-foreground border-border/50 hover:bg-accent hover:border-border"
+                      }`}
+                      onClick={() => !disabled && setSelectedResult(result)}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
               </div>
             </CardContent>
           </Card>
@@ -581,7 +601,7 @@ export default function LiveScoringPage() {
               <div className="flex gap-2 items-center">
                 <input
                   type="text"
-                  value={notationOverride !== null ? notationOverride : (sprayPoint ? generateNotation(selectedResult, sprayToPosition(sprayPoint.x, sprayPoint.y)) : selectedResult)}
+                  value={notationOverride !== null ? notationOverride : (sprayPoint ? generateNotation(selectedResult, sprayToPosition(sprayPoint.x, sprayPoint.y), { first: gameState.runnerFirst, second: gameState.runnerSecond, third: gameState.runnerThird }) : selectedResult)}
                   onChange={(e) => setNotationOverride(e.target.value)}
                   className="h-14 flex-1 rounded-xl border-2 border-border/50 bg-muted/30 px-4 text-center text-lg font-bold tabular-nums placeholder:text-muted-foreground/50 focus:border-primary/50 focus:outline-none transition-colors"
                 />
