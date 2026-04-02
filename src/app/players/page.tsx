@@ -85,67 +85,33 @@ export default function PlayersPage() {
         <CardHeader className="px-3 sm:px-6">
           <CardTitle className="text-gradient">Season Stats</CardTitle>
         </CardHeader>
-        <CardContent className="px-0 sm:px-6">
-          {/* Mobile: card list */}
-          <div className="space-y-3 px-3 sm:hidden">
-            {players.map((p) => (
-              <Link key={p.id} href={`/players/${p.id}`} className="block">
-                <div className="rounded-xl border border-border/50 p-3 active:bg-accent/50 transition-colors">
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/15 font-bold text-sm border border-primary/30 text-gradient-bright">
-                      {p.number}
-                    </div>
-                    <span className="font-semibold text-primary">{p.name}</span>
-                  </div>
-                  <div className="grid grid-cols-4 gap-2 text-center">
-                    {[
-                      { label: "AVG", value: p.at_bats > 0 ? formatAvg(p.avg) : "---" },
-                      { label: "H", value: p.hits },
-                      { label: "HR", value: p.home_runs },
-                      { label: "RBI", value: p.rbis },
-                      { label: "OBP", value: p.at_bats > 0 ? formatAvg(p.obp) : "---" },
-                      { label: "SLG", value: p.at_bats > 0 ? formatAvg(p.slg) : "---" },
-                      { label: "BB", value: p.walks },
-                      { label: "SO", value: p.strikeouts },
-                    ].map((s) => (
-                      <div key={s.label} className="rounded-lg bg-muted/30 border border-border/30 py-1">
-                        <div className="text-sm font-bold tabular-nums">{s.value}</div>
-                        <div className="text-[10px] text-muted-foreground uppercase tracking-wider">{s.label}</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
-
-          {/* Desktop: full table */}
-          <div className="hidden sm:block overflow-x-auto">
+        <CardContent className="px-0">
+          <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow className="border-border/50">
-                  <TableHead className="sticky left-0 bg-card z-10">Player</TableHead>
-                  <TableHead className="text-center">G</TableHead>
-                  <TableHead className="text-center">PA</TableHead>
-                  <TableHead className="text-center">AB</TableHead>
-                  <TableHead className="text-center">H</TableHead>
-                  <TableHead className="text-center">2B</TableHead>
-                  <TableHead className="text-center">3B</TableHead>
-                  <TableHead className="text-center">HR</TableHead>
-                  <TableHead className="text-center">RBI</TableHead>
-                  <TableHead className="text-center">BB</TableHead>
-                  <TableHead className="text-center">SO</TableHead>
-                  <TableHead className="text-center">SB</TableHead>
-                  <TableHead className="text-center">AVG</TableHead>
-                  <TableHead className="text-center">OBP</TableHead>
-                  <TableHead className="text-center">SLG</TableHead>
-                  <TableHead className="text-center">OPS</TableHead>
+                  <TableHead className="sticky left-0 z-10 bg-card shadow-[2px_0_4px_-2px_rgba(0,0,0,0.15)]">Player</TableHead>
+                  <TableHead className="text-center whitespace-nowrap">G</TableHead>
+                  <TableHead className="text-center whitespace-nowrap">PA</TableHead>
+                  <TableHead className="text-center whitespace-nowrap">AB</TableHead>
+                  <TableHead className="text-center whitespace-nowrap">H</TableHead>
+                  <TableHead className="text-center whitespace-nowrap">2B</TableHead>
+                  <TableHead className="text-center whitespace-nowrap">3B</TableHead>
+                  <TableHead className="text-center whitespace-nowrap">HR</TableHead>
+                  <TableHead className="text-center whitespace-nowrap">RBI</TableHead>
+                  <TableHead className="text-center whitespace-nowrap">BB</TableHead>
+                  <TableHead className="text-center whitespace-nowrap">SO</TableHead>
+                  <TableHead className="text-center whitespace-nowrap">SB</TableHead>
+                  <TableHead className="text-center whitespace-nowrap">AVG</TableHead>
+                  <TableHead className="text-center whitespace-nowrap">OBP</TableHead>
+                  <TableHead className="text-center whitespace-nowrap">SLG</TableHead>
+                  <TableHead className="text-center whitespace-nowrap">OPS</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {players.map((p) => (
                   <TableRow key={p.id} className="border-border/30 hover:bg-accent/30 transition-colors">
-                    <TableCell className="sticky left-0 bg-card z-10 font-medium">
+                    <TableCell className="sticky left-0 z-10 bg-card shadow-[2px_0_4px_-2px_rgba(0,0,0,0.15)] font-medium whitespace-nowrap">
                       <Link href={`/players/${p.id}`} className="text-primary hover:underline">
                         #{p.number} {p.name}
                       </Link>
