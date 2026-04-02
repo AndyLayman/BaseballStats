@@ -692,14 +692,14 @@ export default function LiveScoringPage() {
         <>
           {/* Spray chart + hit type */}
           <Card className="glass">
-            <CardContent className="px-3 sm:px-6 pb-3 space-y-3">
+            <CardContent className="px-1 pt-1 pb-3 space-y-3">
               <div className="flex justify-center">
                 <SprayChart
                   onClick={(x, y) => setSprayPoint({ x, y })}
                   selectedPoint={sprayPoint}
                   hitType={hitType}
                   ghostMarkers={batterHistory}
-                  className="!max-w-[340px] w-full touch-none"
+                  className="w-full touch-none"
                 />
               </div>
               {/* Clear + hit type buttons — inline below spray chart */}
