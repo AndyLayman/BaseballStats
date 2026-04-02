@@ -74,9 +74,17 @@ export default function PlayerDetailPage() {
         All Players
       </Link>
       <div className="flex items-center gap-4">
-        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/15 font-bold text-2xl border border-primary/30 text-gradient-bright">
-          {player.number}
-        </div>
+        {player.photo_file ? (
+          <img
+            src={player.photo_file}
+            alt={player.name}
+            className="h-16 w-16 rounded-full object-cover border border-primary/30"
+          />
+        ) : (
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/15 font-bold text-2xl border border-primary/30 text-gradient-bright">
+            {player.number}
+          </div>
+        )}
         <div>
           <h1 className="text-3xl font-extrabold tracking-tight text-gradient">{player.name}</h1>
           <p className="text-sm text-muted-foreground">
