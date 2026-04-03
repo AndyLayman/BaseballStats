@@ -57,14 +57,14 @@ export function SprayChart({
     >
       <defs>
         <linearGradient id="field-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="oklch(0.75 0.17 165)" />
-          <stop offset="50%" stopColor="oklch(0.72 0.14 220)" />
-          <stop offset="100%" stopColor="oklch(0.70 0.12 280)" />
+          <stop offset="0%" stopColor="#08DDC8" />
+          <stop offset="50%" stopColor="#83DD68" />
+          <stop offset="100%" stopColor="#CF59F3" />
         </linearGradient>
         <linearGradient id="field-grad-dim" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="oklch(0.75 0.17 165 / 30%)" />
-          <stop offset="50%" stopColor="oklch(0.72 0.14 220 / 20%)" />
-          <stop offset="100%" stopColor="oklch(0.70 0.12 280 / 15%)" />
+          <stop offset="0%" stopColor="rgba(8, 221, 200, 0.30)" />
+          <stop offset="50%" stopColor="rgba(131, 221, 104, 0.20)" />
+          <stop offset="100%" stopColor="rgba(207, 89, 243, 0.15)" />
         </linearGradient>
       </defs>
 
@@ -127,7 +127,7 @@ export function SprayChart({
             cy={m.y}
             r="5"
             fill={getResultColor(m.result)}
-            stroke="oklch(0.95 0.005 270)"
+            stroke="#F7F7F7"
             strokeWidth="1"
           />
         </g>
@@ -152,7 +152,7 @@ export function SprayChart({
           cy={m.y}
           r="6"
           fill={getResultColor(m.result)}
-          stroke="oklch(0.95 0.005 270)"
+          stroke="#F7F7F7"
           strokeWidth="1.5"
           opacity="0.85"
         />
@@ -165,7 +165,7 @@ export function SprayChart({
             cx={selectedPoint.x}
             cy={selectedPoint.y}
             r="12"
-            fill="oklch(0.75 0.17 165)"
+            fill="#08DDC8"
             opacity="0.3"
           >
             <animate attributeName="r" values="8;14;8" dur="1.5s" repeatCount="indefinite" />
@@ -175,8 +175,8 @@ export function SprayChart({
             cx={selectedPoint.x}
             cy={selectedPoint.y}
             r="7"
-            fill="oklch(0.75 0.17 165)"
-            stroke="oklch(0.95 0.005 270)"
+            fill="#08DDC8"
+            stroke="#F7F7F7"
             strokeWidth="2.5"
           />
         </>
@@ -221,7 +221,7 @@ function TrajectoryPath({
   const px = -uy;
   const py = ux;
 
-  const color = "oklch(0.75 0.17 165)";
+  const color = "#08DDC8";
 
   if (!hitType) {
     // Simple dashed line
