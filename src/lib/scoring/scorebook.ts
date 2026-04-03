@@ -255,13 +255,6 @@ export function resolvePositionToPlayerId(
     }
   }
 
-  // Fall back to player's default position from the players table
-  for (const entry of lineup) {
-    const player = players.find((p) => p.id === entry.player_id);
-    if (player && player.position?.toUpperCase() === posAbbrev) {
-      return player.id;
-    }
-  }
 
   return null;
 }
