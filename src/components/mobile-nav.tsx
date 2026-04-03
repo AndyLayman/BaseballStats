@@ -23,24 +23,26 @@ export function MobileNav({ links }: MobileNavProps) {
             <line x1="3" y1="18" x2="21" y2="18" />
           </svg>
         </SheetTrigger>
-        <SheetContent side="right" className="w-64 glass-strong border-border/50">
-          <SheetTitle className="text-lg font-extrabold mb-6 text-gradient">BaseballStats</SheetTitle>
-          <nav className="flex flex-col gap-1">
-            {links.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                onClick={() => setOpen(false)}
-                className={`flex items-center rounded-xl px-4 py-3 text-base font-medium transition-all active:scale-[0.98] ${
-                  pathname === link.href
-                    ? "bg-primary/15 text-primary border border-primary/20"
-                    : "text-muted-foreground hover:bg-accent hover:text-foreground"
-                }`}
-              >
-                {link.label}
-              </Link>
-            ))}
-          </nav>
+        <SheetContent side="right" className="w-64 glass-strong border-border/50 p-0">
+          <div className="flex flex-col px-5 pt-14 pb-6">
+            <SheetTitle className="text-lg font-extrabold mb-6 text-gradient">BaseballStats</SheetTitle>
+            <nav className="flex flex-col gap-1">
+              {links.map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  onClick={() => setOpen(false)}
+                  className={`flex items-center rounded-xl px-4 py-3 text-base font-medium transition-all active:scale-[0.98] ${
+                    pathname === link.href
+                      ? "bg-primary/15 text-primary border border-primary/20"
+                      : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                  }`}
+                >
+                  {link.label}
+                </Link>
+              ))}
+            </nav>
+          </div>
         </SheetContent>
       </Sheet>
     </div>
