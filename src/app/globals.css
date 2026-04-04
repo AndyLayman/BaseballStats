@@ -320,9 +320,9 @@
   transform: scale(0.97);
 }
 
-/* ── Gradient text (teal -> green -> purple) ── */
+/* ── Gradient text (conic-gradient from design system) ── */
 .text-gradient {
-  background: linear-gradient(135deg, #08DDC8, #83DD68, #CF59F3);
+  background: conic-gradient(from 180deg at 50% 50%, #08DDC8 0deg, #83DD68 128.08deg, #CF59F3 264.81deg, #08DDC8 360deg);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -330,7 +330,7 @@
 
 /* Brighter variant for stat values & emphasis */
 .text-gradient-bright {
-  background: linear-gradient(135deg, #08DDC8, #83DD68 60%, #CF59F3);
+  background: conic-gradient(from 180deg at 50% 50%, #08DDC8 0deg, #83DD68 128.08deg, #CF59F3 264.81deg, #08DDC8 360deg);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -338,7 +338,7 @@
 
 /* Warm variant for special highlights */
 .text-gradient-warm {
-  background: linear-gradient(135deg, #08DDC8, #83DD68);
+  background: conic-gradient(from 180deg at 50% 50%, #08DDC8 0deg, #83DD68 128.08deg, #CF59F3 264.81deg, #08DDC8 360deg);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -359,7 +359,7 @@
   inset: 0;
   border-radius: inherit;
   padding: 1px;
-  background: linear-gradient(135deg, rgba(8, 221, 200, 0.3), rgba(131, 221, 104, 0.2), rgba(207, 89, 243, 0.15));
+  background: linear-gradient(90deg, rgba(8, 221, 200, 0.3), rgba(131, 221, 104, 0.2) 36%, rgba(207, 89, 243, 0.15) 74%, rgba(8, 221, 200, 0.3));
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
