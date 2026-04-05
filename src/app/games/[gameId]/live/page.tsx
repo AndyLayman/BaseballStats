@@ -666,7 +666,7 @@ export default function LiveScoringPage() {
           <div className="flex items-center justify-between">
             <div className="text-center flex-1">
               <div className="text-4xl sm:text-5xl font-extrabold tabular-nums text-gradient-bright">{gameState.ourScore}</div>
-              <div className="text-xs text-muted-foreground mt-1 uppercase tracking-wider font-medium truncate max-w-[100px]">{ourTeamName}</div>
+              <div className="text-xs text-muted-foreground mt-1 uppercase tracking-wider font-medium truncate max-w-[100px] mx-auto">{ourTeamName}</div>
             </div>
             <div className="text-center px-3">
               {/* Base runners diamond — tap occupied base for stolen base */}
@@ -728,7 +728,7 @@ export default function LiveScoringPage() {
             </div>
             <div className="text-center flex-1">
               <div className="text-4xl sm:text-5xl font-extrabold tabular-nums text-gradient-bright">{gameState.opponentScore}</div>
-              <div className="text-xs text-muted-foreground mt-1 uppercase tracking-wider font-medium truncate max-w-[100px]">{opponentName}</div>
+              <div className="text-xs text-muted-foreground mt-1 uppercase tracking-wider font-medium truncate max-w-[100px] mx-auto">{opponentName}</div>
             </div>
           </div>
         </CardContent>
@@ -926,52 +926,54 @@ export default function LiveScoringPage() {
         <>
           {/* Pitch counter */}
           <Card className="glass">
-            <CardContent className="p-3 sm:p-4">
+            <CardContent className="p-3 sm:p-4 space-y-3">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="text-center">
-                    <div className="text-3xl font-extrabold tabular-nums text-gradient-bright">{pitchCount.balls}-{pitchCount.strikes}</div>
-                    <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium mt-0.5">Count</div>
-                  </div>
-                  <div className="flex items-center gap-1.5 flex-wrap">
+                <div className="text-center">
+                  <div className="text-3xl font-extrabold tabular-nums text-gradient-bright">{pitchCount.balls}-{pitchCount.strikes}</div>
+                  <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium mt-0.5">Count</div>
+                </div>
+                <div className="flex flex-col gap-1.5 items-end">
+                  <div className="flex items-center gap-1 flex-wrap justify-end">
                     {Array.from({ length: pitchCount.balls }).map((_, i) => (
                       <div key={`b-${i}`} className="w-3 h-3 rounded-full bg-[#83DD68] border-2 border-[#83DD68]" />
                     ))}
+                    {pitchCount.balls === 0 && <div className="w-3 h-3 rounded-full border-2 border-muted-foreground/30" />}
                     <span className="text-[10px] text-muted-foreground ml-0.5">B</span>
                   </div>
-                  <div className="flex items-center gap-1.5 flex-wrap">
+                  <div className="flex items-center gap-1 flex-wrap justify-end">
                     {Array.from({ length: pitchCount.strikes }).map((_, i) => (
                       <div key={`s-${i}`} className="w-3 h-3 rounded-full bg-[#FF6161] border-2 border-[#FF6161]" />
                     ))}
+                    {pitchCount.strikes === 0 && <div className="w-3 h-3 rounded-full border-2 border-muted-foreground/30" />}
                     <span className="text-[10px] text-muted-foreground ml-0.5">S</span>
                   </div>
                 </div>
-                <div className="flex gap-2">
-                  <button
-                    className="h-11 w-16 rounded-xl text-sm font-bold border-2 border-[#83DD68]/30 bg-[#83DD68]/10 text-[#83DD68] active:scale-95 transition-all select-none"
-                    onClick={() => {
-                      setPitchCount({ ...pitchCount, balls: pitchCount.balls + 1 });
-                    }}
-                  >
-                    Ball
-                  </button>
-                  <button
-                    className="h-11 w-16 rounded-xl text-sm font-bold border-2 border-[#FF6161]/30 bg-[#FF6161]/10 text-[#FF6161] active:scale-95 transition-all select-none"
-                    onClick={() => {
-                      setPitchCount({ ...pitchCount, strikes: pitchCount.strikes + 1 });
-                    }}
-                  >
-                    Strike
-                  </button>
-                  <button
-                    className="h-11 w-10 rounded-xl text-xs font-bold border-2 border-border/30 text-muted-foreground active:scale-95 transition-all select-none"
-                    onClick={() => {
-                      setPitchCount({ ...pitchCount, strikes: pitchCount.strikes + 1 });
-                    }}
-                  >
-                    Foul
-                  </button>
-                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  className="h-12 rounded-xl text-sm font-bold border-2 border-[#83DD68]/30 bg-[#83DD68]/10 text-[#83DD68] active:scale-95 transition-all select-none"
+                  onClick={() => {
+                    setPitchCount({ ...pitchCount, balls: pitchCount.balls + 1 });
+                  }}
+                >
+                  Ball
+                </button>
+                <button
+                  className="h-12 rounded-xl text-sm font-bold border-2 border-[#FF6161]/30 bg-[#FF6161]/10 text-[#FF6161] active:scale-95 transition-all select-none"
+                  onClick={() => {
+                    setPitchCount({ ...pitchCount, strikes: pitchCount.strikes + 1 });
+                  }}
+                >
+                  Strike
+                </button>
+                <button
+                  className="h-12 rounded-xl text-sm font-bold border-2 border-border/30 text-muted-foreground active:scale-95 transition-all select-none"
+                  onClick={() => {
+                    setPitchCount({ ...pitchCount, strikes: pitchCount.strikes + 1 });
+                  }}
+                >
+                  Foul
+                </button>
               </div>
             </CardContent>
           </Card>
