@@ -221,9 +221,7 @@ export function recordOpponentAtBat(state: GameState, payload: RecordAtBatPayloa
     runnerThird: newThird,
     opponentScore: state.opponentScore + runsScored,
     outs: state.outs + outsRecorded,
-    opponentBatterIndex: state.opponentLineup.length > 0
-      ? (state.opponentBatterIndex + 1) % state.opponentLineup.length
-      : state.opponentBatterIndex + 1,
+    opponentBatterIndex: state.opponentBatterIndex + 1,
   };
 
   if (newState.outs >= 3) {
