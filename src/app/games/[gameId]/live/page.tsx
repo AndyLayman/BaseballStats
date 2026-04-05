@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { SprayChart } from "@/components/scoring/SprayChart";
 import {
   createInitialGameState,
@@ -73,6 +74,10 @@ export default function LiveScoringPage() {
   const [batterHistory, setBatterHistory] = useState<{ x: number; y: number; result: PlateAppearanceResult; hitType: HitType | null }[]>([]);
   const [inningPositions, setInningPositions] = useState<{ player_id: number; position: string }[]>([]);
   const [opponentName, setOpponentName] = useState<string>("Them");
+  const [ourTeamName, setOurTeamName] = useState<string>("Padres");
+  const [gameLocation, setGameLocation] = useState<"home" | "away">("home");
+  const [showPregame, setShowPregame] = useState(false);
+  const [gameDate, setGameDate] = useState<string>("");
 
   // Wake Lock to prevent screen sleep during scoring
   useEffect(() => {
@@ -111,6 +116,8 @@ export default function LiveScoringPage() {
       const players: Player[] = playersRes.data ?? [];
       const oppLineup: OpponentBatter[] = opponentLineupRes.data ?? [];
       if (gameRes.data?.opponent) setOpponentName(gameRes.data.opponent);
+      if (gameRes.data?.location) setGameLocation(gameRes.data.location);
+      if (gameRes.data?.date) setGameDate(gameRes.data.date);
 
       let state: GameState;
       if (stateRes.data) {
@@ -148,7 +155,7 @@ export default function LiveScoringPage() {
       setGameState(state);
 
       if (gameRes.data?.status === "scheduled") {
-        await supabase.from("games").update({ status: "in_progress" }).eq("id", gameId);
+        setShowPregame(true);
       }
 
       const { data: pas } = await supabase
@@ -528,6 +535,129 @@ export default function LiveScoringPage() {
     );
   }
 
+  if (showPregame) {
+    const homeTeam = gameLocation === "home" ? ourTeamName : opponentName;
+    const awayTeam = gameLocation === "home" ? opponentName : ourTeamName;
+    return (
+      <div className="space-y-4 max-w-lg mx-auto pb-24">
+        <h1 className="text-2xl font-extrabold tracking-tight text-gradient text-center">Pre-Game Summary</h1>
+
+        {/* Date */}
+        {gameDate && (
+          <div className="text-center text-muted-foreground text-sm">
+            {new Date(gameDate + "T12:00:00").toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
+          </div>
+        )}
+
+        {/* Matchup */}
+        <Card className="glass-strong gradient-border glow-primary">
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between gap-3">
+              <div className="text-center flex-1 space-y-2">
+                <div className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Away</div>
+                <Input
+                  value={awayTeam}
+                  onChange={(e) => {
+                    if (gameLocation === "home") setOpponentName(e.target.value);
+                    else setOurTeamName(e.target.value);
+                  }}
+                  className="text-center text-lg font-bold h-12 bg-input/50 border-border/50 focus:border-primary/50"
+                />
+              </div>
+              <div className="text-2xl font-extrabold text-muted-foreground">@</div>
+              <div className="text-center flex-1 space-y-2">
+                <div className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Home</div>
+                <Input
+                  value={homeTeam}
+                  onChange={(e) => {
+                    if (gameLocation === "home") setOurTeamName(e.target.value);
+                    else setOpponentName(e.target.value);
+                  }}
+                  className="text-center text-lg font-bold h-12 bg-input/50 border-border/50 focus:border-primary/50"
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Home/Away Toggle */}
+        <Card className="glass">
+          <CardContent className="p-4 space-y-2">
+            <div className="text-sm text-muted-foreground uppercase tracking-wider font-medium">We are the...</div>
+            <div className="flex gap-2">
+              <button
+                className={`flex-1 h-12 rounded-xl text-base font-bold border-2 transition-all active:scale-95 select-none ${
+                  gameLocation === "home"
+                    ? "bg-primary/20 text-primary border-primary/40 shadow-lg"
+                    : "bg-muted/30 text-foreground border-border/50"
+                }`}
+                onClick={() => setGameLocation("home")}
+              >
+                Home Team
+              </button>
+              <button
+                className={`flex-1 h-12 rounded-xl text-base font-bold border-2 transition-all active:scale-95 select-none ${
+                  gameLocation === "away"
+                    ? "bg-primary/20 text-primary border-primary/40 shadow-lg"
+                    : "bg-muted/30 text-foreground border-border/50"
+                }`}
+                onClick={() => setGameLocation("away")}
+              >
+                Away Team
+              </button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Lineup Preview */}
+        <Card className="glass">
+          <CardContent className="p-4 space-y-2">
+            <div className="text-sm text-muted-foreground uppercase tracking-wider font-medium">{ourTeamName} Lineup</div>
+            {gameState.lineup.length > 0 ? (
+              <div className="space-y-1">
+                {gameState.lineup
+                  .sort((a, b) => a.batting_order - b.batting_order)
+                  .map((entry) => {
+                    const player = gameState.players.find((p) => p.id === entry.player_id);
+                    return (
+                      <div key={entry.player_id} className="flex items-center gap-3 py-1.5 px-2 rounded-lg">
+                        <span className="text-sm font-bold text-primary w-5">{entry.batting_order}.</span>
+                        <span className="text-sm font-medium flex-1">
+                          {player ? `#${player.number} ${player.name}` : `Player ${entry.player_id}`}
+                        </span>
+                        {entry.position && (
+                          <span className="text-xs text-muted-foreground font-medium bg-muted/50 px-2 py-0.5 rounded">{entry.position}</span>
+                        )}
+                      </div>
+                    );
+                  })}
+              </div>
+            ) : (
+              <div className="text-sm text-muted-foreground">No lineup set — you can build it after starting.</div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Start Game Button */}
+        <Button
+          className="w-full h-14 text-lg font-bold glow-primary active:scale-[0.98] transition-transform"
+          size="lg"
+          onClick={async () => {
+            // Save any edits to the game record
+            await supabase.from("games").update({
+              opponent: opponentName,
+              location: gameLocation,
+              status: "in_progress",
+            }).eq("id", gameId);
+            setShowPregame(false);
+          }}
+        >
+          Start Game
+        </Button>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-3 max-w-lg mx-auto pb-24">
       {/* Scoreboard */}
@@ -536,7 +666,7 @@ export default function LiveScoringPage() {
           <div className="flex items-center justify-between">
             <div className="text-center flex-1">
               <div className="text-4xl sm:text-5xl font-extrabold tabular-nums text-gradient-bright">{gameState.ourScore}</div>
-              <div className="text-xs text-muted-foreground mt-1 uppercase tracking-wider font-medium">Padres</div>
+              <div className="text-xs text-muted-foreground mt-1 uppercase tracking-wider font-medium truncate max-w-[100px]">{ourTeamName}</div>
             </div>
             <div className="text-center px-3">
               {/* Base runners diamond — tap occupied base for stolen base */}
