@@ -536,7 +536,7 @@ export default function LiveScoringPage() {
           <div className="flex items-center justify-between">
             <div className="text-center flex-1">
               <div className="text-4xl sm:text-5xl font-extrabold tabular-nums text-gradient-bright">{gameState.ourScore}</div>
-              <div className="text-xs text-muted-foreground mt-1 uppercase tracking-wider font-medium">Home</div>
+              <div className="text-xs text-muted-foreground mt-1 uppercase tracking-wider font-medium">Padres</div>
             </div>
             <div className="text-center px-3">
               {/* Base runners diamond — tap occupied base for stolen base */}

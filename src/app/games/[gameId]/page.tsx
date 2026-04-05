@@ -98,7 +98,7 @@ export default function GameDetailPage() {
             <div className="flex items-center justify-center gap-4">
               <div className="text-center flex-1">
                 <div className="text-5xl font-extrabold tabular-nums text-gradient-bright">{game.our_score}</div>
-                <div className="text-xs text-muted-foreground mt-1 uppercase tracking-wider font-medium">Home</div>
+                <div className="text-xs text-muted-foreground mt-1 uppercase tracking-wider font-medium">Padres</div>
               </div>
               <div className="text-center">
                 <div className="text-gradient text-3xl font-extrabold">-</div>
