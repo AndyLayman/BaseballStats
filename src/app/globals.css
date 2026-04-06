@@ -4,6 +4,11 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* White calendar icon in date inputs */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
