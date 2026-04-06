@@ -57,7 +57,7 @@ export default function GameDetailPage() {
   const ourAppearances = appearances.filter((pa) => (pa.team ?? "us") === "us");
   const oppAppearances = appearances.filter((pa) => pa.team === "them");
   const maxInning = appearances.length > 0 ? Math.max(...appearances.map((pa) => pa.inning)) : 0;
-  const innings = Array.from({ length: Math.max(maxInning, 1) }, (_, i) => i + 1);
+  const innings = Array.from({ length: maxInning }, (_, i) => i + 1);
 
   return (
     <div className="space-y-6">
