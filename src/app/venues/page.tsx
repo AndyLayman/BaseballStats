@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabase";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { AddressAutocomplete } from "@/components/address-autocomplete";
 import type { Venue } from "@/lib/scoring/types";
 
 export default function VenuesPage() {
@@ -101,9 +102,9 @@ export default function VenuesPage() {
             </div>
             <div>
               <label className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Address</label>
-              <Input
+              <AddressAutocomplete
                 value={address}
-                onChange={(e) => setAddress(e.target.value)}
+                onChange={setAddress}
                 placeholder="123 Main St, City, State ZIP"
                 className="h-12 text-base bg-input/50 border-border/50 focus:border-primary/50"
               />

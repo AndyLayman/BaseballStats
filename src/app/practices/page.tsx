@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabase";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { AddressAutocomplete } from "@/components/address-autocomplete";
 import type { Practice, Venue } from "@/lib/scoring/types";
 
 export default function PracticesPage() {
@@ -143,9 +144,9 @@ export default function PracticesPage() {
                   placeholder="Field name"
                   className="h-12 text-base bg-input/50 border-border/50 focus:border-primary/50"
                 />
-                <Input
+                <AddressAutocomplete
                   value={newVenueAddress}
-                  onChange={(e) => setNewVenueAddress(e.target.value)}
+                  onChange={setNewVenueAddress}
                   placeholder="Address"
                   className="h-12 text-base bg-input/50 border-border/50 focus:border-primary/50"
                 />

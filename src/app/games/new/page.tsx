@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { AddressAutocomplete } from "@/components/address-autocomplete";
 import type { Player, Venue } from "@/lib/scoring/types";
 
 const FIELD_POSITIONS = [
@@ -212,9 +213,9 @@ export default function NewGamePage() {
             </div>
             <div>
               <Label>Address</Label>
-              <Input
+              <AddressAutocomplete
                 value={venueAddress}
-                onChange={(e) => setVenueAddress(e.target.value)}
+                onChange={setVenueAddress}
                 placeholder="123 Main St, City, State"
                 className="h-12 text-base bg-input/50 border-border/50 focus:border-primary/50"
               />
