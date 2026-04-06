@@ -202,11 +202,11 @@ SELECT
   COUNT(*) FILTER (WHERE fp.play_type = 'PO') AS putouts,
   COUNT(*) FILTER (WHERE fp.play_type = 'A') AS assists,
   COUNT(*) FILTER (WHERE fp.play_type = 'E') AS errors,
-  COUNT(*) AS total_chances,
+  COUNT(fp.id) AS total_chances,
   CASE
-    WHEN COUNT(*) = 0 THEN 0
+    WHEN COUNT(fp.id) = 0 THEN 0
     ELSE ROUND(
-      (COUNT(*) FILTER (WHERE fp.play_type IN ('PO', 'A')))::NUMERIC / COUNT(*),
+      (COUNT(*) FILTER (WHERE fp.play_type IN ('PO', 'A')))::NUMERIC / COUNT(fp.id),
       3
     )
   END AS fielding_pct
