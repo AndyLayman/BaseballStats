@@ -176,3 +176,20 @@ export interface FieldingStats {
   total_chances: number;
   fielding_pct: number;
 }
+
+export interface Practice {
+  id: string;
+  date: string;
+  title: string;
+  notes: string | null;
+  created_at: string;
+}
+
+export interface PracticeNote {
+  id: string;
+  practice_id: string;
+  player_id: number;
+  note: string;
+  focus_area: string | null;
+  created_at: string;
+}

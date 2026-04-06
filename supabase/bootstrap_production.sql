@@ -213,3 +213,24 @@ SELECT
 FROM players p
 LEFT JOIN fielding_plays fp ON p.id = fp.player_id
 GROUP BY p.id, p.name;
+
+-- ============================================================
+-- Practice Logging
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS practices (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  date DATE NOT NULL DEFAULT CURRENT_DATE,
+  title TEXT NOT NULL DEFAULT 'Practice',
+  notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS practice_notes (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  practice_id UUID NOT NULL REFERENCES practices(id) ON DELETE CASCADE,
+  player_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+  note TEXT NOT NULL,
+  focus_area TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
