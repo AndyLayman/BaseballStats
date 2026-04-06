@@ -34,16 +34,30 @@ export function StatTip({ label, children }: { label: string; children?: React.R
 
   return (
     <span
-      className="relative cursor-help"
+      className="relative inline-block cursor-help"
       onMouseEnter={() => setShow(true)}
       onMouseLeave={() => setShow(false)}
       onTouchStart={() => setShow((s) => !s)}
     >
       <span className="border-b border-dotted border-muted-foreground/40">{children ?? label}</span>
       {show && (
-        <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2.5 py-1 rounded-lg bg-foreground text-background text-xs font-medium whitespace-nowrap z-50 shadow-lg animate-fade-in pointer-events-none">
-          {definition}
-          <span className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-foreground" />
+        <span
+          className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 whitespace-nowrap z-50 pointer-events-none"
+          style={{ fontSize: "11px", lineHeight: "1" }}
+        >
+          <span className="inline-block px-2 py-1 rounded bg-[#222] text-[#eee] font-medium shadow-md">
+            {definition}
+          </span>
+          <span
+            className="absolute top-full left-1/2 -translate-x-1/2"
+            style={{
+              width: 0,
+              height: 0,
+              borderLeft: "4px solid transparent",
+              borderRight: "4px solid transparent",
+              borderTop: "4px solid #222",
+            }}
+          />
         </span>
       )}
     </span>
