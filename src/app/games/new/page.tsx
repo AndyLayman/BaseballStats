@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { VenuePicker } from "@/components/venue-picker";
+import { CustomSelect } from "@/components/custom-select";
 import { fullName } from "@/lib/player-name";
 import type { Player } from "@/lib/scoring/types";
 
@@ -233,16 +234,13 @@ export default function NewGamePage() {
                     </span>
                     {isSelected && (
                       <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                        <select
+                        <CustomSelect
                           value={positions[player.id] || ""}
-                          onChange={(e) => setPositions((prev) => ({ ...prev, [player.id]: e.target.value }))}
-                          className="h-10 rounded-lg border border-border/50 bg-input/50 px-2 text-sm font-bold text-center appearance-none cursor-pointer focus:border-primary/50 focus:outline-none"
-                        >
-                          <option value="">Pos</option>
-                          {FIELD_POSITIONS.map((pos) => (
-                            <option key={pos.value} value={pos.value}>{pos.label}</option>
-                          ))}
-                        </select>
+                          onChange={(val) => setPositions((prev) => ({ ...prev, [player.id]: val }))}
+                          options={[{ value: "", label: "Pos" }, ...FIELD_POSITIONS.map((pos) => ({ value: pos.value, label: pos.label }))]}
+                          placeholder="Pos"
+                          className="h-10 w-20"
+                        />
                         <button
                           type="button"
                           className="h-10 w-10 flex items-center justify-center rounded-lg border border-border/50 text-lg active:bg-accent active:scale-95 transition-all disabled:opacity-30"

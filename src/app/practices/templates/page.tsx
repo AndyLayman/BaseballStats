@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
+import { CustomSelect } from "@/components/custom-select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -226,16 +227,13 @@ export default function PlanTemplatesPage() {
                         />
                         <span className="text-xs text-muted-foreground shrink-0">min</span>
                         {drills.length > 0 && (
-                          <select
+                          <CustomSelect
                             value={item.drill_id ?? ""}
-                            onChange={(e) => e.target.value ? selectDrillForItem(idx, e.target.value) : updateItem(idx, "drill_id", null)}
-                            className="h-9 rounded-lg bg-muted/30 border border-border/50 px-2 text-xs max-w-[120px]"
-                          >
-                            <option value="">Link drill...</option>
-                            {drills.map((d) => (
-                              <option key={d.id} value={d.id}>{d.name}</option>
-                            ))}
-                          </select>
+                            onChange={(val) => val ? selectDrillForItem(idx, val) : updateItem(idx, "drill_id", null)}
+                            options={[{ value: "", label: "Link drill..." }, ...drills.map((d) => ({ value: d.id, label: d.name }))]}
+                            placeholder="Link drill..."
+                            className="h-9 w-32"
+                          />
                         )}
                         <button
                           onClick={() => removeItem(idx)}

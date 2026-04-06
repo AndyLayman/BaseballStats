@@ -14,6 +14,7 @@ import type {
   ActionItem, PracticeAttendance, Venue,
 } from "@/lib/scoring/types";
 import { fullName, firstName } from "@/lib/player-name";
+import { CustomSelect } from "@/components/custom-select";
 
 const FOCUS_AREAS = ["Hitting", "Fielding", "Throwing", "Baserunning", "Attitude", "Other"];
 
@@ -636,16 +637,13 @@ export default function PracticeDetailPage() {
                 onKeyDown={(e) => e.key === "Enter" && addActionItem()}
               />
             </div>
-            <select
-              value={newActionPlayer ?? ""}
-              onChange={(e) => setNewActionPlayer(e.target.value ? parseInt(e.target.value) : null)}
-              className="h-9 rounded-lg bg-muted/30 border border-border/50 px-2 text-xs max-w-[100px]"
-            >
-              <option value="">Team</option>
-              {players.map((p) => (
-                <option key={p.id} value={p.id}>#{p.number} {firstName(p)}</option>
-              ))}
-            </select>
+            <CustomSelect
+              value={newActionPlayer?.toString() ?? ""}
+              onChange={(val) => setNewActionPlayer(val ? parseInt(val) : null)}
+              options={[{ value: "", label: "Team" }, ...players.map((p) => ({ value: p.id.toString(), label: `#${p.number} ${firstName(p)}` }))]}
+              placeholder="Team"
+              className="h-9 w-28"
+            />
             <Button variant="outline" className="h-9 text-xs shrink-0" onClick={addActionItem} disabled={!newActionText.trim()}>
               Add
             </Button>
