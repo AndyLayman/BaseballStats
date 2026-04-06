@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { MilestoneFeed } from "@/components/milestone-feed";
 import type { Game, Player, BattingStats } from "@/lib/scoring/types";
 
 export default function Dashboard() {
@@ -159,6 +160,15 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </div>
+
+      <Card className="glass border-border/50">
+        <CardHeader>
+          <CardTitle className="text-lg text-gradient">Awards & Milestones</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <MilestoneFeed />
+        </CardContent>
+      </Card>
     </div>
   );
 }
