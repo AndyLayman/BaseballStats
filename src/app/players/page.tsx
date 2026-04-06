@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { formatAvg } from "@/lib/stats/calculations";
+import { fullName } from "@/lib/player-name";
 import type { Player } from "@/lib/scoring/types";
 
 interface PlayerWithStats extends Player {
@@ -149,7 +150,7 @@ export default function PlayersPage() {
         };
       });
 
-      merged.sort((a, b) => a.name.localeCompare(b.name));
+      merged.sort((a, b) => a.last_name.localeCompare(b.last_name) || a.first_name.localeCompare(b.first_name));
       setPlayers(merged);
       setLoading(false);
     }
@@ -195,7 +196,7 @@ export default function PlayersPage() {
                   <div className="min-w-0 flex-1">
                     <div className="font-semibold">
                       <span className="text-muted-foreground mr-1">#{p.number}</span>
-                      {p.name}
+                      {fullName(p)}
                     </div>
                     {SLOT_LABELS[i] && (
                       <div className="text-xs text-muted-foreground">{SLOT_LABELS[i]}</div>
@@ -252,7 +253,7 @@ export default function PlayersPage() {
                     </TableCell>
                     <TableCell className="font-medium whitespace-nowrap">
                       <Link href={`/players/${p.id}`} className="text-primary hover:underline">
-                        {p.name}
+                        {fullName(p)}
                       </Link>
                     </TableCell>
                     <TableCell className="text-center tabular-nums font-bold text-primary">

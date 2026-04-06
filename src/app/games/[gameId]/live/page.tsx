@@ -20,6 +20,7 @@ import { sprayToPosition, sprayCfSide, generateNotation, parseNotationToFielding
 import { getDefaultRunnerAdvances, canDoublePlay } from "@/lib/scoring/baseball-rules";
 import { isAtBat, isHit, totalBases } from "@/lib/stats/calculations";
 import type { GameState, PlateAppearanceResult, RecordAtBatPayload, RunnerAdvance, Player, GameLineup, OpponentBatter, HitType } from "@/lib/scoring/types";
+import { fullName, firstName } from "@/lib/player-name";
 
 const RESULT_BUTTONS: { result: PlateAppearanceResult; label: string; color: string }[] = [
   { result: "1B", label: "1B", color: "bg-[#22c55e] hover:bg-[#2ad468] active:bg-[#1aab50]" },
@@ -128,7 +129,7 @@ export default function LiveScoringPage() {
         // Resolve runners — could be our player or opponent batter
         function resolveRunner(playerId: number | null, oppId: string | null): import("@/lib/scoring/types").BaseRunner | null {
           if (playerId) {
-            return { playerId, opponentBatterId: null, playerName: players.find((p) => p.id === playerId)?.name ?? "" };
+            return { playerId, opponentBatterId: null, playerName: (() => { const p = players.find((p) => p.id === playerId); return p ? fullName(p) : ""; })() };
           }
           if (oppId) {
             return { playerId: null, opponentBatterId: oppId, playerName: oppLineup.find((b) => b.id === oppId)?.name ?? "" };
@@ -173,7 +174,7 @@ export default function LiveScoringPage() {
             notation: pa.scorebook_notation || pa.result,
             playerName: pa.team === "them"
               ? oppLineup.find((b) => b.id === pa.opponent_batter_id)?.name ?? "Opponent"
-              : players.find((p) => p.id === pa.player_id)?.name ?? "",
+              : (() => { const p = players.find((p) => p.id === pa.player_id); return p ? fullName(p) : ""; })(),
             inning: pa.inning,
             team: pa.team ?? "us",
           }))
@@ -684,7 +685,7 @@ export default function LiveScoringPage() {
                       <div key={entry.player_id} className="flex items-center gap-3 py-1.5 px-2 rounded-lg">
                         <span className="text-sm font-bold text-primary w-5">{entry.batting_order}.</span>
                         <span className="text-sm font-medium flex-1">
-                          {player ? `#${player.number} ${player.name}` : `Player ${entry.player_id}`}
+                          {player ? `#${player.number} ${fullName(player)}` : `Player ${entry.player_id}`}
                         </span>
                         {entry.position && (
                           <span className="text-xs text-muted-foreground font-medium bg-muted/50 px-2 py-0.5 rounded">{entry.position}</span>
@@ -1026,13 +1027,13 @@ export default function LiveScoringPage() {
             <p className="text-sm text-muted-foreground">No lineup set for this game. Tap players in batting order:</p>
             {gameState.lineup.length > 0 && (
               <div className="text-xs text-muted-foreground">
-                Current order: {gameState.lineup.map((l, i) => `${i + 1}. ${gameState.players.find((p) => p.id === l.player_id)?.name}`).join(", ")}
+                Current order: {gameState.lineup.map((l, i) => { const p = gameState.players.find((p) => p.id === l.player_id); return `${i + 1}. ${p ? fullName(p) : "?"}`; }).join(", ")}
               </div>
             )}
             <div className="grid grid-cols-2 gap-2">
               {gameState.players
                 .filter((p) => !gameState.lineup.some((l) => l.player_id === p.id))
-                .sort((a, b) => a.name.localeCompare(b.name))
+                .sort((a, b) => a.last_name.localeCompare(b.last_name) || a.first_name.localeCompare(b.first_name))
                 .map((p) => (
                   <button
                     key={p.id}
@@ -1048,7 +1049,7 @@ export default function LiveScoringPage() {
                       setGameState({ ...gameState, lineup: newLineup });
                     }}
                   >
-                    #{p.number} {p.name}
+                    #{p.number} {fullName(p)}
                   </button>
                 ))}
             </div>

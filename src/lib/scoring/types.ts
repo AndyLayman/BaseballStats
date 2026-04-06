@@ -2,7 +2,8 @@
 
 export interface Player {
   id: number;
-  name: string;
+  first_name: string;
+  last_name: string;
   number: string;
   position: string;
   bats: "Right" | "Left" | "Switch" | null;

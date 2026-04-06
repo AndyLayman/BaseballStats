@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AddressAutocomplete } from "@/components/address-autocomplete";
+import { fullName } from "@/lib/player-name";
 import type { Player, Venue } from "@/lib/scoring/types";
 
 const FIELD_POSITIONS = [
@@ -255,7 +256,7 @@ export default function NewGamePage() {
                       <span className="text-sm font-bold text-primary w-5">{orderIdx + 1}</span>
                     )}
                     <span className="font-medium flex-1 text-base">
-                      #{player.number} {player.name}
+                      #{player.number} {fullName(player)}
                       {!isSelected && player.position && (
                         <span className="ml-1 text-xs text-muted-foreground">({player.position})</span>
                       )}

@@ -9,7 +9,8 @@
 
 CREATE TABLE IF NOT EXISTS players (
   id SERIAL PRIMARY KEY,
-  name TEXT NOT NULL,
+  first_name TEXT NOT NULL DEFAULT '',
+  last_name TEXT NOT NULL DEFAULT '',
   number TEXT,
   active BOOLEAN DEFAULT TRUE,
   bats TEXT DEFAULT 'Right' CHECK (bats IN ('Right', 'Left', 'Switch')),
@@ -143,7 +144,7 @@ CREATE INDEX IF NOT EXISTS idx_games_date ON games(date DESC);
 CREATE OR REPLACE VIEW batting_stats_season AS
 SELECT
   p.id AS player_id,
-  p.name AS player_name,
+  TRIM(p.first_name || ' ' || p.last_name) AS player_name,
   COUNT(DISTINCT pa.game_id) AS games,
   COUNT(pa.id) AS plate_appearances,
   COUNT(pa.id) FILTER (WHERE pa.is_at_bat) AS at_bats,
@@ -189,7 +190,7 @@ SELECT
   END AS ops
 FROM players p
 LEFT JOIN plate_appearances pa ON p.id = pa.player_id AND pa.team = 'us'
-GROUP BY p.id, p.name;
+GROUP BY p.id, p.first_name, p.last_name;
 
 -- ============================================================
 -- View: Aggregated fielding stats per player (season)
@@ -197,7 +198,7 @@ GROUP BY p.id, p.name;
 CREATE OR REPLACE VIEW fielding_stats_season AS
 SELECT
   p.id AS player_id,
-  p.name AS player_name,
+  TRIM(p.first_name || ' ' || p.last_name) AS player_name,
   COUNT(DISTINCT fp.game_id) AS games,
   COUNT(*) FILTER (WHERE fp.play_type = 'PO') AS putouts,
   COUNT(*) FILTER (WHERE fp.play_type = 'A') AS assists,
@@ -212,7 +213,7 @@ SELECT
   END AS fielding_pct
 FROM players p
 LEFT JOIN fielding_plays fp ON p.id = fp.player_id
-GROUP BY p.id, p.name;
+GROUP BY p.id, p.first_name, p.last_name;
 
 -- ============================================================
 -- Practice Logging

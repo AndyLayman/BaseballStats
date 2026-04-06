@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import type { PlateAppearance, Game, Player } from "@/lib/scoring/types";
+import { fullName } from "@/lib/player-name";
 
 interface Milestone {
   emoji: string;
@@ -29,7 +30,7 @@ export function MilestoneFeed() {
       const games: Game[] = gamesRes.data ?? [];
       const players: Player[] = playersRes.data ?? [];
       const gameMap = new Map(games.map((g) => [g.id, g]));
-      const playerName = (id: number) => players.find((p) => p.id === id)?.name ?? "Unknown";
+      const playerName = (id: number) => { const p = players.find((p) => p.id === id); return p ? fullName(p) : "Unknown"; };
 
       const found: Milestone[] = [];
 

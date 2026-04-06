@@ -12,6 +12,7 @@ import { formatAvg } from "@/lib/stats/calculations";
 import { SprayChart } from "@/components/scoring/SprayChart";
 import { ProgressionChart } from "@/components/progression-chart";
 import type { Player, PlateAppearance, PlateAppearanceResult, BattingStats, FieldingStats, HitType } from "@/lib/scoring/types";
+import { fullName } from "@/lib/player-name";
 import { StatTip } from "@/components/stat-tip";
 
 type SprayFilter = "both" | "hits" | "outs";
@@ -81,7 +82,7 @@ export default function PlayerDetailPage() {
           /* eslint-disable-next-line @next/next/no-img-element */
           <img
             src={supabase.storage.from("media").getPublicUrl(`player-${player.id}-photo`).data.publicUrl}
-            alt={player.name}
+            alt={fullName(player)}
             className="h-16 w-16 rounded-full object-cover border border-primary/30"
           />
         ) : (
@@ -90,7 +91,7 @@ export default function PlayerDetailPage() {
           </div>
         )}
         <div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-gradient">{player.name}</h1>
+          <h1 className="text-3xl font-extrabold tracking-tight text-gradient">{fullName(player)}</h1>
           <p className="text-sm text-muted-foreground">
             {player.bats || player.throws
               ? `Bats: ${player.bats ?? "—"}, Throws: ${player.throws ?? "—"}`

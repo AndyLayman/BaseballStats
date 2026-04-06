@@ -13,6 +13,7 @@ import type {
   PracticePlanItem, PracticePlanTemplate, PracticePlanTemplateItem,
   ActionItem, PracticeAttendance, Venue,
 } from "@/lib/scoring/types";
+import { fullName, firstName } from "@/lib/player-name";
 
 const FOCUS_AREAS = ["Hitting", "Fielding", "Throwing", "Baserunning", "Attitude", "Other"];
 
@@ -326,7 +327,7 @@ export default function PracticeDetailPage() {
                       : "bg-muted/30 text-foreground border-border/50"
                   }`}
                 >
-                  #{p.number} {p.name.split(" ")[0]}
+                  #{p.number} {firstName(p)}
                 </button>
               );
             })}
@@ -532,7 +533,7 @@ export default function PracticeDetailPage() {
                     : "bg-muted/30 text-foreground border-border/50"
                 }`}
               >
-                #{p.number} {p.name.split(" ")[0]}
+                #{p.number} {firstName(p)}
               </button>
             ))}
           </div>
@@ -560,7 +561,7 @@ export default function PracticeDetailPage() {
               <RichEditor
                 content={noteText}
                 onChange={(html) => setNoteText(html)}
-                placeholder={`Notes for ${players.find((p) => p.id === selectedPlayer)?.name}...`}
+                placeholder={`Notes for ${(() => { const p = players.find((p) => p.id === selectedPlayer); return p ? fullName(p) : ""; })()}...`}
                 autofocus
               />
 
@@ -642,7 +643,7 @@ export default function PracticeDetailPage() {
             >
               <option value="">Team</option>
               {players.map((p) => (
-                <option key={p.id} value={p.id}>#{p.number} {p.name.split(" ")[0]}</option>
+                <option key={p.id} value={p.id}>#{p.number} {firstName(p)}</option>
               ))}
             </select>
             <Button variant="outline" className="h-9 text-xs shrink-0" onClick={addActionItem} disabled={!newActionText.trim()}>
@@ -663,7 +664,7 @@ export default function PracticeDetailPage() {
               <Card key={pid} className="glass">
                 <CardContent className="p-4">
                   <div className="font-semibold text-sm mb-2">
-                    #{player?.number} {player?.name}
+                    #{player?.number} {player ? fullName(player) : ""}
                   </div>
                   <div className="space-y-2">
                     {playerNotes.map((n) => (

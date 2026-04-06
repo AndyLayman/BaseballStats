@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatAvg } from "@/lib/stats/calculations";
 import type { Game, GameLineup, Player, PlateAppearance, OpponentBatter } from "@/lib/scoring/types";
+import { fullName } from "@/lib/player-name";
 import { StatTip } from "@/components/stat-tip";
 
 export default function GameDetailPage() {
@@ -204,7 +205,7 @@ export default function GameDetailPage() {
                       <TableCell className="sticky left-0 bg-card z-10">
                         <Link href={`/players/${entry.player_id}`} className="hover:text-primary font-medium transition-colors">
                           <span className="text-muted-foreground mr-1">{entry.batting_order}.</span>
-                          {entry.player?.name ?? `Player ${entry.player_id}`}
+                          {entry.player ? fullName(entry.player) : `Player ${entry.player_id}`}
                         </Link>
                       </TableCell>
                       {innings.map((inn) => {
