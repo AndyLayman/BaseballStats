@@ -6,6 +6,7 @@ import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { RichEditor } from "@/components/rich-editor";
 import type { Practice, PracticeNote, Player } from "@/lib/scoring/types";
 
 const FOCUS_AREAS = ["Hitting", "Fielding", "Throwing", "Baserunning", "Attitude", "Other"];
@@ -42,8 +43,13 @@ export default function PracticeDetailPage() {
     load();
   }, [practiceId]);
 
+  function isEmptyHtml(html: string) {
+    const stripped = html.replace(/<[^>]*>/g, "").trim();
+    return stripped.length === 0;
+  }
+
   async function handleAddNote() {
-    if (!selectedPlayer || !noteText.trim()) return;
+    if (!selectedPlayer || isEmptyHtml(noteText)) return;
     setSaving(true);
     const { data, error } = await supabase
       .from("practice_notes")
@@ -109,14 +115,18 @@ export default function PracticeDetailPage() {
           <CardTitle className="text-sm text-muted-foreground uppercase tracking-wider font-medium">Team Notes</CardTitle>
         </CardHeader>
         <CardContent className="px-4 pb-4">
-          <textarea
-            value={teamNotes}
-            onChange={(e) => setTeamNotes(e.target.value)}
-            onBlur={handleSaveTeamNotes}
+          <RichEditor
+            content={teamNotes}
+            onChange={(html) => setTeamNotes(html)}
             placeholder="Overall practice notes, drills run, focus for the day..."
-            rows={3}
-            className="w-full rounded-xl border-2 border-border/50 bg-muted/30 px-3 py-2.5 text-sm placeholder:text-muted-foreground/50 focus:border-primary/50 focus:outline-none transition-colors resize-none"
           />
+          <Button
+            variant="outline"
+            className="mt-2 h-9 text-xs font-semibold border-border/50"
+            onClick={handleSaveTeamNotes}
+          >
+            Save Notes
+          </Button>
         </CardContent>
       </Card>
 
@@ -163,19 +173,17 @@ export default function PracticeDetailPage() {
               </div>
 
               {/* Note input */}
-              <textarea
-                value={noteText}
-                onChange={(e) => setNoteText(e.target.value)}
+              <RichEditor
+                content={noteText}
+                onChange={(html) => setNoteText(html)}
                 placeholder={`Notes for ${players.find((p) => p.id === selectedPlayer)?.name}...`}
-                rows={2}
-                className="w-full rounded-xl border-2 border-border/50 bg-muted/30 px-3 py-2.5 text-sm placeholder:text-muted-foreground/50 focus:border-primary/50 focus:outline-none transition-colors resize-none"
-                autoFocus
+                autofocus
               />
 
               <Button
                 className="w-full h-11 text-sm font-bold glow-primary active:scale-[0.98] transition-transform"
                 onClick={handleAddNote}
-                disabled={saving || !noteText.trim()}
+                disabled={saving || isEmptyHtml(noteText)}
               >
                 {saving ? "Saving..." : "Add Note"}
               </Button>
@@ -205,7 +213,7 @@ export default function PracticeDetailPage() {
                               {n.focus_area}
                             </span>
                           )}
-                          <span className="text-sm">{n.note}</span>
+                          <span className="text-sm prose prose-invert prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: n.note }} />
                         </div>
                         <button
                           onClick={() => handleDeleteNote(n.id)}
