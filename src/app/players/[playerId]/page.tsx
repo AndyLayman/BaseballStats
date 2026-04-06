@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatAvg } from "@/lib/stats/calculations";
 import { SprayChart } from "@/components/scoring/SprayChart";
+import { ProgressionChart } from "@/components/progression-chart";
 import type { Player, PlateAppearance, PlateAppearanceResult, BattingStats, FieldingStats, HitType } from "@/lib/scoring/types";
 import { StatTip } from "@/components/stat-tip";
 
@@ -189,6 +190,7 @@ export default function PlayerDetailPage() {
       <Tabs defaultValue="batting">
         <TabsList className="w-full sm:w-auto bg-muted/50">
           <TabsTrigger value="batting" className="flex-1 sm:flex-none">Batting</TabsTrigger>
+          <TabsTrigger value="progress" className="flex-1 sm:flex-none">Progress</TabsTrigger>
           <TabsTrigger value="fielding" className="flex-1 sm:flex-none">Fielding</TabsTrigger>
           <TabsTrigger value="gamelog" className="flex-1 sm:flex-none">Game Log</TabsTrigger>
         </TabsList>
@@ -271,6 +273,21 @@ export default function PlayerDetailPage() {
             </Card>
           ) : (
             <p className="text-muted-foreground py-8 text-center">No batting stats yet</p>
+          )}
+        </TabsContent>
+
+        <TabsContent value="progress">
+          {gameLog.length >= 2 ? (
+            <Card className="glass border-border/50">
+              <CardHeader className="px-3 sm:px-6">
+                <CardTitle className="text-gradient">Season Progression</CardTitle>
+              </CardHeader>
+              <CardContent className="px-3 sm:px-6">
+                <ProgressionChart appearances={allPAs} gameLog={gameLog} />
+              </CardContent>
+            </Card>
+          ) : (
+            <p className="text-muted-foreground py-8 text-center">Need at least 2 games to show progression</p>
           )}
         </TabsContent>
 

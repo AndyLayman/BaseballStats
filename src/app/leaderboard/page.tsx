@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { Card, CardContent } from "@/components/ui/card";
@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatAvg } from "@/lib/stats/calculations";
 import type { BattingStats, FieldingStats } from "@/lib/scoring/types";
 import { StatTip } from "@/components/stat-tip";
+import { computeBadges, BadgeRow } from "@/components/leaderboard-badges";
 
 type SortKey = keyof BattingStats;
 
@@ -52,6 +53,8 @@ export default function LeaderboardPage() {
   const sortedFielding = [...fieldingStats]
     .filter((s) => Number(s.total_chances) > 0)
     .sort((a, b) => Number(b.fielding_pct) - Number(a.fielding_pct));
+
+  const badges = useMemo(() => computeBadges(battingStats, fieldingStats), [battingStats, fieldingStats]);
 
   if (loading) {
     return (
@@ -142,6 +145,9 @@ export default function LeaderboardPage() {
                               </div>
                             ))}
                           </div>
+                          {badges.get(stat.player_id)?.length ? (
+                            <BadgeRow badges={badges.get(stat.player_id)!} />
+                          ) : null}
                         </CardContent>
                       </Card>
                     </Link>
@@ -180,9 +186,14 @@ export default function LeaderboardPage() {
                             {i + 1}
                           </TableCell>
                           <TableCell>
-                            <Link href={`/players/${stat.player_id}`} className="font-medium hover:text-primary transition-colors">
-                              {stat.player_name}
-                            </Link>
+                            <div className="flex items-center gap-2">
+                              <Link href={`/players/${stat.player_id}`} className="font-medium hover:text-primary transition-colors">
+                                {stat.player_name}
+                              </Link>
+                              {badges.get(stat.player_id)?.length ? (
+                                <BadgeRow badges={badges.get(stat.player_id)!} />
+                              ) : null}
+                            </div>
                           </TableCell>
                           <TableCell>{stat.games}</TableCell>
                           <TableCell>{stat.at_bats}</TableCell>
@@ -265,9 +276,14 @@ export default function LeaderboardPage() {
                             {i + 1}
                           </TableCell>
                           <TableCell>
-                            <Link href={`/players/${stat.player_id}`} className="font-medium hover:text-primary transition-colors">
-                              {stat.player_name}
-                            </Link>
+                            <div className="flex items-center gap-2">
+                              <Link href={`/players/${stat.player_id}`} className="font-medium hover:text-primary transition-colors">
+                                {stat.player_name}
+                              </Link>
+                              {badges.get(stat.player_id)?.some((b) => b.id === "golden-glove") ? (
+                                <BadgeRow badges={badges.get(stat.player_id)!.filter((b) => b.id === "golden-glove")} />
+                              ) : null}
+                            </div>
                           </TableCell>
                           <TableCell>{stat.games}</TableCell>
                           <TableCell>{stat.putouts}</TableCell>
