@@ -7,9 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { AddressAutocomplete } from "@/components/address-autocomplete";
+import { VenuePicker } from "@/components/venue-picker";
 import { fullName } from "@/lib/player-name";
-import type { Player, Venue } from "@/lib/scoring/types";
+import type { Player } from "@/lib/scoring/types";
 
 const FIELD_POSITIONS = [
   { value: "P", label: "P" },
@@ -36,7 +36,6 @@ export default function NewGamePage() {
   const [location, setLocation] = useState<"home" | "away">("home");
   const [venue, setVenue] = useState("");
   const [venueAddress, setVenueAddress] = useState("");
-  const [venues, setVenues] = useState<Venue[]>([]);
   const [players, setPlayers] = useState<Player[]>([]);
   const [selectedPlayers, setSelectedPlayers] = useState<number[]>([]);
   const [positions, setPositions] = useState<Record<number, string>>({});
@@ -44,14 +43,10 @@ export default function NewGamePage() {
 
   useEffect(() => {
     async function load() {
-      const [playersRes, venuesRes] = await Promise.all([
-        supabase.from("players").select("*").order("sort_order"),
-        supabase.from("venues").select("*").order("name"),
-      ]);
-      const allPlayers: Player[] = playersRes.data ?? [];
+      const { data } = await supabase.from("players").select("*").order("sort_order");
+      const allPlayers: Player[] = data ?? [];
       setPlayers(allPlayers);
       setSelectedPlayers(allPlayers.map((p) => p.id));
-      setVenues(venuesRes.data ?? []);
       // Pre-fill positions from each player's default position
       const defaultPositions: Record<number, string> = {};
       for (const p of allPlayers) {
@@ -187,39 +182,14 @@ export default function NewGamePage() {
             {/* Venue */}
             <div>
               <Label>Venue / Field</Label>
-              {venues.length > 0 && (
-                <div className="flex gap-2 flex-wrap mt-1 mb-2">
-                  {venues.map((v) => (
-                    <button
-                      key={v.id}
-                      type="button"
-                      onClick={() => { setVenue(v.name); setVenueAddress(v.address); }}
-                      className={`px-3 py-1.5 rounded-full text-xs font-bold border-2 transition-all active:scale-95 select-none ${
-                        venue === v.name
-                          ? "bg-primary/20 text-primary border-primary/40"
-                          : "bg-muted/30 text-muted-foreground border-border/50"
-                      }`}
-                    >
-                      {v.name}
-                    </button>
-                  ))}
-                </div>
-              )}
-              <Input
-                value={venue}
-                onChange={(e) => setVenue(e.target.value)}
-                placeholder="Field or park name"
-                className="h-12 text-base bg-input/50 border-border/50 focus:border-primary/50"
-              />
-            </div>
-            <div>
-              <Label>Address</Label>
-              <AddressAutocomplete
-                value={venueAddress}
-                onChange={setVenueAddress}
-                placeholder="123 Main St, City, State"
-                className="h-12 text-base bg-input/50 border-border/50 focus:border-primary/50"
-              />
+              <div className="mt-1">
+                <VenuePicker
+                  venue={venue}
+                  venueAddress={venueAddress}
+                  onVenueChange={setVenue}
+                  onAddressChange={setVenueAddress}
+                />
+              </div>
             </div>
           </CardContent>
         </Card>
