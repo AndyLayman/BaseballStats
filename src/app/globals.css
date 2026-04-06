@@ -209,7 +209,8 @@
   z-index: -2;
   overflow: hidden;
   pointer-events: none;
-  contain: strict;
+  filter: blur(80px);
+  transform: translate3d(0, 0, 0);
 }
 
 .mesh-band-1,
@@ -218,7 +219,6 @@
   position: absolute;
   will-change: transform;
   backface-visibility: hidden;
-  transform: translate3d(0, 0, 0);
 }
 
 .mesh-band-1 {
@@ -227,7 +227,6 @@
   top: -15%;
   left: -10%;
   background: radial-gradient(circle, rgba(207, 89, 243, 0.30) 0%, rgba(207, 89, 243, 0.10) 40%, transparent 70%);
-  filter: blur(80px);
   animation: aurora-1 18s ease-in-out infinite;
 }
 
@@ -237,7 +236,6 @@
   bottom: -10%;
   right: -10%;
   background: radial-gradient(circle, rgba(8, 221, 200, 0.25) 0%, rgba(8, 221, 200, 0.08) 40%, transparent 70%);
-  filter: blur(85px);
   animation: aurora-2 22s ease-in-out infinite;
 }
 
@@ -247,7 +245,6 @@
   bottom: 5%;
   left: 15%;
   background: radial-gradient(circle, rgba(131, 221, 104, 0.22) 0%, rgba(131, 221, 104, 0.06) 40%, transparent 70%);
-  filter: blur(80px);
   animation: aurora-3 26s ease-in-out infinite;
 }
 
