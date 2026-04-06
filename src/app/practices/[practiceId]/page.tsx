@@ -11,7 +11,7 @@ import { RichEditor } from "@/components/rich-editor";
 import type {
   Practice, PracticeNote, Player, Drill,
   PracticePlanItem, PracticePlanTemplate, PracticePlanTemplateItem,
-  ActionItem, PracticeAttendance,
+  ActionItem, PracticeAttendance, Venue,
 } from "@/lib/scoring/types";
 
 const FOCUS_AREAS = ["Hitting", "Fielding", "Throwing", "Baserunning", "Attitude", "Other"];
@@ -280,6 +280,22 @@ export default function PracticeDetailPage() {
         <p className="text-sm text-muted-foreground mt-1">
           {new Date(practice.date + "T12:00:00").toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
         </p>
+        {(practice.venue || practice.venue_address) && (
+          <div className="flex items-center gap-2 mt-1.5">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary shrink-0"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+            <span className="text-sm">{practice.venue}</span>
+            {practice.venue_address && (
+              <a
+                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(practice.venue_address)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-primary hover:underline"
+              >
+                Directions
+              </a>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Attendance */}

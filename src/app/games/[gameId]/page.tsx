@@ -116,6 +116,50 @@ export default function GameDetailPage() {
         </Card>
       )}
 
+      {/* Venue & Map */}
+      {(game.venue || game.venue_address) && (
+        <Card className="glass">
+          <CardContent className="p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                {game.venue && (
+                  <div className="font-semibold text-sm flex items-center gap-1.5">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary shrink-0"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+                    {game.venue}
+                  </div>
+                )}
+                {game.venue_address && (
+                  <div className="text-xs text-muted-foreground mt-0.5">{game.venue_address}</div>
+                )}
+              </div>
+              {game.venue_address && (
+                <a
+                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(game.venue_address)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="shrink-0 px-3 py-1.5 rounded-full text-xs font-bold bg-primary/15 text-primary border border-primary/30 hover:bg-primary/25 transition-all active:scale-95"
+                >
+                  Directions
+                </a>
+              )}
+            </div>
+            {game.venue_address && (
+              <a
+                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(game.venue_address)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-3 block rounded-xl overflow-hidden border border-border/30 bg-muted/20 hover:border-primary/30 transition-all"
+              >
+                <div className="flex items-center justify-center gap-2 py-6 text-sm text-muted-foreground hover:text-primary transition-colors">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+                  Open in Google Maps
+                </div>
+              </a>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {/* Game Notes */}
       {game.notes && (
         <Card className="glass">

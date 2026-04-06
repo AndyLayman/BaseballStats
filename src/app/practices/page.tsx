@@ -7,7 +7,7 @@ import { supabase } from "@/lib/supabase";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import type { Practice } from "@/lib/scoring/types";
+import type { Practice, Venue } from "@/lib/scoring/types";
 
 export default function PracticesPage() {
   const router = useRouter();
@@ -16,15 +16,19 @@ export default function PracticesPage() {
   const [showNew, setShowNew] = useState(false);
   const [newTitle, setNewTitle] = useState("Practice");
   const [newDate, setNewDate] = useState(new Date().toISOString().split("T")[0]);
+  const [newVenue, setNewVenue] = useState("");
+  const [newVenueAddress, setNewVenueAddress] = useState("");
+  const [venues, setVenues] = useState<Venue[]>([]);
   const [creating, setCreating] = useState(false);
 
   useEffect(() => {
     async function load() {
-      const { data } = await supabase
-        .from("practices")
-        .select("*")
-        .order("date", { ascending: false });
-      setPractices(data ?? []);
+      const [practicesRes, venuesRes] = await Promise.all([
+        supabase.from("practices").select("*").order("date", { ascending: false }),
+        supabase.from("venues").select("*").order("name"),
+      ]);
+      setPractices(practicesRes.data ?? []);
+      setVenues(venuesRes.data ?? []);
       setLoading(false);
     }
     load();
@@ -35,7 +39,12 @@ export default function PracticesPage() {
     setCreating(true);
     const { data, error } = await supabase
       .from("practices")
-      .insert({ title: newTitle.trim(), date: newDate })
+      .insert({
+        title: newTitle.trim(),
+        date: newDate,
+        venue: newVenue.trim() || null,
+        venue_address: newVenueAddress.trim() || null,
+      })
       .select()
       .single();
     if (data && !error) {
@@ -107,6 +116,41 @@ export default function PracticesPage() {
                 />
               </div>
             </div>
+            {/* Venue */}
+            <div>
+              <label className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Location</label>
+              {venues.length > 0 && (
+                <div className="flex gap-2 flex-wrap mt-1 mb-2">
+                  {venues.map((v) => (
+                    <button
+                      key={v.id}
+                      onClick={() => { setNewVenue(v.name); setNewVenueAddress(v.address); }}
+                      className={`px-3 py-1.5 rounded-full text-xs font-bold border-2 transition-all active:scale-95 select-none ${
+                        newVenue === v.name
+                          ? "bg-primary/20 text-primary border-primary/40"
+                          : "bg-muted/30 text-muted-foreground border-border/50"
+                      }`}
+                    >
+                      {v.name}
+                    </button>
+                  ))}
+                </div>
+              )}
+              <div className="grid grid-cols-2 gap-3">
+                <Input
+                  value={newVenue}
+                  onChange={(e) => setNewVenue(e.target.value)}
+                  placeholder="Field name"
+                  className="h-12 text-base bg-input/50 border-border/50 focus:border-primary/50"
+                />
+                <Input
+                  value={newVenueAddress}
+                  onChange={(e) => setNewVenueAddress(e.target.value)}
+                  placeholder="Address"
+                  className="h-12 text-base bg-input/50 border-border/50 focus:border-primary/50"
+                />
+              </div>
+            </div>
             <Button
               className="w-full h-12 text-base font-bold glow-primary active:scale-[0.98] transition-transform"
               onClick={handleCreate}
@@ -131,11 +175,9 @@ export default function PracticesPage() {
                       <div className="font-semibold text-base">{p.title}</div>
                       <div className="text-sm text-muted-foreground">
                         {new Date(p.date + "T12:00:00").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
+                        {p.venue && <span className="ml-2">@ {p.venue}</span>}
                       </div>
                     </div>
-                    {p.notes && (
-                      <div className="text-xs text-muted-foreground max-w-[150px] truncate">{p.notes}</div>
-                    )}
                   </div>
                 </CardContent>
               </Card>

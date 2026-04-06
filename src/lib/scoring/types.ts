@@ -24,6 +24,8 @@ export interface Game {
   innings_played: number;
   status: "scheduled" | "in_progress" | "final" | null;
   notes: string | null;
+  venue: string | null;
+  venue_address: string | null;
   created_at: string;
   // Existing columns from original schema
   num_innings: number | null;
@@ -182,6 +184,8 @@ export interface Practice {
   date: string;
   title: string;
   notes: string | null;
+  venue: string | null;
+  venue_address: string | null;
   created_at: string;
 }
 
@@ -243,4 +247,11 @@ export interface PracticeAttendance {
   practice_id: string;
   player_id: number;
   present: boolean;
+}
+
+export interface Venue {
+  id: string;
+  name: string;
+  address: string;
+  created_at: string;
 }

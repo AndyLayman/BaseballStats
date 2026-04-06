@@ -306,3 +306,20 @@ CREATE TABLE IF NOT EXISTS practice_attendance (
   present BOOLEAN NOT NULL DEFAULT TRUE,
   UNIQUE(practice_id, player_id)
 );
+
+-- ============================================================
+-- Venues (saved fields/parks)
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS venues (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  address TEXT NOT NULL DEFAULT '',
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Add venue columns to games table
+ALTER TABLE games ADD COLUMN IF NOT EXISTS venue TEXT;
+ALTER TABLE games ADD COLUMN IF NOT EXISTS venue_address TEXT;
+ALTER TABLE practices ADD COLUMN IF NOT EXISTS venue TEXT;
+ALTER TABLE practices ADD COLUMN IF NOT EXISTS venue_address TEXT;

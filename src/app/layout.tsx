@@ -38,6 +38,7 @@ const NAV_LINKS = [
   { href: "/players", label: "Players" },
   { href: "/games", label: "Games" },
   { href: "/practices", label: "Practices" },
+  { href: "/venues", label: "Venues" },
   { href: "/leaderboard", label: "Leaderboard" },
 ];
 
