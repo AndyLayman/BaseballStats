@@ -4,24 +4,26 @@ import { MobileNav } from "@/components/mobile-nav";
 import { LiveGameTicker } from "@/components/live-game-ticker";
 import "./globals.css";
 
+const isStaging = process.env.NEXT_PUBLIC_APP_ENV === "staging";
+
 export const metadata: Metadata = {
-  title: "BaseballStats",
+  title: isStaging ? "[STAGE] Baseball Stats" : "Baseball Stats",
   description: "Baseball stats tracking and live scoring",
   manifest: "/manifest.json",
   icons: {
     icon: [
-      { url: "/favicon.png", sizes: "32x32", type: "image/png" },
-      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
-      { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
+      { url: isStaging ? "/favicon-staging.png" : "/favicon.png", sizes: "32x32", type: "image/png" },
+      { url: isStaging ? "/icon-192-staging.png" : "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: isStaging ? "/icon-512-staging.png" : "/icon-512.png", sizes: "512x512", type: "image/png" },
     ],
     apple: [
-      { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+      { url: isStaging ? "/apple-touch-icon-staging.png" : "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
     ],
   },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "BaseballStats",
+    title: isStaging ? "[STAGE] Baseball Stats" : "Baseball Stats",
   },
 };
 
@@ -37,6 +39,7 @@ const NAV_LINKS = [
   { href: "/", label: "Dashboard" },
   { href: "/players", label: "Players" },
   { href: "/games", label: "Games" },
+  { href: "/practices", label: "Practices" },
   { href: "/leaderboard", label: "Leaderboard" },
 ];
 
@@ -96,6 +99,11 @@ export default function RootLayout({
                 </svg>
               </div>
               <span className="hidden sm:inline text-gradient font-extrabold tracking-tight">BaseballStats</span>
+              {isStaging && (
+                <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                  STG
+                </span>
+              )}
             </Link>
 
             {/* Live game ticker — shows when a game is in progress */}

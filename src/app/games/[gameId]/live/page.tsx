@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { SprayChart } from "@/components/scoring/SprayChart";
 import {
   createInitialGameState,
@@ -19,6 +20,7 @@ import { sprayToPosition, sprayCfSide, generateNotation, parseNotationToFielding
 import { getDefaultRunnerAdvances, canDoublePlay } from "@/lib/scoring/baseball-rules";
 import { isAtBat, isHit, totalBases } from "@/lib/stats/calculations";
 import type { GameState, PlateAppearanceResult, RecordAtBatPayload, RunnerAdvance, Player, GameLineup, OpponentBatter, HitType } from "@/lib/scoring/types";
+import { fullName, firstName } from "@/lib/player-name";
 
 const RESULT_BUTTONS: { result: PlateAppearanceResult; label: string; color: string }[] = [
   { result: "1B", label: "1B", color: "bg-[#22c55e] hover:bg-[#2ad468] active:bg-[#1aab50]" },
@@ -69,9 +71,17 @@ export default function LiveScoringPage() {
   const [playLog, setPlayLog] = useState<{ notation: string; playerName: string; inning: number; team: "us" | "them" }[]>([]);
   const [newOpponentName, setNewOpponentName] = useState("");
   const [pitchCount, setPitchCount] = useState<{ balls: number; strikes: number }>({ balls: 0, strikes: 0 });
-  const [errorPosition, setErrorPosition] = useState<number | null>(null);
+  const [errorPosition, setErrorPosition] = useState<{ pos: number; cf?: "LC" | "RC"; key: string } | null>(null);
   const [batterHistory, setBatterHistory] = useState<{ x: number; y: number; result: PlateAppearanceResult; hitType: HitType | null }[]>([]);
   const [inningPositions, setInningPositions] = useState<{ player_id: number; position: string }[]>([]);
+  const [opponentName, setOpponentName] = useState<string>("Them");
+  const [hitProbability, setHitProbability] = useState<number | null>(null);
+  const [ourTeamName, setOurTeamName] = useState<string>("Padres");
+  const [gameLocation, setGameLocation] = useState<"home" | "away">("home");
+  const [showPregame, setShowPregame] = useState(false);
+  const [showEndGame, setShowEndGame] = useState(false);
+  const [gameNotes, setGameNotes] = useState("");
+  const [gameDate, setGameDate] = useState<string>("");
 
   // Wake Lock to prevent screen sleep during scoring
   useEffect(() => {
@@ -109,6 +119,9 @@ export default function LiveScoringPage() {
       const lineup: GameLineup[] = lineupRes.data ?? [];
       const players: Player[] = playersRes.data ?? [];
       const oppLineup: OpponentBatter[] = opponentLineupRes.data ?? [];
+      if (gameRes.data?.opponent) setOpponentName(gameRes.data.opponent);
+      if (gameRes.data?.location) setGameLocation(gameRes.data.location);
+      if (gameRes.data?.date) setGameDate(gameRes.data.date);
 
       let state: GameState;
       if (stateRes.data) {
@@ -116,7 +129,7 @@ export default function LiveScoringPage() {
         // Resolve runners — could be our player or opponent batter
         function resolveRunner(playerId: number | null, oppId: string | null): import("@/lib/scoring/types").BaseRunner | null {
           if (playerId) {
-            return { playerId, opponentBatterId: null, playerName: players.find((p) => p.id === playerId)?.name ?? "" };
+            return { playerId, opponentBatterId: null, playerName: (() => { const p = players.find((p) => p.id === playerId); return p ? fullName(p) : ""; })() };
           }
           if (oppId) {
             return { playerId: null, opponentBatterId: oppId, playerName: oppLineup.find((b) => b.id === oppId)?.name ?? "" };
@@ -146,7 +159,7 @@ export default function LiveScoringPage() {
       setGameState(state);
 
       if (gameRes.data?.status === "scheduled") {
-        await supabase.from("games").update({ status: "in_progress" }).eq("id", gameId);
+        setShowPregame(true);
       }
 
       const { data: pas } = await supabase
@@ -161,7 +174,7 @@ export default function LiveScoringPage() {
             notation: pa.scorebook_notation || pa.result,
             playerName: pa.team === "them"
               ? oppLineup.find((b) => b.id === pa.opponent_batter_id)?.name ?? "Opponent"
-              : players.find((p) => p.id === pa.player_id)?.name ?? "",
+              : (() => { const p = players.find((p) => p.id === pa.player_id); return p ? fullName(p) : ""; })(),
             inning: pa.inning,
             team: pa.team ?? "us",
           }))
@@ -329,14 +342,14 @@ export default function LiveScoringPage() {
 
       // If result is E and a position was selected, record the error fielding play
       if (selectedResult === "E" && errorPosition) {
-        const errorPlayerId = resolvePositionToPlayerId(errorPosition, gameState.lineup, gameState.players, inningPositions);
+        const errorPlayerId = resolvePositionToPlayerId(errorPosition.pos, gameState.lineup, gameState.players, inningPositions, errorPosition.cf);
         if (errorPlayerId) {
           fieldingRows.push({
             game_id: gameId,
             player_id: errorPlayerId,
             inning: gameState.currentInning,
             play_type: "E",
-            description: `E${errorPosition}`,
+            description: `E${errorPosition.key}`,
           });
         }
       }
@@ -449,13 +462,19 @@ export default function LiveScoringPage() {
     persistState(newState);
   }
 
-  async function handleEndGame() {
+  function handleEndGame() {
+    if (!gameState) return;
+    setShowEndGame(true);
+  }
+
+  async function handleFinalizeGame() {
     if (!gameState) return;
     await supabase.from("games").update({
       status: "final",
       our_score: gameState.ourScore,
       opponent_score: gameState.opponentScore,
       innings_played: gameState.currentHalf === "top" ? gameState.currentInning - 1 : gameState.currentInning,
+      notes: gameNotes.trim() || null,
     }).eq("id", gameId);
     router.push(`/games/${gameId}`);
   }
@@ -502,6 +521,58 @@ export default function LiveScoringPage() {
     fetchHistory();
   }, [activeBatter?.playerId, activeBatter?.opponentBatterId]);
 
+  // Compute hit probability for the current batter
+  useEffect(() => {
+    if (!activeBatter) { setHitProbability(null); return; }
+    async function computeProbability() {
+      let query = supabase
+        .from("plate_appearances")
+        .select("result")
+        .order("created_at", { ascending: false });
+
+      if (activeBatter!.playerId) {
+        query = query.eq("player_id", activeBatter!.playerId);
+      } else if (activeBatter!.opponentBatterId) {
+        query = query.eq("opponent_batter_id", activeBatter!.opponentBatterId);
+      } else {
+        setHitProbability(null);
+        return;
+      }
+
+      const { data: allPAs } = await query;
+      if (!allPAs || allPAs.length === 0) {
+        setHitProbability(null);
+        return;
+      }
+
+      const hits = ["1B", "2B", "3B", "HR"];
+      const atBatResults = allPAs.filter((pa) => !["BB", "HBP", "SAC"].includes(pa.result));
+      if (atBatResults.length === 0) { setHitProbability(null); return; }
+
+      // Season batting average
+      const seasonHits = atBatResults.filter((pa) => hits.includes(pa.result)).length;
+      const seasonAvg = seasonHits / atBatResults.length;
+
+      // Recent form (last 10 ABs) — weighted heavier
+      const recent = atBatResults.slice(0, 10);
+      const recentHits = recent.filter((pa) => hits.includes(pa.result)).length;
+      const recentAvg = recent.length >= 3 ? recentHits / recent.length : seasonAvg;
+
+      // Blend: 40% season, 60% recent (recent form matters more in small samples)
+      const blended = atBatResults.length < 10
+        ? seasonAvg
+        : seasonAvg * 0.4 + recentAvg * 0.6;
+
+      // Situational boost: runners in scoring position adds a small bump
+      const risp = gameState?.runnerSecond || gameState?.runnerThird;
+      const situational = risp ? 0.03 : 0;
+
+      const prob = Math.min(Math.max(blended + situational, 0), 1);
+      setHitProbability(Math.round(prob * 100));
+    }
+    computeProbability();
+  }, [activeBatter?.playerId, activeBatter?.opponentBatterId, gameState?.runnerSecond, gameState?.runnerThird]);
+
   // Load lineup_assignments for the current inning (who plays what position)
   useEffect(() => {
     if (!gameState) return;
@@ -526,6 +597,192 @@ export default function LiveScoringPage() {
     );
   }
 
+  if (showPregame) {
+    const homeTeam = gameLocation === "home" ? ourTeamName : opponentName;
+    const awayTeam = gameLocation === "home" ? opponentName : ourTeamName;
+    return (
+      <div className="space-y-4 max-w-lg mx-auto pb-24">
+        <h1 className="text-2xl font-extrabold tracking-tight text-gradient text-center">Pre-Game Summary</h1>
+
+        {/* Date */}
+        {gameDate && (
+          <div className="text-center text-muted-foreground text-sm">
+            {new Date(gameDate + "T12:00:00").toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
+          </div>
+        )}
+
+        {/* Matchup */}
+        <Card className="glass-strong gradient-border glow-primary">
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between gap-3">
+              <div className="text-center flex-1 space-y-2">
+                <div className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Away</div>
+                <Input
+                  value={awayTeam}
+                  onChange={(e) => {
+                    if (gameLocation === "home") setOpponentName(e.target.value);
+                    else setOurTeamName(e.target.value);
+                  }}
+                  className="text-center text-lg font-bold h-12 bg-input/50 border-border/50 focus:border-primary/50"
+                />
+              </div>
+              <div className="text-2xl font-extrabold text-muted-foreground">@</div>
+              <div className="text-center flex-1 space-y-2">
+                <div className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Home</div>
+                <Input
+                  value={homeTeam}
+                  onChange={(e) => {
+                    if (gameLocation === "home") setOurTeamName(e.target.value);
+                    else setOpponentName(e.target.value);
+                  }}
+                  className="text-center text-lg font-bold h-12 bg-input/50 border-border/50 focus:border-primary/50"
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Home/Away Toggle */}
+        <Card className="glass">
+          <CardContent className="p-4 space-y-2">
+            <div className="text-sm text-muted-foreground uppercase tracking-wider font-medium">We are the...</div>
+            <div className="flex gap-2">
+              <button
+                className={`flex-1 h-12 rounded-xl text-base font-bold border-2 transition-all active:scale-95 select-none ${
+                  gameLocation === "home"
+                    ? "bg-primary/20 text-primary border-primary/40 shadow-lg"
+                    : "bg-muted/30 text-foreground border-border/50"
+                }`}
+                onClick={() => setGameLocation("home")}
+              >
+                Home Team
+              </button>
+              <button
+                className={`flex-1 h-12 rounded-xl text-base font-bold border-2 transition-all active:scale-95 select-none ${
+                  gameLocation === "away"
+                    ? "bg-primary/20 text-primary border-primary/40 shadow-lg"
+                    : "bg-muted/30 text-foreground border-border/50"
+                }`}
+                onClick={() => setGameLocation("away")}
+              >
+                Away Team
+              </button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Lineup Preview */}
+        <Card className="glass">
+          <CardContent className="p-4 space-y-2">
+            <div className="text-sm text-muted-foreground uppercase tracking-wider font-medium">{ourTeamName} Lineup</div>
+            {gameState.lineup.length > 0 ? (
+              <div className="space-y-1">
+                {gameState.lineup
+                  .sort((a, b) => a.batting_order - b.batting_order)
+                  .map((entry) => {
+                    const player = gameState.players.find((p) => p.id === entry.player_id);
+                    return (
+                      <div key={entry.player_id} className="flex items-center gap-3 py-1.5 px-2 rounded-lg">
+                        <span className="text-sm font-bold text-primary w-5">{entry.batting_order}.</span>
+                        <span className="text-sm font-medium flex-1">
+                          {player ? `#${player.number} ${fullName(player)}` : `Player ${entry.player_id}`}
+                        </span>
+                        {entry.position && (
+                          <span className="text-xs text-muted-foreground font-medium bg-muted/50 px-2 py-0.5 rounded">{entry.position}</span>
+                        )}
+                      </div>
+                    );
+                  })}
+              </div>
+            ) : (
+              <div className="text-sm text-muted-foreground">No lineup set — you can build it after starting.</div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Start Game Button */}
+        <Button
+          className="w-full h-14 text-lg font-bold glow-primary active:scale-[0.98] transition-transform"
+          size="lg"
+          onClick={async () => {
+            // Save any edits to the game record
+            await supabase.from("games").update({
+              opponent: opponentName,
+              location: gameLocation,
+              status: "in_progress",
+            }).eq("id", gameId);
+            setShowPregame(false);
+          }}
+        >
+          Start Game
+        </Button>
+      </div>
+    );
+  }
+
+  if (showEndGame && gameState) {
+    const innings = gameState.currentHalf === "top" ? gameState.currentInning - 1 : gameState.currentInning;
+    const weWon = gameState.ourScore > gameState.opponentScore;
+    const tied = gameState.ourScore === gameState.opponentScore;
+    return (
+      <div className="space-y-4 max-w-lg mx-auto pb-24">
+        <h1 className="text-2xl font-extrabold tracking-tight text-gradient text-center">Game Over</h1>
+
+        {/* Final Score */}
+        <Card className="glass-strong gradient-border glow-primary">
+          <CardContent className="p-5">
+            <div className="flex items-center justify-center gap-6">
+              <div className="text-center">
+                <div className="text-5xl font-extrabold tabular-nums text-gradient-bright">{gameState.ourScore}</div>
+                <div className="text-xs text-muted-foreground mt-1 uppercase tracking-wider font-medium">{ourTeamName}</div>
+              </div>
+              <div className="text-2xl font-extrabold text-muted-foreground">-</div>
+              <div className="text-center">
+                <div className="text-5xl font-extrabold tabular-nums text-gradient-bright">{gameState.opponentScore}</div>
+                <div className="text-xs text-muted-foreground mt-1 uppercase tracking-wider font-medium">{opponentName}</div>
+              </div>
+            </div>
+            <div className="text-center mt-2 text-sm text-muted-foreground">
+              {innings} inning{innings !== 1 ? "s" : ""} {tied ? "• Tied" : weWon ? "• Win" : "• Loss"}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Game Notes */}
+        <Card className="glass">
+          <CardContent className="p-4 space-y-2">
+            <div className="text-sm text-muted-foreground uppercase tracking-wider font-medium">Game Notes</div>
+            <textarea
+              value={gameNotes}
+              onChange={(e) => setGameNotes(e.target.value)}
+              placeholder="Key plays, highlights, things to work on..."
+              rows={4}
+              className="w-full rounded-xl border-2 border-border/50 bg-muted/30 px-3 py-2.5 text-sm font-medium placeholder:text-muted-foreground/50 focus:border-primary/50 focus:outline-none transition-colors resize-none"
+              autoFocus
+            />
+          </CardContent>
+        </Card>
+
+        {/* Actions */}
+        <div className="flex gap-3">
+          <Button
+            variant="outline"
+            className="flex-1 h-12 text-base font-bold border-border/50"
+            onClick={() => setShowEndGame(false)}
+          >
+            Back
+          </Button>
+          <Button
+            className="flex-1 h-12 text-base font-bold glow-primary active:scale-[0.98] transition-transform"
+            onClick={handleFinalizeGame}
+          >
+            Save &amp; Finish
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-3 max-w-lg mx-auto pb-24">
       {/* Scoreboard */}
@@ -534,7 +791,7 @@ export default function LiveScoringPage() {
           <div className="flex items-center justify-between">
             <div className="text-center flex-1">
               <div className="text-4xl sm:text-5xl font-extrabold tabular-nums text-gradient-bright">{gameState.ourScore}</div>
-              <div className="text-xs text-muted-foreground mt-1 uppercase tracking-wider font-medium">Us</div>
+              <div className="text-xs text-muted-foreground mt-1 uppercase tracking-wider font-medium truncate max-w-[100px] mx-auto">{ourTeamName}</div>
             </div>
             <div className="text-center px-3">
               {/* Base runners diamond — tap occupied base for stolen base */}
@@ -596,7 +853,7 @@ export default function LiveScoringPage() {
             </div>
             <div className="text-center flex-1">
               <div className="text-4xl sm:text-5xl font-extrabold tabular-nums text-gradient-bright">{gameState.opponentScore}</div>
-              <div className="text-xs text-muted-foreground mt-1 uppercase tracking-wider font-medium">Them</div>
+              <div className="text-xs text-muted-foreground mt-1 uppercase tracking-wider font-medium truncate max-w-[100px] mx-auto">{opponentName}</div>
             </div>
           </div>
         </CardContent>
@@ -736,6 +993,25 @@ export default function LiveScoringPage() {
             <div className="text-center">
               <div className="text-xs text-gradient uppercase tracking-widest font-semibold">Now Batting</div>
               <div className="text-2xl sm:text-xl font-extrabold mt-0.5 text-gradient-bright">{batter.playerName}</div>
+              {hitProbability !== null && (
+                <div className="mt-1 flex items-center justify-center gap-1.5">
+                  <div className="h-1.5 w-20 rounded-full bg-muted/50 overflow-hidden">
+                    <div
+                      className="h-full rounded-full transition-all duration-500"
+                      style={{
+                        width: `${hitProbability}%`,
+                        backgroundColor: hitProbability >= 40 ? "#83DD68" : hitProbability >= 25 ? "#08DDC8" : "#FF6161",
+                      }}
+                    />
+                  </div>
+                  <span className="text-xs font-bold tabular-nums" style={{
+                    color: hitProbability >= 40 ? "#83DD68" : hitProbability >= 25 ? "#08DDC8" : "#FF6161",
+                  }}>
+                    {hitProbability}%
+                  </span>
+                  <span className="text-[10px] text-muted-foreground">hit</span>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -751,13 +1027,13 @@ export default function LiveScoringPage() {
             <p className="text-sm text-muted-foreground">No lineup set for this game. Tap players in batting order:</p>
             {gameState.lineup.length > 0 && (
               <div className="text-xs text-muted-foreground">
-                Current order: {gameState.lineup.map((l, i) => `${i + 1}. ${gameState.players.find((p) => p.id === l.player_id)?.name}`).join(", ")}
+                Current order: {gameState.lineup.map((l, i) => { const p = gameState.players.find((p) => p.id === l.player_id); return `${i + 1}. ${p ? fullName(p) : "?"}`; }).join(", ")}
               </div>
             )}
             <div className="grid grid-cols-2 gap-2">
               {gameState.players
                 .filter((p) => !gameState.lineup.some((l) => l.player_id === p.id))
-                .sort((a, b) => a.name.localeCompare(b.name))
+                .sort((a, b) => a.last_name.localeCompare(b.last_name) || a.first_name.localeCompare(b.first_name))
                 .map((p) => (
                   <button
                     key={p.id}
@@ -773,7 +1049,7 @@ export default function LiveScoringPage() {
                       setGameState({ ...gameState, lineup: newLineup });
                     }}
                   >
-                    #{p.number} {p.name}
+                    #{p.number} {fullName(p)}
                   </button>
                 ))}
             </div>
@@ -794,67 +1070,54 @@ export default function LiveScoringPage() {
         <>
           {/* Pitch counter */}
           <Card className="glass">
-            <CardContent className="p-3 sm:p-4">
+            <CardContent className="p-3 sm:p-4 space-y-3">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="text-center">
-                    <div className="text-3xl font-extrabold tabular-nums text-gradient-bright">{pitchCount.balls}-{pitchCount.strikes}</div>
-                    <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium mt-0.5">Count</div>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    {[0, 1, 2, 3].map((i) => (
-                      <div key={`b-${i}`} className={`w-3 h-3 rounded-full border-2 transition-colors ${i < pitchCount.balls ? "bg-[#83DD68] border-[#83DD68]" : "bg-transparent border-muted-foreground/30"}`} />
+                <div className="text-center">
+                  <div className="text-3xl font-extrabold tabular-nums text-gradient-bright">{pitchCount.balls}-{pitchCount.strikes}</div>
+                  <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium mt-0.5">Count</div>
+                </div>
+                <div className="flex flex-col gap-1.5 items-end">
+                  <div className="flex items-center gap-1 flex-wrap justify-end">
+                    {Array.from({ length: pitchCount.balls }).map((_, i) => (
+                      <div key={`b-${i}`} className="w-3 h-3 rounded-full bg-[#83DD68] border-2 border-[#83DD68]" />
                     ))}
+                    {pitchCount.balls === 0 && <div className="w-3 h-3 rounded-full border-2 border-muted-foreground/30" />}
                     <span className="text-[10px] text-muted-foreground ml-0.5">B</span>
                   </div>
-                  <div className="flex items-center gap-1.5">
-                    {[0, 1, 2].map((i) => (
-                      <div key={`s-${i}`} className={`w-3 h-3 rounded-full border-2 transition-colors ${i < pitchCount.strikes ? "bg-[#FF6161] border-[#FF6161]" : "bg-transparent border-muted-foreground/30"}`} />
+                  <div className="flex items-center gap-1 flex-wrap justify-end">
+                    {Array.from({ length: pitchCount.strikes }).map((_, i) => (
+                      <div key={`s-${i}`} className="w-3 h-3 rounded-full bg-[#FF6161] border-2 border-[#FF6161]" />
                     ))}
+                    {pitchCount.strikes === 0 && <div className="w-3 h-3 rounded-full border-2 border-muted-foreground/30" />}
                     <span className="text-[10px] text-muted-foreground ml-0.5">S</span>
                   </div>
                 </div>
-                <div className="flex gap-2">
-                  <button
-                    className="h-11 w-16 rounded-xl text-sm font-bold border-2 border-[#83DD68]/30 bg-[#83DD68]/10 text-[#83DD68] active:scale-95 transition-all select-none"
-                    onClick={() => {
-                      const newBalls = pitchCount.balls + 1;
-                      if (newBalls >= 4) {
-                        setSelectedResult("BB");
-                        setPitchCount({ balls: 4, strikes: pitchCount.strikes });
-                      } else {
-                        setPitchCount({ ...pitchCount, balls: newBalls });
-                      }
-                    }}
-                  >
-                    Ball
-                  </button>
-                  <button
-                    className="h-11 w-16 rounded-xl text-sm font-bold border-2 border-[#FF6161]/30 bg-[#FF6161]/10 text-[#FF6161] active:scale-95 transition-all select-none"
-                    onClick={() => {
-                      const newStrikes = pitchCount.strikes + 1;
-                      if (newStrikes >= 3) {
-                        setSelectedResult("SO");
-                        setPitchCount({ balls: pitchCount.balls, strikes: 3 });
-                      } else {
-                        setPitchCount({ ...pitchCount, strikes: newStrikes });
-                      }
-                    }}
-                  >
-                    Strike
-                  </button>
-                  <button
-                    className="h-11 w-10 rounded-xl text-xs font-bold border-2 border-border/30 text-muted-foreground active:scale-95 transition-all select-none"
-                    onClick={() => {
-                      if (pitchCount.strikes < 2) {
-                        setPitchCount({ ...pitchCount, strikes: pitchCount.strikes + 1 });
-                      }
-                      // Foul with 2 strikes doesn't add a strike
-                    }}
-                  >
-                    Foul
-                  </button>
-                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  className="h-12 rounded-xl text-sm font-bold border-2 border-[#83DD68]/30 bg-[#83DD68]/10 text-[#83DD68] active:scale-95 transition-all select-none"
+                  onClick={() => {
+                    setPitchCount({ ...pitchCount, balls: pitchCount.balls + 1 });
+                  }}
+                >
+                  Ball
+                </button>
+                <button
+                  className="h-12 rounded-xl text-sm font-bold border-2 border-[#FF6161]/30 bg-[#FF6161]/10 text-[#FF6161] active:scale-95 transition-all select-none"
+                  onClick={() => {
+                    setPitchCount({ ...pitchCount, strikes: pitchCount.strikes + 1 });
+                  }}
+                >
+                  Strike
+                </button>
+                <button
+                  className="h-12 rounded-xl text-sm font-bold border-2 border-border/30 text-muted-foreground active:scale-95 transition-all select-none"
+                  onClick={() => {
+                    setPitchCount({ ...pitchCount, strikes: pitchCount.strikes + 1 });
+                  }}
+                >
+                  Foul
+                </button>
               </div>
             </CardContent>
           </Card>
@@ -951,7 +1214,7 @@ export default function LiveScoringPage() {
             <Card className="glass animate-slide-up border-[#f97316]/20">
               <CardContent className="p-3 sm:p-4 space-y-2">
                 <div className="text-sm text-muted-foreground uppercase tracking-wider font-medium">Who committed the error?</div>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-5 gap-2">
                   {[
                     { pos: 1, label: "P" },
                     { pos: 2, label: "C" },
@@ -960,20 +1223,22 @@ export default function LiveScoringPage() {
                     { pos: 5, label: "3B" },
                     { pos: 6, label: "SS" },
                     { pos: 7, label: "LF" },
-                    { pos: 8, label: "CF" },
+                    { pos: 8, label: "LC", cf: "LC" as const },
+                    { pos: 8, label: "RC", cf: "RC" as const },
                     { pos: 9, label: "RF" },
-                  ].map(({ pos, label }) => {
-                    const playerId = resolvePositionToPlayerId(pos, gameState.lineup, gameState.players, inningPositions);
+                  ].map(({ pos, label, cf }) => {
+                    const posKey = cf ? `${pos}-${cf}` : `${pos}`;
+                    const playerId = resolvePositionToPlayerId(pos, gameState.lineup, gameState.players, inningPositions, cf);
                     const player = playerId ? gameState.players.find((p) => p.id === playerId) : null;
                     return (
                       <button
-                        key={pos}
+                        key={posKey}
                         className={`h-12 rounded-xl text-sm font-bold border-2 transition-all active:scale-95 select-none ${
-                          errorPosition === pos
+                          errorPosition?.key === posKey
                             ? "bg-[#f97316] text-white border-transparent shadow-lg"
                             : "bg-muted/30 text-foreground border-border/50 hover:bg-accent hover:border-border"
                         }`}
-                        onClick={() => setErrorPosition(errorPosition === pos ? null : pos)}
+                        onClick={() => setErrorPosition(errorPosition?.key === posKey ? null : { pos, cf, key: label })}
                       >
                         <div>{label}</div>
                         {player && <div className="text-[10px] opacity-70 truncate px-1">#{player.number}</div>}
@@ -1117,18 +1382,18 @@ export default function LiveScoringPage() {
 
       {/* Confirm bar — fixed at bottom of screen */}
       {activeBatter && selectedResult && (
-        <div className="fixed bottom-0 left-0 right-0 p-3 glass-strong border-t border-border/50 z-40">
+        <div className="fixed bottom-0 left-0 right-0 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] glass-strong border-t border-border/50 z-40">
           <div className="max-w-lg mx-auto flex gap-2 items-center">
             <input
               type="text"
               value={notationOverride !== null ? notationOverride : (sprayPoint ? (() => { const fp = sprayToPosition(sprayPoint.x, sprayPoint.y); return generateNotation(selectedResult, fp, { first: gameState.runnerFirst, second: gameState.runnerSecond, third: gameState.runnerThird }, fp === 8 ? sprayCfSide(sprayPoint.x, sprayPoint.y) : undefined); })() : selectedResult)}
               onChange={(e) => setNotationOverride(e.target.value)}
-              className="h-14 flex-1 rounded-xl border-2 border-border/50 bg-muted/30 px-4 text-center text-lg font-bold tabular-nums placeholder:text-muted-foreground/50 focus:border-primary/50 focus:outline-none transition-colors"
+              className="h-12 sm:h-14 min-w-0 flex-1 rounded-xl border-2 border-border/50 bg-muted/30 px-3 text-center text-base sm:text-lg font-bold tabular-nums placeholder:text-muted-foreground/50 focus:border-primary/50 focus:outline-none transition-colors"
             />
             <Button
               onClick={handleConfirmAtBat}
               size="lg"
-              className="h-14 px-8 text-lg font-bold active:scale-[0.98] transition-transform glow-primary"
+              className="h-12 sm:h-14 px-6 sm:px-8 text-base sm:text-lg font-bold active:scale-[0.98] transition-transform glow-primary shrink-0"
             >
               Confirm
             </Button>

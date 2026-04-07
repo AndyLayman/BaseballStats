@@ -7,6 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { VenuePicker } from "@/components/venue-picker";
+import { CustomSelect } from "@/components/custom-select";
+import { fullName } from "@/lib/player-name";
 import type { Player } from "@/lib/scoring/types";
 
 const FIELD_POSITIONS = [
@@ -32,6 +35,8 @@ export default function NewGamePage() {
   const [opponent, setOpponent] = useState("");
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
   const [location, setLocation] = useState<"home" | "away">("home");
+  const [venue, setVenue] = useState("");
+  const [venueAddress, setVenueAddress] = useState("");
   const [players, setPlayers] = useState<Player[]>([]);
   const [selectedPlayers, setSelectedPlayers] = useState<number[]>([]);
   const [positions, setPositions] = useState<Record<number, string>>({});
@@ -61,7 +66,14 @@ export default function NewGamePage() {
 
     const { data: game, error } = await supabase
       .from("games")
-      .insert({ opponent: opponent.trim(), date, location, status: "scheduled" })
+      .insert({
+        opponent: opponent.trim(),
+        date,
+        location,
+        venue: venue.trim() || null,
+        venue_address: venueAddress.trim() || null,
+        status: "scheduled",
+      })
       .select()
       .single();
 
@@ -167,6 +179,19 @@ export default function NewGamePage() {
                 </div>
               </div>
             </div>
+
+            {/* Venue */}
+            <div>
+              <Label>Venue / Field</Label>
+              <div className="mt-1">
+                <VenuePicker
+                  venue={venue}
+                  venueAddress={venueAddress}
+                  onVenueChange={setVenue}
+                  onAddressChange={setVenueAddress}
+                />
+              </div>
+            </div>
           </CardContent>
         </Card>
 
@@ -202,23 +227,20 @@ export default function NewGamePage() {
                       <span className="text-sm font-bold text-primary w-5">{orderIdx + 1}</span>
                     )}
                     <span className="font-medium flex-1 text-base">
-                      #{player.number} {player.name}
+                      #{player.number} {fullName(player)}
                       {!isSelected && player.position && (
                         <span className="ml-1 text-xs text-muted-foreground">({player.position})</span>
                       )}
                     </span>
                     {isSelected && (
                       <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                        <select
+                        <CustomSelect
                           value={positions[player.id] || ""}
-                          onChange={(e) => setPositions((prev) => ({ ...prev, [player.id]: e.target.value }))}
-                          className="h-10 rounded-lg border border-border/50 bg-input/50 px-2 text-sm font-bold text-center appearance-none cursor-pointer focus:border-primary/50 focus:outline-none"
-                        >
-                          <option value="">Pos</option>
-                          {FIELD_POSITIONS.map((pos) => (
-                            <option key={pos.value} value={pos.value}>{pos.label}</option>
-                          ))}
-                        </select>
+                          onChange={(val) => setPositions((prev) => ({ ...prev, [player.id]: val }))}
+                          options={[{ value: "", label: "Pos" }, ...FIELD_POSITIONS.map((pos) => ({ value: pos.value, label: pos.label }))]}
+                          placeholder="Pos"
+                          className="h-10 w-20"
+                        />
                         <button
                           type="button"
                           className="h-10 w-10 flex items-center justify-center rounded-lg border border-border/50 text-lg active:bg-accent active:scale-95 transition-all disabled:opacity-30"

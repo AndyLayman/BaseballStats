@@ -4,6 +4,11 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* White calendar icon in date inputs */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -183,28 +188,24 @@
 
 /* ── Animated ambient gradient background ── */
 @keyframes aurora-1 {
-  0% { transform: translate(0, 0) scale(1); border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%; }
-  15% { transform: translate(30%, 15%) scale(1.15); border-radius: 70% 30% 50% 50% / 30% 60% 40% 70%; }
-  35% { transform: translate(10%, 40%) scale(0.9); border-radius: 50% 60% 30% 70% / 60% 40% 70% 30%; }
-  55% { transform: translate(-20%, 25%) scale(1.1); border-radius: 30% 70% 60% 40% / 50% 30% 50% 60%; }
-  75% { transform: translate(-15%, 5%) scale(1.05); border-radius: 60% 40% 50% 50% / 40% 60% 50% 50%; }
-  100% { transform: translate(0, 0) scale(1); border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%; }
+  0% { transform: translate3d(0, 0, 0); }
+  33% { transform: translate3d(15%, 10%, 0); }
+  66% { transform: translate3d(-10%, 20%, 0); }
+  100% { transform: translate3d(0, 0, 0); }
 }
 
 @keyframes aurora-2 {
-  0% { transform: translate(0, 0) scale(1); border-radius: 60% 40% 30% 70% / 50% 60% 40% 50%; }
-  20% { transform: translate(-35%, -15%) scale(1.2); border-radius: 40% 60% 70% 30% / 60% 40% 50% 60%; }
-  45% { transform: translate(15%, -30%) scale(0.85); border-radius: 70% 30% 40% 60% / 30% 70% 60% 40%; }
-  70% { transform: translate(25%, 10%) scale(1.1); border-radius: 50% 50% 60% 40% / 40% 50% 40% 60%; }
-  100% { transform: translate(0, 0) scale(1); border-radius: 60% 40% 30% 70% / 50% 60% 40% 50%; }
+  0% { transform: translate3d(0, 0, 0); }
+  33% { transform: translate3d(-20%, -10%, 0); }
+  66% { transform: translate3d(10%, -15%, 0); }
+  100% { transform: translate3d(0, 0, 0); }
 }
 
 @keyframes aurora-3 {
-  0% { transform: translate(0, 0) scale(1); border-radius: 50% 50% 40% 60% / 60% 40% 60% 40%; }
-  25% { transform: translate(25%, -30%) scale(1.15); border-radius: 30% 70% 60% 40% / 40% 60% 30% 70%; }
-  50% { transform: translate(-15%, -15%) scale(0.88); border-radius: 60% 40% 50% 50% / 70% 30% 50% 50%; }
-  75% { transform: translate(-25%, 20%) scale(1.12); border-radius: 45% 55% 35% 65% / 55% 45% 65% 35%; }
-  100% { transform: translate(0, 0) scale(1); border-radius: 50% 50% 40% 60% / 60% 40% 60% 40%; }
+  0% { transform: translate3d(0, 0, 0); }
+  33% { transform: translate3d(15%, -15%, 0); }
+  66% { transform: translate3d(-12%, 10%, 0); }
+  100% { transform: translate3d(0, 0, 0); }
 }
 
 .ambient-bg-mesh {
@@ -213,39 +214,43 @@
   z-index: -2;
   overflow: hidden;
   pointer-events: none;
+  filter: blur(80px);
+  transform: translate3d(0, 0, 0);
+}
+
+.mesh-band-1,
+.mesh-band-2,
+.mesh-band-3 {
+  position: absolute;
+  will-change: transform;
+  backface-visibility: hidden;
 }
 
 .mesh-band-1 {
-  position: absolute;
   width: 70vw;
   height: 70vh;
   top: -15%;
   left: -10%;
-  background: radial-gradient(circle, rgba(207, 89, 243, 0.35) 0%, rgba(207, 89, 243, 0.12) 40%, transparent 70%);
-  filter: blur(60px);
-  animation: aurora-1 11s ease-in-out infinite;
+  background: radial-gradient(circle, rgba(207, 89, 243, 0.30) 0%, rgba(207, 89, 243, 0.10) 40%, transparent 70%);
+  animation: aurora-1 18s ease-in-out infinite;
 }
 
 .mesh-band-2 {
-  position: absolute;
   width: 65vw;
   height: 60vh;
   bottom: -10%;
   right: -10%;
-  background: radial-gradient(circle, rgba(8, 221, 200, 0.30) 0%, rgba(8, 221, 200, 0.10) 40%, transparent 70%);
-  filter: blur(65px);
-  animation: aurora-2 13s ease-in-out infinite;
+  background: radial-gradient(circle, rgba(8, 221, 200, 0.25) 0%, rgba(8, 221, 200, 0.08) 40%, transparent 70%);
+  animation: aurora-2 22s ease-in-out infinite;
 }
 
 .mesh-band-3 {
-  position: absolute;
   width: 55vw;
   height: 55vh;
   bottom: 5%;
   left: 15%;
-  background: radial-gradient(circle, rgba(131, 221, 104, 0.28) 0%, rgba(131, 221, 104, 0.08) 40%, transparent 70%);
-  filter: blur(55px);
-  animation: aurora-3 15s ease-in-out infinite;
+  background: radial-gradient(circle, rgba(131, 221, 104, 0.22) 0%, rgba(131, 221, 104, 0.06) 40%, transparent 70%);
+  animation: aurora-3 26s ease-in-out infinite;
 }
 
 /* Subtle dot grid overlay */
@@ -393,4 +398,44 @@
   0% { background-position: 0% 50%; }
   50% { background-position: 100% 50%; }
   100% { background-position: 0% 50%; }
+}
+
+/* ── Rich editor prose styles ── */
+.prose h2 { font-size: 1.25rem; font-weight: 800; margin: 1rem 0 0.5rem; }
+.prose h3 { font-size: 1.1rem; font-weight: 700; margin: 0.75rem 0 0.375rem; }
+.prose p { margin: 0.375rem 0; }
+.prose ul, .prose ol { padding-left: 1.25rem; margin: 0.375rem 0; }
+.prose ul { list-style-type: disc; }
+.prose ol { list-style-type: decimal; }
+.prose li { margin: 0.125rem 0; }
+.prose blockquote { border-left: 3px solid rgba(8, 221, 200, 0.4); padding-left: 0.75rem; margin: 0.5rem 0; color: rgba(255,255,255,0.7); font-style: italic; }
+.prose img { border-radius: 0.75rem; max-width: 100%; }
+.prose iframe { border-radius: 0.75rem; max-width: 100%; }
+.prose div[data-youtube-video] { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 0.75rem; margin: 0.5rem 0; }
+.prose div[data-youtube-video] iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border-radius: 0.75rem; }
+/* Muted video embeds in drill library */
+.drill-library-content div[data-youtube-video] { opacity: 0.4; }
+.drill-library-content div[data-youtube-video]:hover { opacity: 0.8; transition: opacity 0.2s; }
+.prose strong { font-weight: 700; }
+.prose em { font-style: italic; }
+.prose a { color: var(--color-primary); text-decoration: underline; }
+
+/* @mention tags */
+.mention, .prose .mention {
+  background: rgba(8, 221, 200, 0.15);
+  color: rgb(8, 221, 200);
+  border: 1px solid rgba(8, 221, 200, 0.3);
+  border-radius: 0.375rem;
+  padding: 0.1rem 0.35rem;
+  font-weight: 600;
+  font-size: 0.875em;
+  white-space: nowrap;
+  text-decoration: none;
+}
+.ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: rgba(255,255,255,0.3);
+  pointer-events: none;
+  height: 0;
 }

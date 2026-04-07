@@ -4,7 +4,7 @@ import { isAtBat, isHit, totalBases } from "../stats/calculations";
 export function createInitialGameState(
   gameId: string,
   lineup: { player_id: number; batting_order: number }[],
-  players: { id: number; name: string }[]
+  players: { id: number; first_name: string; last_name: string }[]
 ): GameState {
   return {
     gameId,
@@ -32,7 +32,7 @@ export function getCurrentBatter(state: GameState): BaseRunner | null {
   return {
     playerId: lineupEntry.player_id,
     opponentBatterId: null,
-    playerName: player?.name ?? `Player ${lineupEntry.player_id}`,
+    playerName: player ? `${player.first_name} ${player.last_name}`.trim() : `Player ${lineupEntry.player_id}`,
   };
 }
 
@@ -221,9 +221,7 @@ export function recordOpponentAtBat(state: GameState, payload: RecordAtBatPayloa
     runnerThird: newThird,
     opponentScore: state.opponentScore + runsScored,
     outs: state.outs + outsRecorded,
-    opponentBatterIndex: state.opponentLineup.length > 0
-      ? (state.opponentBatterIndex + 1) % state.opponentLineup.length
-      : state.opponentBatterIndex + 1,
+    opponentBatterIndex: state.opponentBatterIndex + 1,
   };
 
   if (newState.outs >= 3) {

@@ -10,7 +10,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatAvg } from "@/lib/stats/calculations";
 import { SprayChart } from "@/components/scoring/SprayChart";
+import { ProgressionChart } from "@/components/progression-chart";
 import type { Player, PlateAppearance, PlateAppearanceResult, BattingStats, FieldingStats, HitType } from "@/lib/scoring/types";
+import { fullName } from "@/lib/player-name";
+import { StatTip } from "@/components/stat-tip";
 
 type SprayFilter = "both" | "hits" | "outs";
 
@@ -76,11 +79,10 @@ export default function PlayerDetailPage() {
       </Link>
       <div className="flex items-center gap-4">
         {player.photo_file ? (
-          <Image
+          /* eslint-disable-next-line @next/next/no-img-element */
+          <img
             src={supabase.storage.from("media").getPublicUrl(`player-${player.id}-photo`).data.publicUrl}
-            alt={player.name}
-            width={64}
-            height={64}
+            alt={fullName(player)}
             className="h-16 w-16 rounded-full object-cover border border-primary/30"
           />
         ) : (
@@ -89,7 +91,7 @@ export default function PlayerDetailPage() {
           </div>
         )}
         <div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-gradient">{player.name}</h1>
+          <h1 className="text-3xl font-extrabold tracking-tight text-gradient">{fullName(player)}</h1>
           <p className="text-sm text-muted-foreground">
             {player.bats || player.throws
               ? `Bats: ${player.bats ?? "—"}, Throws: ${player.throws ?? "—"}`
@@ -112,7 +114,7 @@ export default function PlayerDetailPage() {
             <Card key={s.label} className="glass gradient-border card-hover">
               <CardContent className="p-4 text-center">
                 <div className="text-2xl font-extrabold tabular-nums text-gradient-bright">{s.value}</div>
-                <div className="text-xs text-muted-foreground uppercase tracking-wider font-medium">{s.label}</div>
+                <div className="text-xs text-muted-foreground uppercase tracking-wider font-medium"><StatTip label={s.label} /></div>
               </CardContent>
             </Card>
           ))}
@@ -188,6 +190,7 @@ export default function PlayerDetailPage() {
       <Tabs defaultValue="batting">
         <TabsList className="w-full sm:w-auto bg-muted/50">
           <TabsTrigger value="batting" className="flex-1 sm:flex-none">Batting</TabsTrigger>
+          <TabsTrigger value="progress" className="flex-1 sm:flex-none">Progress</TabsTrigger>
           <TabsTrigger value="fielding" className="flex-1 sm:flex-none">Fielding</TabsTrigger>
           <TabsTrigger value="gamelog" className="flex-1 sm:flex-none">Game Log</TabsTrigger>
         </TabsList>
@@ -219,7 +222,7 @@ export default function PlayerDetailPage() {
                   ].map((s) => (
                     <div key={s.label} className="text-center p-2 rounded-lg bg-muted/30 border border-border/30">
                       <div className="text-lg font-bold tabular-nums">{s.value}</div>
-                      <div className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">{s.label}</div>
+                      <div className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider"><StatTip label={s.label} /></div>
                     </div>
                   ))}
                 </div>
@@ -228,21 +231,21 @@ export default function PlayerDetailPage() {
                   <Table>
                     <TableHeader>
                       <TableRow className="border-border/50">
-                        <TableHead>G</TableHead>
-                        <TableHead>PA</TableHead>
-                        <TableHead>AB</TableHead>
-                        <TableHead>H</TableHead>
-                        <TableHead>2B</TableHead>
-                        <TableHead>3B</TableHead>
-                        <TableHead>HR</TableHead>
-                        <TableHead>RBI</TableHead>
-                        <TableHead>BB</TableHead>
-                        <TableHead>SO</TableHead>
-                        <TableHead>SB</TableHead>
-                        <TableHead>AVG</TableHead>
-                        <TableHead>OBP</TableHead>
-                        <TableHead>SLG</TableHead>
-                        <TableHead>OPS</TableHead>
+                        <TableHead><StatTip label="G" /></TableHead>
+                        <TableHead><StatTip label="PA" /></TableHead>
+                        <TableHead><StatTip label="AB" /></TableHead>
+                        <TableHead><StatTip label="H" /></TableHead>
+                        <TableHead><StatTip label="2B" /></TableHead>
+                        <TableHead><StatTip label="3B" /></TableHead>
+                        <TableHead><StatTip label="HR" /></TableHead>
+                        <TableHead><StatTip label="RBI" /></TableHead>
+                        <TableHead><StatTip label="BB" /></TableHead>
+                        <TableHead><StatTip label="SO" /></TableHead>
+                        <TableHead><StatTip label="SB" /></TableHead>
+                        <TableHead><StatTip label="AVG" /></TableHead>
+                        <TableHead><StatTip label="OBP" /></TableHead>
+                        <TableHead><StatTip label="SLG" /></TableHead>
+                        <TableHead><StatTip label="OPS" /></TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -273,6 +276,21 @@ export default function PlayerDetailPage() {
           )}
         </TabsContent>
 
+        <TabsContent value="progress">
+          {gameLog.length >= 2 ? (
+            <Card className="glass border-border/50">
+              <CardHeader className="px-3 sm:px-6">
+                <CardTitle className="text-gradient">Season Progression</CardTitle>
+              </CardHeader>
+              <CardContent className="px-3 sm:px-6">
+                <ProgressionChart appearances={allPAs} gameLog={gameLog} />
+              </CardContent>
+            </Card>
+          ) : (
+            <p className="text-muted-foreground py-8 text-center">Need at least 2 games to show progression</p>
+          )}
+        </TabsContent>
+
         <TabsContent value="fielding">
           {fieldingStats && Number(fieldingStats.total_chances) > 0 ? (
             <Card className="glass border-border/50">
@@ -291,7 +309,7 @@ export default function PlayerDetailPage() {
                   ].map((s) => (
                     <div key={s.label} className="text-center p-2 rounded-lg bg-muted/30 border border-border/30">
                       <div className="text-lg font-bold tabular-nums">{s.value}</div>
-                      <div className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">{s.label}</div>
+                      <div className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider"><StatTip label={s.label} /></div>
                     </div>
                   ))}
                 </div>
@@ -299,12 +317,12 @@ export default function PlayerDetailPage() {
                   <Table>
                     <TableHeader>
                       <TableRow className="border-border/50">
-                        <TableHead>G</TableHead>
-                        <TableHead>PO</TableHead>
-                        <TableHead>A</TableHead>
-                        <TableHead>E</TableHead>
-                        <TableHead>TC</TableHead>
-                        <TableHead>FLD%</TableHead>
+                        <TableHead><StatTip label="G" /></TableHead>
+                        <TableHead><StatTip label="PO" /></TableHead>
+                        <TableHead><StatTip label="A" /></TableHead>
+                        <TableHead><StatTip label="E" /></TableHead>
+                        <TableHead><StatTip label="TC" /></TableHead>
+                        <TableHead><StatTip label="FLD%" /></TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>

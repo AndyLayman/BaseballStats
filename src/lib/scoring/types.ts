@@ -2,7 +2,8 @@
 
 export interface Player {
   id: number;
-  name: string;
+  first_name: string;
+  last_name: string;
   number: string;
   position: string;
   bats: "Right" | "Left" | "Switch" | null;
@@ -24,6 +25,8 @@ export interface Game {
   innings_played: number;
   status: "scheduled" | "in_progress" | "final" | null;
   notes: string | null;
+  venue: string | null;
+  venue_address: string | null;
   created_at: string;
   // Existing columns from original schema
   num_innings: number | null;
@@ -175,4 +178,81 @@ export interface FieldingStats {
   errors: number;
   total_chances: number;
   fielding_pct: number;
+}
+
+export interface Practice {
+  id: string;
+  date: string;
+  title: string;
+  notes: string | null;
+  venue: string | null;
+  venue_address: string | null;
+  created_at: string;
+}
+
+export interface PracticeNote {
+  id: string;
+  practice_id: string;
+  player_id: number;
+  note: string;
+  focus_area: string | null;
+  created_at: string;
+}
+
+export interface Drill {
+  id: string;
+  name: string;
+  description: string;
+  duration_minutes: number | null;
+  category: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PracticePlanTemplate {
+  id: string;
+  name: string;
+  created_at: string;
+}
+
+export interface PracticePlanTemplateItem {
+  id: string;
+  template_id: string;
+  drill_id: string | null;
+  label: string;
+  duration_minutes: number;
+  sort_order: number;
+}
+
+export interface PracticePlanItem {
+  id: string;
+  practice_id: string;
+  drill_id: string | null;
+  label: string;
+  duration_minutes: number;
+  sort_order: number;
+  completed: boolean;
+}
+
+export interface ActionItem {
+  id: string;
+  practice_id: string | null;
+  player_id: number | null;
+  text: string;
+  completed: boolean;
+  created_at: string;
+}
+
+export interface PracticeAttendance {
+  id: string;
+  practice_id: string;
+  player_id: number;
+  present: boolean;
+}
+
+export interface Venue {
+  id: string;
+  name: string;
+  address: string;
+  created_at: string;
 }

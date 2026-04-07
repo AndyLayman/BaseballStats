@@ -10,6 +10,8 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatAvg } from "@/lib/stats/calculations";
 import type { Game, GameLineup, Player, PlateAppearance, OpponentBatter } from "@/lib/scoring/types";
+import { fullName } from "@/lib/player-name";
+import { StatTip } from "@/components/stat-tip";
 
 export default function GameDetailPage() {
   const params = useParams();
@@ -55,7 +57,7 @@ export default function GameDetailPage() {
   const ourAppearances = appearances.filter((pa) => (pa.team ?? "us") === "us");
   const oppAppearances = appearances.filter((pa) => pa.team === "them");
   const maxInning = appearances.length > 0 ? Math.max(...appearances.map((pa) => pa.inning)) : 0;
-  const innings = Array.from({ length: Math.max(maxInning, 1) }, (_, i) => i + 1);
+  const innings = Array.from({ length: maxInning }, (_, i) => i + 1);
 
   return (
     <div className="space-y-6">
@@ -95,14 +97,76 @@ export default function GameDetailPage() {
       {(game.status === "final" || game.status === "in_progress") && (
         <Card className="glass gradient-border glow-primary">
           <CardContent className="p-6">
-            <div className="text-center">
-              <div className="text-5xl font-extrabold tabular-nums text-gradient-bright">
-                {game.our_score} <span className="text-gradient text-3xl">-</span> {game.opponent_score}
+            <div className="flex items-center justify-center gap-4">
+              <div className="text-center flex-1">
+                <div className="text-5xl font-extrabold tabular-nums text-gradient-bright">{game.our_score}</div>
+                <div className="text-xs text-muted-foreground mt-1 uppercase tracking-wider font-medium">Padres</div>
               </div>
-              <div className="text-muted-foreground mt-1">
-                {game.innings_played > 0 ? `${game.innings_played} innings` : ""}
+              <div className="text-center">
+                <div className="text-gradient text-3xl font-extrabold">-</div>
+                {game.innings_played > 0 && (
+                  <div className="text-xs text-muted-foreground mt-1">{game.innings_played} inn</div>
+                )}
+              </div>
+              <div className="text-center flex-1">
+                <div className="text-5xl font-extrabold tabular-nums text-gradient-bright">{game.opponent_score}</div>
+                <div className="text-xs text-muted-foreground mt-1 uppercase tracking-wider font-medium truncate max-w-[120px] mx-auto">{game.opponent}</div>
               </div>
             </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Venue & Map */}
+      {(game.venue || game.venue_address) && (
+        <Card className="glass">
+          <CardContent className="p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                {game.venue && (
+                  <div className="font-semibold text-sm flex items-center gap-1.5">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary shrink-0"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+                    {game.venue}
+                  </div>
+                )}
+                {game.venue_address && (
+                  <div className="text-xs text-muted-foreground mt-0.5">{game.venue_address}</div>
+                )}
+              </div>
+              {game.venue_address && (
+                <a
+                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(game.venue_address)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="shrink-0 px-3 py-1.5 rounded-full text-xs font-bold bg-primary/15 text-primary border border-primary/30 hover:bg-primary/25 transition-all active:scale-95"
+                >
+                  Directions
+                </a>
+              )}
+            </div>
+            {game.venue_address && (
+              <a
+                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(game.venue_address)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-3 block rounded-xl overflow-hidden border border-border/30 bg-muted/20 hover:border-primary/30 transition-all"
+              >
+                <div className="flex items-center justify-center gap-2 py-6 text-sm text-muted-foreground hover:text-primary transition-colors">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+                  Open in Google Maps
+                </div>
+              </a>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Game Notes */}
+      {game.notes && (
+        <Card className="glass">
+          <CardContent className="p-4">
+            <div className="text-xs text-muted-foreground uppercase tracking-wider font-medium mb-1">Notes</div>
+            <div className="text-sm whitespace-pre-wrap">{game.notes}</div>
           </CardContent>
         </Card>
       )}
@@ -124,9 +188,9 @@ export default function GameDetailPage() {
                         {inn}
                       </TableHead>
                     ))}
-                    <TableHead className="text-center px-2">AB</TableHead>
-                    <TableHead className="text-center px-2">H</TableHead>
-                    <TableHead className="text-center px-2">RBI</TableHead>
+                    <TableHead className="text-center px-2"><StatTip label="AB" /></TableHead>
+                    <TableHead className="text-center px-2"><StatTip label="H" /></TableHead>
+                    <TableHead className="text-center px-2"><StatTip label="RBI" /></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -141,7 +205,7 @@ export default function GameDetailPage() {
                       <TableCell className="sticky left-0 bg-card z-10">
                         <Link href={`/players/${entry.player_id}`} className="hover:text-primary font-medium transition-colors">
                           <span className="text-muted-foreground mr-1">{entry.batting_order}.</span>
-                          {entry.player?.name ?? `Player ${entry.player_id}`}
+                          {entry.player ? fullName(entry.player) : `Player ${entry.player_id}`}
                         </Link>
                       </TableCell>
                       {innings.map((inn) => {
@@ -182,9 +246,9 @@ export default function GameDetailPage() {
                         {inn}
                       </TableHead>
                     ))}
-                    <TableHead className="text-center px-2">AB</TableHead>
-                    <TableHead className="text-center px-2">H</TableHead>
-                    <TableHead className="text-center px-2">RBI</TableHead>
+                    <TableHead className="text-center px-2"><StatTip label="AB" /></TableHead>
+                    <TableHead className="text-center px-2"><StatTip label="H" /></TableHead>
+                    <TableHead className="text-center px-2"><StatTip label="RBI" /></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>

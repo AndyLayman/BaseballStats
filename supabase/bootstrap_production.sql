@@ -9,7 +9,8 @@
 
 CREATE TABLE IF NOT EXISTS players (
   id SERIAL PRIMARY KEY,
-  name TEXT NOT NULL,
+  first_name TEXT NOT NULL DEFAULT '',
+  last_name TEXT NOT NULL DEFAULT '',
   number TEXT,
   active BOOLEAN DEFAULT TRUE,
   bats TEXT DEFAULT 'Right' CHECK (bats IN ('Right', 'Left', 'Switch')),
@@ -143,7 +144,7 @@ CREATE INDEX IF NOT EXISTS idx_games_date ON games(date DESC);
 CREATE OR REPLACE VIEW batting_stats_season AS
 SELECT
   p.id AS player_id,
-  p.name AS player_name,
+  TRIM(p.first_name || ' ' || p.last_name) AS player_name,
   COUNT(DISTINCT pa.game_id) AS games,
   COUNT(pa.id) AS plate_appearances,
   COUNT(pa.id) FILTER (WHERE pa.is_at_bat) AS at_bats,
@@ -189,7 +190,7 @@ SELECT
   END AS ops
 FROM players p
 LEFT JOIN plate_appearances pa ON p.id = pa.player_id AND pa.team = 'us'
-GROUP BY p.id, p.name;
+GROUP BY p.id, p.first_name, p.last_name;
 
 -- ============================================================
 -- View: Aggregated fielding stats per player (season)
@@ -197,19 +198,129 @@ GROUP BY p.id, p.name;
 CREATE OR REPLACE VIEW fielding_stats_season AS
 SELECT
   p.id AS player_id,
-  p.name AS player_name,
+  TRIM(p.first_name || ' ' || p.last_name) AS player_name,
   COUNT(DISTINCT fp.game_id) AS games,
   COUNT(*) FILTER (WHERE fp.play_type = 'PO') AS putouts,
   COUNT(*) FILTER (WHERE fp.play_type = 'A') AS assists,
   COUNT(*) FILTER (WHERE fp.play_type = 'E') AS errors,
-  COUNT(*) AS total_chances,
+  COUNT(fp.id) AS total_chances,
   CASE
-    WHEN COUNT(*) = 0 THEN 0
+    WHEN COUNT(fp.id) = 0 THEN 0
     ELSE ROUND(
-      (COUNT(*) FILTER (WHERE fp.play_type IN ('PO', 'A')))::NUMERIC / COUNT(*),
+      (COUNT(*) FILTER (WHERE fp.play_type IN ('PO', 'A')))::NUMERIC / COUNT(fp.id),
       3
     )
   END AS fielding_pct
 FROM players p
 LEFT JOIN fielding_plays fp ON p.id = fp.player_id
-GROUP BY p.id, p.name;
+GROUP BY p.id, p.first_name, p.last_name;
+
+-- ============================================================
+-- Practice Logging
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS practices (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  date DATE NOT NULL DEFAULT CURRENT_DATE,
+  title TEXT NOT NULL DEFAULT 'Practice',
+  notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS practice_notes (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  practice_id UUID NOT NULL REFERENCES practices(id) ON DELETE CASCADE,
+  player_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+  note TEXT NOT NULL,
+  focus_area TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ============================================================
+-- Drill Library
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS drills (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  description TEXT NOT NULL DEFAULT '',
+  duration_minutes INTEGER,
+  category TEXT NOT NULL DEFAULT 'General',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ============================================================
+-- Practice Plan Templates
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS practice_plan_templates (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS practice_plan_template_items (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  template_id UUID NOT NULL REFERENCES practice_plan_templates(id) ON DELETE CASCADE,
+  drill_id UUID REFERENCES drills(id) ON DELETE SET NULL,
+  label TEXT NOT NULL,
+  duration_minutes INTEGER NOT NULL DEFAULT 10,
+  sort_order INTEGER NOT NULL DEFAULT 0
+);
+
+-- ============================================================
+-- Practice Plan Items (per-practice schedule)
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS practice_plan_items (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  practice_id UUID NOT NULL REFERENCES practices(id) ON DELETE CASCADE,
+  drill_id UUID REFERENCES drills(id) ON DELETE SET NULL,
+  label TEXT NOT NULL,
+  duration_minutes INTEGER NOT NULL DEFAULT 10,
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  completed BOOLEAN DEFAULT FALSE
+);
+
+-- ============================================================
+-- Action Items (carry forward between practices)
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS action_items (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  practice_id UUID REFERENCES practices(id) ON DELETE SET NULL,
+  player_id INTEGER REFERENCES players(id) ON DELETE CASCADE,
+  text TEXT NOT NULL,
+  completed BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ============================================================
+-- Practice Attendance
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS practice_attendance (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  practice_id UUID NOT NULL REFERENCES practices(id) ON DELETE CASCADE,
+  player_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+  present BOOLEAN NOT NULL DEFAULT TRUE,
+  UNIQUE(practice_id, player_id)
+);
+
+-- ============================================================
+-- Venues (saved fields/parks)
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS venues (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  address TEXT NOT NULL DEFAULT '',
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Add venue columns to games table
+ALTER TABLE games ADD COLUMN IF NOT EXISTS venue TEXT;
+ALTER TABLE games ADD COLUMN IF NOT EXISTS venue_address TEXT;
+ALTER TABLE practices ADD COLUMN IF NOT EXISTS venue TEXT;
+ALTER TABLE practices ADD COLUMN IF NOT EXISTS venue_address TEXT;

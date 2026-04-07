@@ -87,6 +87,9 @@ export default function GamesPage() {
                     <div className="font-semibold truncate">
                       {game.location === "home" ? "vs" : "@"} {game.opponent}
                     </div>
+                    {game.venue && (
+                      <div className="text-xs text-muted-foreground truncate">{game.venue}</div>
+                    )}
                   </div>
                 </Link>
                 <div className="flex items-center gap-3 shrink-0">
