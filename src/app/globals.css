@@ -411,6 +411,8 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .prose blockquote { border-left: 3px solid rgba(8, 221, 200, 0.4); padding-left: 0.75rem; margin: 0.5rem 0; color: rgba(255,255,255,0.7); font-style: italic; }
 .prose img { border-radius: 0.75rem; max-width: 100%; }
 .prose iframe { border-radius: 0.75rem; max-width: 100%; }
+.prose div[data-youtube-video] { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 0.75rem; margin: 0.5rem 0; }
+.prose div[data-youtube-video] iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border-radius: 0.75rem; }
 .prose strong { font-weight: 700; }
 .prose em { font-style: italic; }
 .prose a { color: var(--color-primary); text-decoration: underline; }
