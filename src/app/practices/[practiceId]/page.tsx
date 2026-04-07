@@ -586,7 +586,7 @@ export default function PracticeSetupPage() {
                   const draggedItem = planItems.find((i) => i.id === activeDragId);
                   if (!draggedItem) return null;
                   return (
-                    <div className="flex items-center gap-2 h-8 px-2.5 rounded-lg text-xs font-bold border-2 border-primary/60 bg-primary/20 text-primary shadow-lg cursor-grabbing">
+                    <div className="flex items-center gap-2 h-8 px-2.5 rounded-lg text-xs font-bold border-2 border-primary/60 bg-primary/20 text-primary shadow-lg cursor-grabbing max-w-xs min-w-0">
                       <span className="truncate">{draggedItem.label}</span>
                       {draggedItem.duration_minutes > 0 && <span className="text-[10px] opacity-60">{draggedItem.duration_minutes}m</span>}
                     </div>
