@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type {
   Practice, Player, Drill,
-  PracticePlanItem, PracticePlanTemplate, PracticePlanTemplateItem,
+  PracticePlanItem, PracticePlanStation, PracticePlanTemplate, PracticePlanTemplateItem,
 } from "@/lib/scoring/types";
 import { VenuePicker } from "@/components/venue-picker";
 
@@ -31,6 +31,17 @@ export default function PracticeSetupPage() {
   const [planFilterCategory, setPlanFilterCategory] = useState<string | null>(null);
   const [planSearchQuery, setPlanSearchQuery] = useState("");
   const [planShowAll, setPlanShowAll] = useState(false);
+
+  // Split squad
+  const [showSplitBuilder, setShowSplitBuilder] = useState(false);
+  const [splitStations, setSplitStations] = useState<PracticePlanStation[]>([
+    { label: "", drill_id: null, duration_minutes: 10 },
+    { label: "", drill_id: null, duration_minutes: 10 },
+  ]);
+  const [splitDuration, setSplitDuration] = useState("20");
+  const [splitFilterCategory, setSplitFilterCategory] = useState<string | null>(null);
+  const [splitSearchQuery, setSplitSearchQuery] = useState("");
+  const [activeStationIdx, setActiveStationIdx] = useState<number | null>(null);
 
   // Venue editing
   const [editingVenue, setEditingVenue] = useState(false);
@@ -137,6 +148,50 @@ export default function PracticeSetupPage() {
     ]);
   }
 
+  async function addSplitBlock() {
+    const validStations = splitStations.filter((s) => s.label.trim());
+    if (validStations.length < 2) return;
+    const dur = parseInt(splitDuration) || 20;
+    const label = "Split Squad: " + validStations.map((s) => s.label).join(" / ");
+    const { data } = await supabase
+      .from("practice_plan_items")
+      .insert({
+        practice_id: practiceId,
+        label,
+        duration_minutes: dur,
+        sort_order: planItems.length,
+        completed: false,
+        is_split: true,
+        stations: validStations,
+      })
+      .select()
+      .single();
+    if (data) {
+      setPlanItems([...planItems, data]);
+      setShowSplitBuilder(false);
+      setSplitStations([
+        { label: "", drill_id: null, duration_minutes: 10 },
+        { label: "", drill_id: null, duration_minutes: 10 },
+      ]);
+      setSplitDuration("20");
+      setActiveStationIdx(null);
+    }
+  }
+
+  function assignDrillToStation(drill: Drill) {
+    if (activeStationIdx === null) return;
+    const updated = [...splitStations];
+    updated[activeStationIdx] = {
+      label: drill.name,
+      drill_id: drill.id,
+      duration_minutes: drill.duration_minutes ?? 10,
+    };
+    setSplitStations(updated);
+    setActiveStationIdx(null);
+    setSplitSearchQuery("");
+    setSplitFilterCategory(null);
+  }
+
   if (loading || !practice) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -237,37 +292,57 @@ export default function PracticeSetupPage() {
               {planItems.map((item, idx) => (
                 <div
                   key={item.id}
-                  className="flex items-center gap-3 rounded-xl border-2 border-border/50 bg-muted/20 p-3 group"
+                  className={`rounded-xl border-2 p-3 group ${
+                    item.is_split
+                      ? "border-amber-500/30 bg-amber-500/5"
+                      : "border-border/50 bg-muted/20"
+                  }`}
                 >
-                  <span className="text-xs text-muted-foreground font-bold w-5 shrink-0">{idx + 1}</span>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium truncate">{item.label}</div>
-                    {item.drill_id && (
-                      <div className="text-[10px] text-primary/60">From drill library</div>
-                    )}
-                  </div>
-                  <span className="text-xs text-muted-foreground shrink-0">{item.duration_minutes}m</span>
-                  <div className="flex gap-0.5 shrink-0">
-                    <button
-                      onClick={() => movePlanItem(idx, "up")}
-                      disabled={idx === 0}
-                      className="h-6 w-6 flex items-center justify-center rounded text-muted-foreground hover:text-foreground disabled:opacity-30 transition-all"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m18 15-6-6-6 6"/></svg>
-                    </button>
-                    <button
-                      onClick={() => movePlanItem(idx, "down")}
-                      disabled={idx === planItems.length - 1}
-                      className="h-6 w-6 flex items-center justify-center rounded text-muted-foreground hover:text-foreground disabled:opacity-30 transition-all"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
-                    </button>
-                    <button
-                      onClick={() => deletePlanItem(item.id)}
-                      className="h-6 w-6 flex items-center justify-center rounded text-muted-foreground hover:text-destructive transition-all"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-                    </button>
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs text-muted-foreground font-bold w-5 shrink-0">{idx + 1}</span>
+                    <div className="flex-1 min-w-0">
+                      {item.is_split ? (
+                        <>
+                          <div className="text-sm font-medium flex items-center gap-1.5">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-amber-400 shrink-0"><path d="M16 3h5v5"/><path d="M8 3H3v5"/><path d="m21 3-8.5 8.5"/><path d="M3 3l8.5 8.5"/><path d="M3 21l8.5-8.5"/><path d="M21 21l-8.5-8.5"/></svg>
+                            Split Squad
+                          </div>
+                          <div className="text-[10px] text-amber-400/70">
+                            {(item.stations as PracticePlanStation[])?.map((s) => s.label).join(" / ")}
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="text-sm font-medium truncate">{item.label}</div>
+                          {item.drill_id && (
+                            <div className="text-[10px] text-primary/60">From drill library</div>
+                          )}
+                        </>
+                      )}
+                    </div>
+                    <span className="text-xs text-muted-foreground shrink-0">{item.duration_minutes}m</span>
+                    <div className="flex gap-0.5 shrink-0">
+                      <button
+                        onClick={() => movePlanItem(idx, "up")}
+                        disabled={idx === 0}
+                        className="h-6 w-6 flex items-center justify-center rounded text-muted-foreground hover:text-foreground disabled:opacity-30 transition-all"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m18 15-6-6-6 6"/></svg>
+                      </button>
+                      <button
+                        onClick={() => movePlanItem(idx, "down")}
+                        disabled={idx === planItems.length - 1}
+                        className="h-6 w-6 flex items-center justify-center rounded text-muted-foreground hover:text-foreground disabled:opacity-30 transition-all"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                      </button>
+                      <button
+                        onClick={() => deletePlanItem(item.id)}
+                        className="h-6 w-6 flex items-center justify-center rounded text-muted-foreground hover:text-destructive transition-all"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -416,6 +491,155 @@ export default function PracticeSetupPage() {
                 className="w-full rounded-lg border border-dashed border-border/40 py-2 text-xs text-muted-foreground hover:text-primary hover:border-primary/40 transition-all active:scale-[0.98]"
               >
                 + Custom block (not from library)
+              </button>
+            )}
+
+            {/* Split Squad builder */}
+            {showSplitBuilder ? (
+              <div className="mt-3 rounded-xl border-2 border-amber-500/30 bg-amber-500/5 p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="text-sm font-bold text-amber-400 flex items-center gap-1.5">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 3h5v5"/><path d="M8 3H3v5"/><path d="m21 3-8.5 8.5"/><path d="M3 3l8.5 8.5"/><path d="M3 21l8.5-8.5"/><path d="M21 21l-8.5-8.5"/></svg>
+                    Split Squad
+                  </div>
+                  <button onClick={() => setShowSplitBuilder(false)} className="text-muted-foreground hover:text-foreground">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                  </button>
+                </div>
+
+                {/* Station cards */}
+                <div className="space-y-2">
+                  {splitStations.map((station, sIdx) => (
+                    <div
+                      key={sIdx}
+                      className={`rounded-lg border-2 p-3 transition-all ${
+                        activeStationIdx === sIdx
+                          ? "border-primary/50 bg-primary/5"
+                          : "border-border/40 bg-muted/20"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground">Station {String.fromCharCode(65 + sIdx)}</span>
+                        {splitStations.length > 2 && (
+                          <button
+                            onClick={() => setSplitStations(splitStations.filter((_, i) => i !== sIdx))}
+                            className="text-muted-foreground hover:text-destructive"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                          </button>
+                        )}
+                      </div>
+                      {station.label ? (
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-sm font-medium flex-1">{station.label}</span>
+                          <button
+                            onClick={() => {
+                              const updated = [...splitStations];
+                              updated[sIdx] = { label: "", drill_id: null, duration_minutes: 10 };
+                              setSplitStations(updated);
+                            }}
+                            className="text-xs text-muted-foreground hover:text-primary"
+                          >
+                            Change
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => setActiveStationIdx(activeStationIdx === sIdx ? null : sIdx)}
+                          className="mt-1 w-full text-left text-xs text-muted-foreground hover:text-primary transition-colors"
+                        >
+                          {activeStationIdx === sIdx ? "Select a drill below..." : "Tap to assign drill"}
+                        </button>
+                      )}
+                    </div>
+                  ))}
+
+                  <button
+                    onClick={() => setSplitStations([...splitStations, { label: "", drill_id: null, duration_minutes: 10 }])}
+                    className="w-full rounded-lg border border-dashed border-border/40 py-1.5 text-[10px] text-muted-foreground hover:text-primary hover:border-primary/40 transition-all"
+                  >
+                    + Add Station
+                  </button>
+                </div>
+
+                {/* Drill picker for active station */}
+                {activeStationIdx !== null && (() => {
+                  const searched = splitSearchQuery.trim()
+                    ? drills.filter((d) => d.name.toLowerCase().includes(splitSearchQuery.toLowerCase()))
+                    : drills;
+                  const filtered = splitFilterCategory
+                    ? searched.filter((d) => d.category === splitFilterCategory)
+                    : searched;
+
+                  return (
+                    <div className="space-y-2">
+                      <Input
+                        value={splitSearchQuery}
+                        onChange={(e) => setSplitSearchQuery(e.target.value)}
+                        placeholder={`Search drill for Station ${String.fromCharCode(65 + activeStationIdx)}...`}
+                        className="h-9 text-sm bg-input/50 border-border/50"
+                        autoFocus
+                      />
+                      <div className="flex gap-1.5 flex-wrap">
+                        <button
+                          onClick={() => setSplitFilterCategory(null)}
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold border transition-all active:scale-95 select-none ${
+                            !splitFilterCategory ? "bg-primary/20 text-primary border-primary/40" : "bg-muted/30 text-muted-foreground border-border/50"
+                          }`}
+                        >All</button>
+                        {[...new Set(drills.map((d) => d.category))].sort().map((cat) => (
+                          <button
+                            key={cat}
+                            onClick={() => setSplitFilterCategory(splitFilterCategory === cat ? null : cat)}
+                            className={`px-2 py-0.5 rounded-full text-[10px] font-bold border transition-all active:scale-95 select-none ${
+                              splitFilterCategory === cat ? "bg-primary/20 text-primary border-primary/40" : "bg-muted/30 text-muted-foreground border-border/50"
+                            }`}
+                          >{cat}</button>
+                        ))}
+                      </div>
+                      <div className="grid grid-cols-2 gap-1.5 max-h-40 overflow-y-auto">
+                        {filtered.slice(0, 10).map((drill) => (
+                          <button
+                            key={drill.id}
+                            onClick={() => assignDrillToStation(drill)}
+                            className="rounded-lg border border-border/40 bg-muted/20 px-3 py-2 text-left hover:border-primary/40 hover:bg-primary/5 transition-all active:scale-[0.98] group"
+                          >
+                            <div className="text-xs font-medium truncate group-hover:text-primary transition-colors">{drill.name}</div>
+                            <div className="text-[10px] text-muted-foreground">{drill.category}</div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* Total duration + save */}
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">Total time:</span>
+                  <Input
+                    type="number"
+                    value={splitDuration}
+                    onChange={(e) => setSplitDuration(e.target.value)}
+                    className="w-16 h-8 text-xs bg-input/50 border-border/50 text-center"
+                  />
+                  <span className="text-xs text-muted-foreground">min (includes switch time)</span>
+                </div>
+
+                <Button
+                  className="w-full h-10 text-sm font-bold glow-primary active:scale-[0.98] transition-transform"
+                  onClick={addSplitBlock}
+                  disabled={splitStations.filter((s) => s.label.trim()).length < 2}
+                >
+                  Add Split Squad Block
+                </Button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setShowSplitBuilder(true)}
+                className="mt-1 w-full rounded-lg border border-dashed border-amber-500/30 py-2 text-xs text-amber-400/70 hover:text-amber-400 hover:border-amber-500/50 transition-all active:scale-[0.98] flex items-center justify-center gap-1.5"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 3h5v5"/><path d="M8 3H3v5"/><path d="m21 3-8.5 8.5"/><path d="M3 3l8.5 8.5"/><path d="M3 21l8.5-8.5"/><path d="M21 21l-8.5-8.5"/></svg>
+                + Split Squad block
               </button>
             )}
           </div>

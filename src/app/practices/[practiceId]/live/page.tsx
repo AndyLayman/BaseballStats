@@ -297,6 +297,77 @@ export default function LivePracticePage() {
             {planItems.map((item, idx) => {
               const drill = getDrill(item.drill_id);
               const isExpanded = expandedItem === item.id;
+              const isSplit = item.is_split && item.stations && item.stations.length > 0;
+
+              if (isSplit) {
+                return (
+                  <div key={item.id} className="rounded-xl border-2 border-amber-500/40 bg-amber-500/5 overflow-hidden">
+                    <div className="flex items-center gap-3 p-3">
+                      <button
+                        onClick={() => togglePlanItem(item.id, !item.completed)}
+                        className={`h-7 w-7 rounded-lg border-2 shrink-0 flex items-center justify-center text-xs font-bold transition-all ${
+                          item.completed
+                            ? "bg-amber-500/20 border-amber-500/40 text-amber-400"
+                            : "border-amber-500/40 text-amber-400 hover:bg-amber-500/10"
+                        }`}
+                      >
+                        {item.completed ? (
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                        ) : (
+                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 3h5v5"/><path d="M8 3H3v5"/><path d="M12 22v-8.3a4 4 0 0 0-1.172-2.872L3 3"/><path d="m15 9 6-6"/></svg>
+                        )}
+                      </button>
+                      <div className="flex-1 min-w-0">
+                        <div className={`text-sm font-semibold text-amber-400 ${item.completed ? "line-through opacity-60" : ""}`}>
+                          {item.label}
+                        </div>
+                        <div className="text-xs text-amber-400/60">
+                          {item.duration_minutes} min · {item.stations!.length} stations · Split Squad
+                        </div>
+                      </div>
+                      <button onClick={() => setExpandedItem(isExpanded ? null : item.id)}>
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                          className={`shrink-0 text-amber-400/60 transition-transform ${isExpanded ? "rotate-180" : ""}`}
+                        >
+                          <path d="m6 9 6 6 6-6" />
+                        </svg>
+                      </button>
+                    </div>
+
+                    {/* Always show station summary */}
+                    <div className="px-3 pb-3 grid gap-2" style={{ gridTemplateColumns: `repeat(${Math.min(item.stations!.length, 3)}, 1fr)` }}>
+                      {item.stations!.map((station, sIdx) => {
+                        const stationDrill = getDrill(station.drill_id);
+                        const stationKey = `${item.id}-station-${sIdx}`;
+                        const stationExpanded = expandedItem === stationKey;
+
+                        return (
+                          <div
+                            key={sIdx}
+                            className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-2 cursor-pointer"
+                            onClick={() => stationDrill && setExpandedItem(stationExpanded ? null : stationKey)}
+                          >
+                            <div className="text-[10px] font-bold text-amber-400/80 uppercase mb-0.5">
+                              Station {String.fromCharCode(65 + sIdx)}
+                            </div>
+                            <div className="text-xs font-semibold truncate">{station.label}</div>
+                            <div className="text-[10px] text-muted-foreground">
+                              {station.duration_minutes} min{stationDrill?.category ? ` · ${stationDrill.category}` : ""}
+                            </div>
+                            {stationExpanded && stationDrill?.description && !isEmptyHtml(stationDrill.description) && (
+                              <div
+                                className="text-xs prose prose-invert prose-sm max-w-none mt-2 pt-2 border-t border-amber-500/20"
+                                dangerouslySetInnerHTML={{ __html: stationDrill.description }}
+                              />
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              }
 
               return (
                 <div key={item.id} className="rounded-xl border-2 border-border/50 bg-muted/10 overflow-hidden">

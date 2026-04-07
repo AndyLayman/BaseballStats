@@ -224,6 +224,12 @@ export interface PracticePlanTemplateItem {
   sort_order: number;
 }
 
+export interface PracticePlanStation {
+  label: string;
+  drill_id: string | null;
+  duration_minutes: number;
+}
+
 export interface PracticePlanItem {
   id: string;
   practice_id: string;
@@ -232,6 +238,8 @@ export interface PracticePlanItem {
   duration_minutes: number;
   sort_order: number;
   completed: boolean;
+  is_split: boolean;
+  stations: PracticePlanStation[] | null;
 }
 
 export interface ActionItem {

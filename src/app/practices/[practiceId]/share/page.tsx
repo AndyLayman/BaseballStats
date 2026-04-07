@@ -97,6 +97,55 @@ export default function SharedPracticePage() {
             const drill = getDrill(item.drill_id);
             const isExpanded = expandedItem === item.id;
             const hasDetails = drill?.description && !isEmptyHtml(drill.description);
+            const isSplit = item.is_split && item.stations && item.stations.length > 0;
+
+            if (isSplit) {
+              return (
+                <Card key={item.id} className="glass overflow-hidden border-amber-500/40 bg-amber-500/5">
+                  <div className="flex items-center gap-3 p-4">
+                    <div className="h-8 w-8 rounded-lg bg-amber-500/15 border border-amber-500/30 shrink-0 flex items-center justify-center">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-amber-400"><path d="M16 3h5v5"/><path d="M8 3H3v5"/><path d="M12 22v-8.3a4 4 0 0 0-1.172-2.872L3 3"/><path d="m15 9 6-6"/></svg>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-semibold text-amber-400">{item.label}</div>
+                      <div className="text-xs text-amber-400/60">
+                        {item.duration_minutes} min · {item.stations!.length} stations · Split Squad
+                      </div>
+                    </div>
+                  </div>
+                  <div className="px-4 pb-4 grid gap-2" style={{ gridTemplateColumns: `repeat(${Math.min(item.stations!.length, 3)}, 1fr)` }}>
+                    {item.stations!.map((station, sIdx) => {
+                      const stationDrill = getDrill(station.drill_id);
+                      const stationKey = `${item.id}-station-${sIdx}`;
+                      const stationExpanded = expandedItem === stationKey;
+                      const stationHasDetails = stationDrill?.description && !isEmptyHtml(stationDrill.description);
+
+                      return (
+                        <div
+                          key={sIdx}
+                          className={`rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 ${stationHasDetails ? "cursor-pointer" : ""}`}
+                          onClick={() => stationHasDetails && setExpandedItem(stationExpanded ? null : stationKey)}
+                        >
+                          <div className="text-[10px] font-bold text-amber-400/80 uppercase mb-0.5">
+                            Station {String.fromCharCode(65 + sIdx)}
+                          </div>
+                          <div className="text-xs font-semibold">{station.label}</div>
+                          <div className="text-[10px] text-muted-foreground">
+                            {station.duration_minutes} min{stationDrill?.category ? ` · ${stationDrill.category}` : ""}
+                          </div>
+                          {stationExpanded && stationDrill?.description && !isEmptyHtml(stationDrill.description) && (
+                            <div
+                              className="text-xs prose prose-invert prose-sm max-w-none mt-2 pt-2 border-t border-amber-500/20"
+                              dangerouslySetInnerHTML={{ __html: stationDrill.description }}
+                            />
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </Card>
+              );
+            }
 
             return (
               <Card key={item.id} className="glass overflow-hidden">
