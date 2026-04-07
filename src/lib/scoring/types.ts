@@ -257,6 +257,20 @@ export interface Venue {
   created_at: string;
 }
 
+export interface SquadGroup {
+  id: string;
+  practice_id: string;
+  name: string;
+  color_index: number;
+  sort_order: number;
+}
+
+export interface SquadMember {
+  id: string;
+  group_id: string;
+  player_id: number;
+}
+
 export interface ChainAward {
   id: string;
   player_id: number;
