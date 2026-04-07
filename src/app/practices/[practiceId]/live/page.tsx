@@ -11,10 +11,52 @@ import { RichEditor } from "@/components/rich-editor";
 import type {
   Practice, PracticeNote, Player, Drill,
   PracticePlanItem, ActionItem, PracticeAttendance,
+  SquadGroup, SquadMember,
 } from "@/lib/scoring/types";
 import { fullName, firstName } from "@/lib/player-name";
 import { CustomSelect } from "@/components/custom-select";
 import { ChainAwardPicker } from "@/components/chain-award-picker";
+import {
+  DndContext,
+  DragOverlay,
+  closestCenter,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+  type DragStartEvent,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import { useDraggable, useDroppable } from "@dnd-kit/core";
+
+function DraggablePlayer({ player, color }: { player: Player; color: { bg: string; text: string; border: string } }) {
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+    id: `player-${player.id}`,
+    data: { playerId: player.id },
+  });
+  return (
+    <div
+      ref={setNodeRef}
+      {...listeners}
+      {...attributes}
+      className={`h-8 px-2 rounded-lg text-xs font-bold ${color.border} ${color.bg} ${color.text} border transition-all select-none cursor-grab active:cursor-grabbing touch-manipulation truncate flex items-center ${isDragging ? "opacity-30" : ""}`}
+    >
+      #{player.number} {firstName(player)}
+    </div>
+  );
+}
+
+function DroppablePlayerGroup({ groupId, children, color }: { groupId: string; children: React.ReactNode; color: { bg: string; text: string; border: string } }) {
+  const { isOver, setNodeRef } = useDroppable({ id: `squad-${groupId}` });
+  return (
+    <div
+      ref={setNodeRef}
+      className={`rounded-xl border-2 ${color.border} ${color.bg} p-2.5 flex flex-col transition-all ${isOver ? "ring-2 ring-primary/50 scale-[1.02]" : ""}`}
+    >
+      {children}
+    </div>
+  );
+}
 
 const FOCUS_AREAS = ["Hitting", "Fielding", "Throwing", "Baserunning", "Attitude", "Other"];
 
@@ -53,12 +95,31 @@ export default function LivePracticePage() {
   const [newActionText, setNewActionText] = useState("");
   const [newActionPlayer, setNewActionPlayer] = useState<number | null>(null);
 
+  // Squad groups
+  const [squadGroups, setSquadGroups] = useState<SquadGroup[]>([]);
+  const [squadMembers, setSquadMembers] = useState<SquadMember[]>([]);
+  const [squadAutoAssigned, setSquadAutoAssigned] = useState(false);
+  const [activeDragPlayerId, setActiveDragPlayerId] = useState<number | null>(null);
+  const dndSensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 5 } })
+  );
+
+  const GROUP_COLORS = [
+    { bg: "bg-teal-500/20", text: "text-teal-400", border: "border-teal-500/40" },
+    { bg: "bg-purple-500/20", text: "text-purple-400", border: "border-purple-500/40" },
+    { bg: "bg-amber-500/20", text: "text-amber-400", border: "border-amber-500/40" },
+    { bg: "bg-blue-500/20", text: "text-blue-400", border: "border-blue-500/40" },
+    { bg: "bg-rose-500/20", text: "text-rose-400", border: "border-rose-500/40" },
+    { bg: "bg-green-500/20", text: "text-green-400", border: "border-green-500/40" },
+  ];
+
   // Share
   const [shareMessage, setShareMessage] = useState("");
 
   useEffect(() => {
     async function load() {
-      const [practiceRes, playersRes, planRes, drillsRes, attendanceRes, notesRes, actionRes, openActionRes] = await Promise.all([
+      const [practiceRes, playersRes, planRes, drillsRes, attendanceRes, notesRes, actionRes, openActionRes, groupsRes, membersRes] = await Promise.all([
         supabase.from("practices").select("*").eq("id", practiceId).single(),
         supabase.from("players").select("*").order("sort_order"),
         supabase.from("practice_plan_items").select("*").eq("practice_id", practiceId).order("sort_order"),
@@ -67,6 +128,8 @@ export default function LivePracticePage() {
         supabase.from("practice_notes").select("*").eq("practice_id", practiceId).order("created_at"),
         supabase.from("action_items").select("*").eq("practice_id", practiceId).order("created_at"),
         supabase.from("action_items").select("*").is("completed", false).is("practice_id", null).order("created_at"),
+        supabase.from("practice_squad_groups").select("*").eq("practice_id", practiceId).order("sort_order"),
+        supabase.from("practice_squad_members").select("*"),
       ]);
 
       setPractice(practiceRes.data);
@@ -77,6 +140,14 @@ export default function LivePracticePage() {
       setNotes(notesRes.data ?? []);
       setActionItems(actionRes.data ?? []);
       setOpenActionItems(openActionRes.data ?? []);
+
+      const groups = (groupsRes.data ?? []) as SquadGroup[];
+      setSquadGroups(groups);
+      // Filter members to only those belonging to this practice's groups
+      const groupIds = new Set(groups.map((g) => g.id));
+      const filteredMembers = ((membersRes.data ?? []) as SquadMember[]).filter((m) => groupIds.has(m.group_id));
+      setSquadMembers(filteredMembers);
+      if (filteredMembers.length > 0) setSquadAutoAssigned(true);
 
       const attMap = new Map<number, boolean>();
       for (const a of (attendanceRes.data ?? []) as PracticeAttendance[]) {
@@ -197,6 +268,68 @@ export default function LivePracticePage() {
     }
   }
 
+  // ---- Squad Split ----
+  const hasSquadSplit = planItems.some((i) => i.label === "Squad Split" && !i.drill_id);
+
+  async function autoAssignPlayers() {
+    if (squadGroups.length === 0) return;
+    // Get present players
+    const presentPlayers = players.filter((p) => attendance.get(p.id) === true);
+    if (presentPlayers.length === 0) return;
+
+    // Clear existing members for these groups
+    const groupIds = squadGroups.map((g) => g.id);
+    for (const gid of groupIds) {
+      await supabase.from("practice_squad_members").delete().eq("group_id", gid);
+    }
+
+    // Round-robin distribute
+    const newMembers: SquadMember[] = [];
+    for (let i = 0; i < presentPlayers.length; i++) {
+      const group = squadGroups[i % squadGroups.length];
+      const { data } = await supabase
+        .from("practice_squad_members")
+        .insert({ group_id: group.id, player_id: presentPlayers[i].id })
+        .select()
+        .single();
+      if (data) newMembers.push(data);
+    }
+    setSquadMembers(newMembers);
+    setSquadAutoAssigned(true);
+  }
+
+  async function movePlayerToGroup(playerId: number, newGroupId: string) {
+    const existing = squadMembers.find((m) => m.player_id === playerId);
+    if (existing) {
+      if (existing.group_id === newGroupId) return;
+      await supabase.from("practice_squad_members").delete().eq("id", existing.id);
+    }
+    const { data } = await supabase
+      .from("practice_squad_members")
+      .insert({ group_id: newGroupId, player_id: playerId })
+      .select()
+      .single();
+    if (data) {
+      setSquadMembers([...squadMembers.filter((m) => m.player_id !== playerId), data]);
+    }
+  }
+
+  function handleSquadDragStart(event: DragStartEvent) {
+    setActiveDragPlayerId(event.active.data.current?.playerId as number);
+  }
+
+  async function handleSquadDragEnd(event: DragEndEvent) {
+    setActiveDragPlayerId(null);
+    const { active, over } = event;
+    if (!over) return;
+    const playerId = active.data.current?.playerId as number;
+    const overId = over.id as string;
+    if (overId.startsWith("squad-")) {
+      const groupId = overId.replace("squad-", "");
+      await movePlayerToGroup(playerId, groupId);
+    }
+  }
+
   if (loading || !practice) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -294,15 +427,16 @@ export default function LivePracticePage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="px-4 pb-4 space-y-2">
-            {planItems.map((item, idx) => {
+            {planItems.filter((i) => !i.group_id).map((item, idx) => {
               const drill = getDrill(item.drill_id);
               const isExpanded = expandedItem === item.id;
+              const isSquadSplit = item.label === "Squad Split" && !item.drill_id;
 
               return (
                 <div key={item.id} className="rounded-xl border-2 border-border/50 bg-muted/10 overflow-hidden">
                   <div
                     className="flex items-center gap-3 p-3 cursor-pointer"
-                    onClick={() => setExpandedItem(isExpanded ? null : item.id)}
+                    onClick={() => !isSquadSplit && setExpandedItem(isExpanded ? null : item.id)}
                   >
                     <button
                       onClick={(e) => { e.stopPropagation(); togglePlanItem(item.id, !item.completed); }}
@@ -319,12 +453,22 @@ export default function LivePracticePage() {
                       )}
                     </button>
                     <div className="flex-1 min-w-0">
-                      <div className={`text-sm font-semibold ${item.completed ? "line-through text-muted-foreground" : ""}`}>
+                      <div className={`text-sm font-semibold flex items-center gap-1.5 ${item.completed ? "line-through text-muted-foreground" : ""}`}>
+                        {isSquadSplit && (
+                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary shrink-0"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                        )}
                         {item.label}
                       </div>
-                      <div className="text-xs text-muted-foreground">
-                        {item.duration_minutes} min{drill?.category ? ` · ${drill.category}` : ""}
-                      </div>
+                      {!isSquadSplit && (
+                        <div className="text-xs text-muted-foreground">
+                          {item.duration_minutes} min{drill?.category ? ` · ${drill.category}` : ""}
+                        </div>
+                      )}
+                      {isSquadSplit && (
+                        <div className="text-xs text-muted-foreground">
+                          {squadGroups.length} group{squadGroups.length !== 1 ? "s" : ""} · {squadMembers.length} player{squadMembers.length !== 1 ? "s" : ""} assigned
+                        </div>
+                      )}
                     </div>
                     {drill && (
                       <svg
@@ -352,6 +496,76 @@ export default function LivePracticePage() {
                         dangerouslySetInnerHTML={{ __html: drill.description }}
                       />
                     </div>
+                  )}
+
+                  {/* Squad Split — groups with players and drills */}
+                  {isSquadSplit && squadGroups.length > 0 && (
+                    <DndContext sensors={dndSensors} collisionDetection={closestCenter} onDragStart={handleSquadDragStart} onDragEnd={handleSquadDragEnd}>
+                      <div className="px-3 pb-3 border-t border-border/30 pt-3 space-y-3">
+                        {!squadAutoAssigned && presentCount > 0 && (
+                          <Button variant="outline" className="w-full h-9 text-xs font-bold border-primary/30 text-primary" onClick={autoAssignPlayers}>
+                            Auto-Assign {presentCount} Present Players
+                          </Button>
+                        )}
+                        {squadAutoAssigned && (
+                          <Button variant="ghost" className="h-7 text-[10px] text-muted-foreground" onClick={autoAssignPlayers}>
+                            Re-shuffle players
+                          </Button>
+                        )}
+
+                        <div className="grid grid-cols-2 gap-2">
+                          {squadGroups.map((group) => {
+                            const color = GROUP_COLORS[group.color_index % GROUP_COLORS.length];
+                            const groupDrills = planItems.filter((i) => i.group_id === group.id);
+                            const groupPlayers = squadMembers
+                              .filter((m) => m.group_id === group.id)
+                              .map((m) => players.find((p) => p.id === m.player_id))
+                              .filter((p): p is Player => !!p);
+
+                            return (
+                              <DroppablePlayerGroup key={group.id} groupId={group.id} color={color}>
+                                <div className={`text-xs font-bold ${color.text} mb-2`}>{group.name}</div>
+
+                                {/* Drills in this group */}
+                                {groupDrills.length > 0 && (
+                                  <div className="space-y-1 mb-2">
+                                    {groupDrills.map((gi) => (
+                                      <div key={gi.id} className={`text-[10px] font-medium ${color.text} opacity-80 flex items-center gap-1`}>
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+                                        {gi.label}{gi.duration_minutes > 0 ? ` (${gi.duration_minutes}m)` : ""}
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+
+                                {/* Players in this group */}
+                                <div className="flex flex-col gap-1 min-h-[2rem]">
+                                  {groupPlayers.map((p) => (
+                                    <DraggablePlayer key={p.id} player={p} color={color} />
+                                  ))}
+                                  {groupPlayers.length === 0 && (
+                                    <span className="text-[10px] text-muted-foreground italic">No players yet</span>
+                                  )}
+                                </div>
+                              </DroppablePlayerGroup>
+                            );
+                          })}
+                        </div>
+                        <p className="text-[10px] text-muted-foreground">Drag players between groups to adjust.</p>
+                      </div>
+
+                      <DragOverlay>
+                        {activeDragPlayerId ? (() => {
+                          const p = players.find((pl) => pl.id === activeDragPlayerId);
+                          if (!p) return null;
+                          return (
+                            <div className="h-8 px-2 rounded-lg text-xs font-bold border-2 border-primary/60 bg-primary/20 text-primary shadow-lg cursor-grabbing flex items-center">
+                              #{p.number} {firstName(p)}
+                            </div>
+                          );
+                        })() : null}
+                      </DragOverlay>
+                    </DndContext>
                   )}
                 </div>
               );
