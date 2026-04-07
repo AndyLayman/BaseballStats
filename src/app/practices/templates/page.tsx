@@ -12,7 +12,7 @@ interface TemplateWithItems extends PracticePlanTemplate {
   items: PracticePlanTemplateItem[];
 }
 
-const CATEGORIES = ["General", "Hitting", "Fielding", "Throwing", "Baserunning", "Conditioning", "Team"];
+const CATEGORIES = ["General", "Hitting", "Fielding", "Throwing", "Baserunning", "Conditioning", "Team", "Game"];
 
 export default function PlanTemplatesPage() {
   const [templates, setTemplates] = useState<TemplateWithItems[]>([]);
