@@ -8,11 +8,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type {
-  Practice, Player, Drill,
+  Practice, Drill,
   PracticePlanItem, PracticePlanTemplate, PracticePlanTemplateItem,
-  SquadGroup, SquadMember,
+  SquadGroup,
 } from "@/lib/scoring/types";
-import { firstName } from "@/lib/player-name";
 import { VenuePicker } from "@/components/venue-picker";
 import {
   DndContext,
@@ -27,10 +26,10 @@ import {
 } from "@dnd-kit/core";
 import { useDraggable, useDroppable } from "@dnd-kit/core";
 
-function DraggablePlayer({ player, color }: { player: Player; color?: { bg: string; text: string; border: string } }) {
+function DraggableDrillItem({ item, color }: { item: PracticePlanItem; color?: { bg: string; text: string; border: string } }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
-    id: `player-${player.id}`,
-    data: { playerId: player.id },
+    id: `item-${item.id}`,
+    data: { itemId: item.id },
   });
   const c = color ?? { bg: "bg-muted/30", text: "text-foreground", border: "border-border/50" };
   return (
@@ -38,9 +37,10 @@ function DraggablePlayer({ player, color }: { player: Player; color?: { bg: stri
       ref={setNodeRef}
       {...listeners}
       {...attributes}
-      className={`h-7 px-2 rounded-lg text-xs font-bold ${c.border} ${c.bg} ${c.text} border transition-all select-none text-left truncate cursor-grab active:cursor-grabbing touch-manipulation ${isDragging ? "opacity-30" : ""}`}
+      className={`flex items-center gap-2 h-8 px-2.5 rounded-lg text-xs font-bold ${c.border} ${c.bg} ${c.text} border transition-all select-none cursor-grab active:cursor-grabbing touch-manipulation ${isDragging ? "opacity-30" : ""}`}
     >
-      #{player.number} {firstName(player)}
+      <span className="truncate flex-1">{item.label}</span>
+      {item.duration_minutes > 0 && <span className="text-[10px] opacity-60 shrink-0">{item.duration_minutes}m</span>}
     </div>
   );
 }
@@ -52,15 +52,6 @@ function DroppableGroup({ groupId, children, color }: { groupId: string; childre
       ref={setNodeRef}
       className={`rounded-xl border-2 ${color.border} ${color.bg} p-2.5 flex flex-col transition-all ${isOver ? "ring-2 ring-primary/50 scale-[1.02]" : ""}`}
     >
-      {children}
-    </div>
-  );
-}
-
-function DroppableUnassigned({ children }: { children: React.ReactNode }) {
-  const { isOver, setNodeRef } = useDroppable({ id: "unassigned" });
-  return (
-    <div ref={setNodeRef} className={`transition-all rounded-lg p-1 -m-1 ${isOver ? "ring-2 ring-border/50 bg-muted/20" : ""}`}>
       {children}
     </div>
   );
@@ -86,14 +77,12 @@ export default function PracticeSetupPage() {
   const [planShowAll, setPlanShowAll] = useState(false);
 
   // Squad groups
-  const [players, setPlayers] = useState<Player[]>([]);
   const [squadGroups, setSquadGroups] = useState<SquadGroup[]>([]);
-  const [squadMembers, setSquadMembers] = useState<SquadMember[]>([]);
   const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
   const [editingGroupName, setEditingGroupName] = useState("");
 
   // Drag and drop
-  const [activeDragId, setActiveDragId] = useState<number | null>(null);
+  const [activeDragId, setActiveDragId] = useState<string | null>(null);
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 5 } })
@@ -106,15 +95,13 @@ export default function PracticeSetupPage() {
 
   useEffect(() => {
     async function load() {
-      const [practiceRes, planRes, templatesRes, templateItemsRes, drillsRes, playersRes, groupsRes, membersRes] = await Promise.all([
+      const [practiceRes, planRes, templatesRes, templateItemsRes, drillsRes, groupsRes] = await Promise.all([
         supabase.from("practices").select("*").eq("id", practiceId).single(),
         supabase.from("practice_plan_items").select("*").eq("practice_id", practiceId).order("sort_order"),
         supabase.from("practice_plan_templates").select("*").order("name"),
         supabase.from("practice_plan_template_items").select("*").order("sort_order"),
         supabase.from("drills").select("*").order("name"),
-        supabase.from("players").select("*").order("sort_order"),
         supabase.from("practice_squad_groups").select("*").eq("practice_id", practiceId).order("sort_order"),
-        supabase.from("practice_squad_members").select("*"),
       ]);
 
       setPractice(practiceRes.data);
@@ -122,11 +109,7 @@ export default function PracticeSetupPage() {
       setTemplates(templatesRes.data ?? []);
       setTemplateItems(templateItemsRes.data ?? []);
       setDrills(drillsRes.data ?? []);
-      setPlayers(playersRes.data ?? []);
-      const groups = (groupsRes.data ?? []) as SquadGroup[];
-      setSquadGroups(groups);
-      const groupIds = new Set(groups.map((g) => g.id));
-      setSquadMembers(((membersRes.data ?? []) as SquadMember[]).filter((m) => groupIds.has(m.group_id)));
+      setSquadGroups((groupsRes.data ?? []) as SquadGroup[]);
       setVenue(practiceRes.data?.venue ?? "");
       setVenueAddress(practiceRes.data?.venue_address ?? "");
       setLoading(false);
@@ -155,9 +138,13 @@ export default function PracticeSetupPage() {
   }
 
   async function deleteSquadGroup(groupId: string) {
-    await supabase.from("practice_squad_members").delete().eq("group_id", groupId);
+    // Unassign any items in this group
+    const itemsInGroup = planItems.filter((i) => i.group_id === groupId);
+    for (const item of itemsInGroup) {
+      await supabase.from("practice_plan_items").update({ group_id: null }).eq("id", item.id);
+    }
+    setPlanItems(planItems.map((i) => i.group_id === groupId ? { ...i, group_id: null } : i));
     await supabase.from("practice_squad_groups").delete().eq("id", groupId);
-    setSquadMembers(squadMembers.filter((m) => m.group_id !== groupId));
     setSquadGroups(squadGroups.filter((g) => g.id !== groupId));
   }
 
@@ -167,46 +154,45 @@ export default function PracticeSetupPage() {
     setEditingGroupId(null);
   }
 
-  async function assignToGroup(playerId: number, groupId: string) {
-    const existing = squadMembers.find((m) => m.player_id === playerId);
-    if (existing) {
-      if (existing.group_id === groupId) {
-        await supabase.from("practice_squad_members").delete().eq("id", existing.id);
-        setSquadMembers(squadMembers.filter((m) => m.id !== existing.id));
-        return;
-      }
-      await supabase.from("practice_squad_members").delete().eq("id", existing.id);
-    }
-    const { data } = await supabase
-      .from("practice_squad_members")
-      .insert({ group_id: groupId, player_id: playerId })
-      .select()
-      .single();
-    if (data) setSquadMembers([...squadMembers.filter((m) => m.player_id !== playerId), data]);
+  async function assignItemToGroup(itemId: string, groupId: string | null) {
+    await supabase.from("practice_plan_items").update({ group_id: groupId }).eq("id", itemId);
+    setPlanItems(planItems.map((i) => i.id === itemId ? { ...i, group_id: groupId } : i));
   }
 
-  async function randomizeGroups() {
-    if (squadGroups.length < 2) return;
-    const shuffled = [...players].sort(() => Math.random() - 0.5);
-    const groupIds = squadGroups.map((g) => g.id);
-    for (const gid of groupIds) {
-      await supabase.from("practice_squad_members").delete().eq("group_id", gid);
-    }
-    const newMembers: SquadMember[] = [];
-    for (let i = 0; i < shuffled.length; i++) {
-      const groupId = groupIds[i % groupIds.length];
-      const { data } = await supabase
-        .from("practice_squad_members")
-        .insert({ group_id: groupId, player_id: shuffled[i].id })
-        .select()
-        .single();
-      if (data) newMembers.push(data);
-    }
-    setSquadMembers(newMembers);
+  async function addDrillToGroup(drill: Drill, groupId: string) {
+    const { data } = await supabase
+      .from("practice_plan_items")
+      .insert({
+        practice_id: practiceId,
+        drill_id: drill.id,
+        label: drill.name,
+        duration_minutes: drill.duration_minutes ?? 10,
+        sort_order: planItems.length,
+        completed: false,
+        group_id: groupId,
+      })
+      .select()
+      .single();
+    if (data) setPlanItems([...planItems, data]);
+  }
+
+  async function addCustomBlockToGroup(label: string, duration: number, groupId: string) {
+    const { data } = await supabase
+      .from("practice_plan_items")
+      .insert({
+        practice_id: practiceId,
+        label,
+        duration_minutes: duration,
+        sort_order: planItems.length,
+        completed: false,
+        group_id: groupId,
+      })
+      .select()
+      .single();
+    if (data) setPlanItems([...planItems, data]);
   }
 
   async function addSquadSplitBlock() {
-    // Add a squad split block to the practice plan
     const { data } = await supabase
       .from("practice_plan_items")
       .insert({
@@ -219,7 +205,6 @@ export default function PracticeSetupPage() {
       .select()
       .single();
     if (data) setPlanItems([...planItems, data]);
-    // Ensure at least 2 groups exist
     if (squadGroups.length === 0) {
       const g1 = await supabase.from("practice_squad_groups").insert({ practice_id: practiceId, name: "Group 1", color_index: 0, sort_order: 0 }).select().single();
       const g2 = await supabase.from("practice_squad_groups").insert({ practice_id: practiceId, name: "Group 2", color_index: 1, sort_order: 1 }).select().single();
@@ -228,27 +213,20 @@ export default function PracticeSetupPage() {
   }
 
   function handleDragStart(event: DragStartEvent) {
-    const playerId = event.active.data.current?.playerId as number;
-    setActiveDragId(playerId);
+    const itemId = event.active.data.current?.itemId as string;
+    setActiveDragId(itemId);
   }
 
   async function handleDragEnd(event: DragEndEvent) {
     setActiveDragId(null);
     const { active, over } = event;
     if (!over) return;
-    const playerId = active.data.current?.playerId as number;
+    const itemId = active.data.current?.itemId as string;
     const overId = over.id as string;
 
-    if (overId === "unassigned") {
-      // Remove from current group
-      const existing = squadMembers.find((m) => m.player_id === playerId);
-      if (existing) {
-        await supabase.from("practice_squad_members").delete().eq("id", existing.id);
-        setSquadMembers(squadMembers.filter((m) => m.id !== existing.id));
-      }
-    } else if (overId.startsWith("group-")) {
+    if (overId.startsWith("group-")) {
       const groupId = overId.replace("group-", "");
-      await assignToGroup(playerId, groupId);
+      await assignItemToGroup(itemId, groupId);
     }
   }
 
@@ -338,7 +316,9 @@ export default function PracticeSetupPage() {
     );
   }
 
-  const totalPlanMinutes = planItems.reduce((s, i) => s + i.duration_minutes, 0);
+  // Only count top-level items (not items assigned to groups) for the plan total
+  const topLevelItems = planItems.filter((i) => !i.group_id);
+  const totalPlanMinutes = topLevelItems.reduce((s, i) => s + i.duration_minutes, 0);
 
   return (
     <div className="max-w-2xl mx-auto space-y-6 pb-24">
@@ -445,7 +425,7 @@ export default function PracticeSetupPage() {
                           <div className="text-[10px] text-primary/60">From drill library</div>
                         )}
                         {isSquadSplit && (
-                          <div className="text-[10px] text-primary/60">{squadGroups.length} group{squadGroups.length !== 1 ? "s" : ""} · {squadMembers.length} assigned</div>
+                          <div className="text-[10px] text-primary/60">{squadGroups.length} group{squadGroups.length !== 1 ? "s" : ""} · {planItems.filter((i) => i.group_id).length} drill{planItems.filter((i) => i.group_id).length !== 1 ? "s" : ""}</div>
                         )}
                       </div>
                       {!isSquadSplit && <span className="text-xs text-muted-foreground shrink-0">{item.duration_minutes}m</span>}
@@ -479,22 +459,13 @@ export default function PracticeSetupPage() {
                         <div className="px-3 pb-3 space-y-3 border-t border-border/30 pt-3">
                           <div className="flex items-center gap-2">
                             <Button variant="ghost" className="h-7 px-2 text-xs" onClick={addSquadGroup}>+ Group</Button>
-                            {squadGroups.length >= 2 && (
-                              <Button variant="ghost" className="h-7 px-2 text-xs" onClick={randomizeGroups}>
-                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1"><path d="M2 18h1.4c1.3 0 2.5-.6 3.3-1.7l6.1-8.6c.7-1.1 2-1.7 3.3-1.7H22"/><path d="m18 2 4 4-4 4"/><path d="M2 6h1.9c1.5 0 2.9.9 3.6 2.2"/><path d="M22 18h-5.9c-1.3 0-2.6-.7-3.3-1.8l-.5-.8"/><path d="m18 14 4 4-4 4"/></svg>
-                                Randomize
-                              </Button>
-                            )}
                           </div>
 
                           {/* Groups side by side */}
                           <div className="grid grid-cols-2 gap-2">
                             {squadGroups.map((group) => {
                               const color = GROUP_COLORS[group.color_index % GROUP_COLORS.length];
-                              const groupPlayers = squadMembers
-                                .filter((m) => m.group_id === group.id)
-                                .map((m) => players.find((p) => p.id === m.player_id))
-                                .filter(Boolean) as Player[];
+                              const groupItems = planItems.filter((i) => i.group_id === group.id);
 
                               return (
                                 <DroppableGroup key={group.id} groupId={group.id} color={color}>
@@ -513,7 +484,7 @@ export default function PracticeSetupPage() {
                                         onClick={() => { setEditingGroupId(group.id); setEditingGroupName(group.name); }}
                                         className={`text-xs font-bold ${color.text}`}
                                       >
-                                        {group.name} ({groupPlayers.length})
+                                        {group.name}
                                       </button>
                                     )}
                                     <button
@@ -523,48 +494,46 @@ export default function PracticeSetupPage() {
                                       <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
                                     </button>
                                   </div>
-                                  <div className="flex flex-col gap-1 flex-1 min-h-[2rem]">
-                                    {groupPlayers.map((p) => (
-                                      <DraggablePlayer key={p.id} player={p} color={color} />
+                                  <div className="flex flex-col gap-1 flex-1 min-h-[2.5rem]">
+                                    {groupItems.map((gi) => (
+                                      <DraggableDrillItem key={gi.id} item={gi} color={color} />
                                     ))}
-                                    {groupPlayers.length === 0 && (
-                                      <span className="text-[10px] text-muted-foreground italic">Drop here</span>
+                                    {groupItems.length === 0 && (
+                                      <span className="text-[10px] text-muted-foreground italic">Drag drills here</span>
                                     )}
+                                  </div>
+                                  {/* Quick add drill to this group */}
+                                  <div className="mt-2 border-t border-white/10 pt-2">
+                                    <select
+                                      className="w-full h-7 text-[10px] rounded-lg bg-transparent border border-border/50 px-1 text-muted-foreground cursor-pointer"
+                                      value=""
+                                      onChange={(e) => {
+                                        const drill = drills.find((d) => d.id === e.target.value);
+                                        if (drill) addDrillToGroup(drill, group.id);
+                                      }}
+                                    >
+                                      <option value="">+ Add drill...</option>
+                                      {drills.map((d) => (
+                                        <option key={d.id} value={d.id}>{d.name}{d.duration_minutes ? ` (${d.duration_minutes}m)` : ""}</option>
+                                      ))}
+                                    </select>
                                   </div>
                                 </DroppableGroup>
                               );
                             })}
                           </div>
 
-                          {/* Unassigned players */}
-                          {(() => {
-                            const unassigned = players.filter((p) => !squadMembers.find((m) => m.player_id === p.id));
-                            if (unassigned.length === 0 && !activeDragId) return null;
-                            return (
-                              <DroppableUnassigned>
-                                <div className="text-xs text-muted-foreground mb-1.5">Unassigned — drag into a group:</div>
-                                <div className="flex flex-wrap gap-1.5">
-                                  {unassigned.map((p) => (
-                                    <DraggablePlayer key={p.id} player={p} />
-                                  ))}
-                                  {unassigned.length === 0 && (
-                                    <span className="text-[10px] text-muted-foreground italic">Drop here to unassign</span>
-                                  )}
-                                </div>
-                              </DroppableUnassigned>
-                            );
-                          })()}
-
-                          <p className="text-[10px] text-muted-foreground">Drag players between groups. Tap group name to rename.</p>
+                          <p className="text-[10px] text-muted-foreground">Drag drills between groups. Use the dropdown to add drills to each group. Tap group name to rename.</p>
                         </div>
 
                         <DragOverlay>
                           {activeDragId ? (() => {
-                            const p = players.find((p) => p.id === activeDragId);
-                            if (!p) return null;
+                            const item = planItems.find((i) => i.id === activeDragId);
+                            if (!item) return null;
                             return (
-                              <div className="h-7 px-2 rounded-lg text-xs font-bold border-2 border-primary/60 bg-primary/20 text-primary shadow-lg cursor-grabbing">
-                                #{p.number} {firstName(p)}
+                              <div className="flex items-center gap-2 h-8 px-2.5 rounded-lg text-xs font-bold border-2 border-primary/60 bg-primary/20 text-primary shadow-lg cursor-grabbing">
+                                <span className="truncate">{item.label}</span>
+                                {item.duration_minutes > 0 && <span className="text-[10px] opacity-60">{item.duration_minutes}m</span>}
                               </div>
                             );
                           })() : null}

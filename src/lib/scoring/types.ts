@@ -232,6 +232,7 @@ export interface PracticePlanItem {
   duration_minutes: number;
   sort_order: number;
   completed: boolean;
+  group_id: string | null;
 }
 
 export interface ActionItem {
