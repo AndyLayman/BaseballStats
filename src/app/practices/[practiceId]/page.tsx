@@ -504,7 +504,8 @@ export default function PracticeDetailPage() {
           <RichEditor
             content={teamNotes}
             onChange={(html) => setTeamNotes(html)}
-            placeholder="Overall practice notes, drills run, focus for the day..."
+            placeholder="Overall practice notes, drills run, focus for the day... Type @ to tag a player."
+            mentions={players.map((p) => ({ id: p.id.toString(), label: `#${p.number} ${fullName(p)}` }))}
           />
           <Button
             variant="outline"
@@ -562,8 +563,9 @@ export default function PracticeDetailPage() {
               <RichEditor
                 content={noteText}
                 onChange={(html) => setNoteText(html)}
-                placeholder={`Notes for ${(() => { const p = players.find((p) => p.id === selectedPlayer); return p ? fullName(p) : ""; })()}...`}
+                placeholder={`Notes for ${(() => { const p = players.find((p) => p.id === selectedPlayer); return p ? fullName(p) : ""; })()}... Type @ to tag players.`}
                 autofocus
+                mentions={players.map((p) => ({ id: p.id.toString(), label: `#${p.number} ${fullName(p)}` }))}
               />
 
               <Button

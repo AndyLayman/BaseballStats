@@ -1,26 +1,147 @@
 "use client";
 
-import { useEditor, EditorContent } from "@tiptap/react";
+import { useEditor, EditorContent, ReactRenderer } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
 import Youtube from "@tiptap/extension-youtube";
 import ImageExt from "@tiptap/extension-image";
 import LinkExt from "@tiptap/extension-link";
 import Underline from "@tiptap/extension-underline";
-import { useEffect, useCallback, useState } from "react";
+import Mention from "@tiptap/extension-mention";
+import { useEffect, useCallback, useState, forwardRef, useImperativeHandle, useRef } from "react";
+
+interface MentionItem {
+  id: string;
+  label: string;
+}
 
 interface RichEditorProps {
   content: string;
   onChange: (html: string) => void;
   placeholder?: string;
   autofocus?: boolean;
+  mentions?: MentionItem[];
 }
 
-export function RichEditor({ content, onChange, placeholder = "Start writing...", autofocus = false }: RichEditorProps) {
+// Mention suggestion list component
+const MentionList = forwardRef<
+  { onKeyDown: (props: { event: KeyboardEvent }) => boolean },
+  { items: MentionItem[]; command: (item: MentionItem) => void }
+>(({ items, command }, ref) => {
+  const [selectedIndex, setSelectedIndex] = useState(0);
+
+  useEffect(() => setSelectedIndex(0), [items]);
+
+  useImperativeHandle(ref, () => ({
+    onKeyDown: ({ event }: { event: KeyboardEvent }) => {
+      if (event.key === "ArrowUp") {
+        setSelectedIndex((prev) => (prev + items.length - 1) % items.length);
+        return true;
+      }
+      if (event.key === "ArrowDown") {
+        setSelectedIndex((prev) => (prev + 1) % items.length);
+        return true;
+      }
+      if (event.key === "Enter") {
+        if (items[selectedIndex]) command(items[selectedIndex]);
+        return true;
+      }
+      return false;
+    },
+  }));
+
+  if (items.length === 0) return null;
+
+  return (
+    <div className="rounded-xl border-2 border-border/50 bg-card shadow-xl overflow-hidden z-50 max-h-48 overflow-y-auto">
+      {items.map((item, idx) => (
+        <button
+          key={item.id}
+          onClick={() => command(item)}
+          className={`w-full text-left px-3 py-2 text-sm transition-colors ${
+            idx === selectedIndex
+              ? "bg-primary/15 text-primary font-bold"
+              : "text-foreground hover:bg-muted/50"
+          }`}
+        >
+          {item.label}
+        </button>
+      ))}
+    </div>
+  );
+});
+
+MentionList.displayName = "MentionList";
+
+function createMentionSuggestion(mentionItems: MentionItem[]) {
+  return {
+    items: ({ query }: { query: string }) => {
+      return mentionItems.filter((item) =>
+        item.label.toLowerCase().includes(query.toLowerCase())
+      ).slice(0, 8);
+    },
+    render: () => {
+      let component: ReactRenderer<{ onKeyDown: (props: { event: KeyboardEvent }) => boolean }> | null = null;
+      let popup: HTMLDivElement | null = null;
+
+      return {
+        onStart: (props: Record<string, unknown>) => {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          component = new ReactRenderer(MentionList, {
+            props,
+            editor: props.editor as any,
+          });
+
+          popup = document.createElement("div");
+          popup.style.position = "absolute";
+          popup.style.zIndex = "50";
+          document.body.appendChild(popup);
+
+          const domRect = props.clientRect as (() => DOMRect | null);
+          const rect = domRect?.();
+          if (rect && popup) {
+            popup.style.left = `${rect.left}px`;
+            popup.style.top = `${rect.bottom + 4}px`;
+          }
+
+          if (component.element && popup) {
+            popup.appendChild(component.element);
+          }
+        },
+        onUpdate: (props: Record<string, unknown>) => {
+          component?.updateProps(props);
+          const domRect = props.clientRect as (() => DOMRect | null);
+          const rect = domRect?.();
+          if (rect && popup) {
+            popup.style.left = `${rect.left}px`;
+            popup.style.top = `${rect.bottom + 4}px`;
+          }
+        },
+        onKeyDown: (props: { event: KeyboardEvent }) => {
+          if (props.event.key === "Escape") {
+            popup?.remove();
+            component?.destroy();
+            return true;
+          }
+          return component?.ref?.onKeyDown(props) ?? false;
+        },
+        onExit: () => {
+          popup?.remove();
+          component?.destroy();
+        },
+      };
+    },
+  };
+}
+
+export function RichEditor({ content, onChange, placeholder = "Start writing...", autofocus = false, mentions = [] }: RichEditorProps) {
   const [showLinkInput, setShowLinkInput] = useState(false);
   const [linkUrl, setLinkUrl] = useState("");
   const [showVideoInput, setShowVideoInput] = useState(false);
   const [videoUrl, setVideoUrl] = useState("");
+
+  const mentionsRef = useRef(mentions);
+  mentionsRef.current = mentions;
 
   const editor = useEditor({
     extensions: [
@@ -41,6 +162,17 @@ export function RichEditor({ content, onChange, placeholder = "Start writing..."
         width: 480,
         height: 270,
       }),
+      ...(mentions.length > 0
+        ? [
+            Mention.configure({
+              HTMLAttributes: {
+                class: "mention",
+              },
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              suggestion: createMentionSuggestion(mentions) as any,
+            }),
+          ]
+        : []),
     ],
     content,
     autofocus,
@@ -178,6 +310,18 @@ export function RichEditor({ content, onChange, placeholder = "Start writing..."
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>
         </ToolBtn>
+        {mentions.length > 0 && (
+          <>
+            <div className="w-px bg-border/30 mx-0.5" />
+            <ToolBtn
+              active={false}
+              onClick={() => editor.chain().focus().insertContent("@").run()}
+              title="Tag a player"
+            >
+              @
+            </ToolBtn>
+          </>
+        )}
       </div>
 
       {/* Link input */}
