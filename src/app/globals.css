@@ -413,6 +413,9 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .prose iframe { border-radius: 0.75rem; max-width: 100%; }
 .prose div[data-youtube-video] { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 0.75rem; margin: 0.5rem 0; }
 .prose div[data-youtube-video] iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border-radius: 0.75rem; }
+/* Muted video embeds in drill library */
+.drill-library-content div[data-youtube-video] { opacity: 0.4; }
+.drill-library-content div[data-youtube-video]:hover { opacity: 0.8; transition: opacity 0.2s; }
 .prose strong { font-weight: 700; }
 .prose em { font-style: italic; }
 .prose a { color: var(--color-primary); text-decoration: underline; }

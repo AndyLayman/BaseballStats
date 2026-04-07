@@ -236,7 +236,7 @@ export default function DrillLibraryPage() {
                     </div>
                     {drill.description && !isEmptyHtml(drill.description) && (
                       <div
-                        className="text-sm prose prose-invert prose-sm max-w-none text-muted-foreground"
+                        className="text-sm prose prose-invert prose-sm max-w-none text-muted-foreground drill-library-content"
                         dangerouslySetInnerHTML={{ __html: drill.description }}
                       />
                     )}
