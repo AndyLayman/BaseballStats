@@ -29,6 +29,8 @@ export default function PlanTemplatesPage() {
   const [customBlockName, setCustomBlockName] = useState("");
   const [customBlockDuration, setCustomBlockDuration] = useState("10");
   const [showCustom, setShowCustom] = useState(false);
+  const [drillSearchQuery, setDrillSearchQuery] = useState("");
+  const [showAllDrills, setShowAllDrills] = useState(false);
 
   useEffect(() => {
     loadAll();
@@ -155,10 +157,6 @@ export default function PlanTemplatesPage() {
   const totalMinutes = (items: { duration_minutes: number }[]) =>
     items.reduce((sum, i) => sum + i.duration_minutes, 0);
 
-  const filteredDrills = filterCategory
-    ? drills.filter((d) => d.category === filterCategory)
-    : drills;
-
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -247,55 +245,116 @@ export default function PlanTemplatesPage() {
                 Add block #{editItems.length + 1}
               </div>
 
-              {/* Category filter chips */}
-              {drills.length > 0 && (
-                <>
-                  <div className="flex gap-1.5 flex-wrap justify-center mb-3">
-                    <button
-                      onClick={() => setFilterCategory(null)}
-                      className={`px-2.5 py-1 rounded-full text-[10px] font-bold border transition-all active:scale-95 select-none ${
-                        !filterCategory
-                          ? "bg-primary/20 text-primary border-primary/40"
-                          : "bg-muted/30 text-muted-foreground border-border/50"
-                      }`}
-                    >
-                      All
-                    </button>
-                    {CATEGORIES.filter((cat) => drills.some((d) => d.category === cat)).map((cat) => (
+              {/* Search + Category filter */}
+              {drills.length > 0 && (() => {
+                const searched = drillSearchQuery.trim()
+                  ? drills.filter((d) => d.name.toLowerCase().includes(drillSearchQuery.toLowerCase()))
+                  : drills;
+                const filtered = filterCategory
+                  ? searched.filter((d) => d.category === filterCategory)
+                  : searched;
+                const isSearching = drillSearchQuery.trim().length > 0 || filterCategory !== null;
+                const showAll = showAllDrills || isSearching;
+                const visible = showAll ? filtered : filtered.slice(0, 4);
+                const faded = showAll ? [] : filtered.slice(4, 6);
+                const hiddenCount = showAll ? 0 : Math.max(0, filtered.length - 6);
+
+                return (
+                  <>
+                    {/* Search */}
+                    <div className="mb-3">
+                      <Input
+                        value={drillSearchQuery}
+                        onChange={(e) => { setDrillSearchQuery(e.target.value); setShowAllDrills(false); }}
+                        placeholder="Search drills..."
+                        className="h-9 text-sm bg-input/50 border-border/50"
+                      />
+                    </div>
+
+                    {/* Category chips */}
+                    <div className="flex gap-1.5 flex-wrap justify-center mb-3">
                       <button
-                        key={cat}
-                        onClick={() => setFilterCategory(filterCategory === cat ? null : cat)}
+                        onClick={() => { setFilterCategory(null); setShowAllDrills(false); }}
                         className={`px-2.5 py-1 rounded-full text-[10px] font-bold border transition-all active:scale-95 select-none ${
-                          filterCategory === cat
+                          !filterCategory
                             ? "bg-primary/20 text-primary border-primary/40"
                             : "bg-muted/30 text-muted-foreground border-border/50"
                         }`}
                       >
-                        {cat}
+                        All
                       </button>
-                    ))}
-                  </div>
+                      {[...new Set(drills.map((d) => d.category))].sort().map((cat) => (
+                        <button
+                          key={cat}
+                          onClick={() => { setFilterCategory(filterCategory === cat ? null : cat); setShowAllDrills(false); }}
+                          className={`px-2.5 py-1 rounded-full text-[10px] font-bold border transition-all active:scale-95 select-none ${
+                            filterCategory === cat
+                              ? "bg-primary/20 text-primary border-primary/40"
+                              : "bg-muted/30 text-muted-foreground border-border/50"
+                          }`}
+                        >
+                          {cat}
+                        </button>
+                      ))}
+                    </div>
 
-                  {/* Drill options */}
-                  <div className="grid grid-cols-2 gap-2 mb-4">
-                    {filteredDrills.map((drill) => (
-                      <button
-                        key={drill.id}
-                        onClick={() => addDrillToTemplate(drill)}
-                        className="flex items-center gap-3 rounded-xl border-2 border-border/40 bg-muted/20 px-4 py-3.5 text-left hover:border-primary/40 hover:bg-primary/5 transition-all active:scale-[0.98] group"
-                      >
-                        <div className="flex-1 min-w-0">
-                          <div className="text-sm font-medium truncate group-hover:text-primary transition-colors">{drill.name}</div>
-                          <div className="text-xs text-muted-foreground mt-0.5">
-                            {drill.duration_minutes ? `${drill.duration_minutes} min` : ""}{drill.duration_minutes && drill.category ? " · " : ""}{drill.category}
+                    {/* Drill grid */}
+                    <div className="grid grid-cols-2 gap-2 mb-4">
+                      {visible.map((drill) => (
+                        <button
+                          key={drill.id}
+                          onClick={() => addDrillToTemplate(drill)}
+                          className="flex items-center gap-3 rounded-xl border-2 border-border/40 bg-muted/20 px-4 py-3.5 text-left hover:border-primary/40 hover:bg-primary/5 transition-all active:scale-[0.98] group"
+                        >
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm font-medium truncate group-hover:text-primary transition-colors">{drill.name}</div>
+                            <div className="text-xs text-muted-foreground mt-0.5">
+                              {drill.duration_minutes ? `${drill.duration_minutes} min` : ""}{drill.duration_minutes && drill.category ? " · " : ""}{drill.category}
+                            </div>
                           </div>
-                        </div>
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground/40 group-hover:text-primary shrink-0 transition-colors"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+                          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground/40 group-hover:text-primary shrink-0 transition-colors"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+                        </button>
+                      ))}
+                      {faded.map((drill) => (
+                        <button
+                          key={drill.id}
+                          onClick={() => setShowAllDrills(true)}
+                          className="flex items-center gap-3 rounded-xl border-2 border-border/40 bg-muted/20 px-4 py-3.5 text-left opacity-30 pointer-events-auto"
+                        >
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm font-medium truncate">{drill.name}</div>
+                            <div className="text-xs text-muted-foreground mt-0.5">
+                              {drill.duration_minutes ? `${drill.duration_minutes} min` : ""}{drill.duration_minutes && drill.category ? " · " : ""}{drill.category}
+                            </div>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Show more / less */}
+                    {!showAll && hiddenCount > 0 && (
+                      <button
+                        onClick={() => setShowAllDrills(true)}
+                        className="w-full text-center text-xs text-primary font-bold py-2 hover:underline transition-all mb-2"
+                      >
+                        Show all {filtered.length} drills
                       </button>
-                    ))}
-                  </div>
-                </>
-              )}
+                    )}
+                    {showAll && !isSearching && filtered.length > 6 && (
+                      <button
+                        onClick={() => setShowAllDrills(false)}
+                        className="w-full text-center text-xs text-muted-foreground font-bold py-2 hover:underline transition-all mb-2"
+                      >
+                        Show less
+                      </button>
+                    )}
+
+                    {filtered.length === 0 && (
+                      <p className="text-xs text-muted-foreground text-center py-2 mb-2">No drills match your search.</p>
+                    )}
+                  </>
+                );
+              })()}
 
               {/* Custom block input */}
               {showCustom ? (
