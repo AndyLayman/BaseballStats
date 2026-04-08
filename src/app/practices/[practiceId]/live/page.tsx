@@ -736,7 +736,7 @@ export default function LivePracticePage() {
       </Card>
 
       {/* Action Items */}
-      <Card className="glass overflow-visible">
+      <Card className="glass overflow-visible relative z-10">
         <CardHeader className="pb-2 px-4">
           <CardTitle className="text-sm text-muted-foreground uppercase tracking-wider font-medium flex items-center justify-between">
             <span>Action Items</span>
