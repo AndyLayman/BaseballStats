@@ -15,6 +15,7 @@ import type {
   SquadGroup,
 } from "@/lib/scoring/types";
 import { fullName, firstName } from "@/lib/player-name";
+import { NavArrowLeft, Drag, Check, Trash, Xmark, Group, Plus, Play, DoubleCheck, NavArrowUp, NavArrowDown, MapPin } from 'iconoir-react'
 import { VenuePicker } from "@/components/venue-picker";
 import {
   DndContext,
@@ -50,7 +51,7 @@ function DraggableDrillItem({ item, color, onRemove }: { item: PracticePlanItem;
           onClick={(e) => { e.stopPropagation(); onRemove(); }}
           className="text-muted-foreground/40 hover:text-destructive transition-colors shrink-0 ml-0.5 cursor-pointer"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+          <Xmark width={10} height={10} />
         </button>
       )}
     </div>
@@ -83,10 +84,7 @@ function PlanItemDragHandle({ itemId }: { itemId: string }) {
       tabIndex={-1}
       aria-label="Drag to assign to group"
     >
-      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="9" cy="5" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="9" cy="19" r="1"/>
-        <circle cx="15" cy="5" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="19" r="1"/>
-      </svg>
+      <Drag width={12} height={12} />
     </button>
   );
 }
@@ -405,7 +403,7 @@ export default function PracticeSetupPage() {
   return (
     <div className="max-w-2xl mx-auto space-y-6 pb-24">
       <Link href="/practices" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-primary transition-colors">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+        <NavArrowLeft width={16} height={16} />
         Practices
       </Link>
 
@@ -416,7 +414,7 @@ export default function PracticeSetupPage() {
         </p>
         {(practice.venue || practice.venue_address) && !editingVenue && (
           <div className="flex items-center gap-2 mt-1.5">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary shrink-0"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+            <MapPin width={14} height={14} className="text-primary shrink-0" />
             <span className="text-sm">{practice.venue}</span>
             {practice.venue_address && (
               <a
@@ -493,12 +491,12 @@ export default function PracticeSetupPage() {
                         {!isSquadSplit && (
                           <div className={`h-5 w-5 rounded-full flex items-center justify-center shrink-0 ${item.completed ? "bg-green-500/20 border border-green-500/40" : "bg-muted/50 border border-border/50"}`}>
                             {item.completed && (
-                              <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-green-400"><polyline points="20 6 9 17 4 12"/></svg>
+                              <Check width={10} height={10} className="text-green-400" />
                             )}
                           </div>
                         )}
                         {isSquadSplit && (
-                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary shrink-0"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                          <Group width={14} height={14} className="text-primary shrink-0" />
                         )}
                         <span className={`flex-1 text-sm font-medium ${item.completed ? "line-through text-muted-foreground" : ""}`}>{item.label}</span>
                         {!isSquadSplit && <span className="text-xs text-muted-foreground tabular-nums">{item.duration_minutes}m</span>}
@@ -587,7 +585,7 @@ export default function PracticeSetupPage() {
                   <div key={item.id} className="flex items-center gap-2">
                     <div className={`h-4 w-4 rounded flex items-center justify-center shrink-0 ${item.completed ? "bg-green-500/20 border border-green-500/40" : "bg-muted/50 border border-border/50"}`}>
                       {item.completed && (
-                        <svg xmlns="http://www.w3.org/2000/svg" width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-green-400"><polyline points="20 6 9 17 4 12"/></svg>
+                        <Check width={8} height={8} className="text-green-400" />
                       )}
                     </div>
                     <span className={`flex-1 text-sm ${item.completed ? "line-through text-muted-foreground" : ""}`}>{item.text}</span>
@@ -677,7 +675,7 @@ export default function PracticeSetupPage() {
                         <div className="flex-1 min-w-0">
                           <div className="text-sm font-medium truncate flex items-center gap-1.5">
                             {isSquadSplit && (
-                              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary shrink-0"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                              <Group width={14} height={14} className="text-primary shrink-0" />
                             )}
                             {item.label}
                           </div>
@@ -722,20 +720,20 @@ export default function PracticeSetupPage() {
                             disabled={fullIdx === 0}
                             className="h-6 w-6 flex items-center justify-center rounded text-muted-foreground hover:text-foreground disabled:opacity-30 transition-all"
                           >
-                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m18 15-6-6-6 6"/></svg>
+                            <NavArrowUp width={12} height={12} />
                           </button>
                           <button
                             onClick={() => movePlanItem(fullIdx, "down")}
                             disabled={fullIdx === planItems.length - 1}
                             className="h-6 w-6 flex items-center justify-center rounded text-muted-foreground hover:text-foreground disabled:opacity-30 transition-all"
                           >
-                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                            <NavArrowDown width={12} height={12} />
                           </button>
                           <button
                             onClick={() => deletePlanItem(item.id)}
                             className="h-6 w-6 flex items-center justify-center rounded text-muted-foreground hover:text-destructive transition-all"
                           >
-                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                            <Xmark width={12} height={12} />
                           </button>
                         </div>
                       </div>
@@ -777,7 +775,7 @@ export default function PracticeSetupPage() {
                                       onClick={() => deleteSquadGroup(group.id)}
                                       className="text-muted-foreground hover:text-destructive transition-all"
                                     >
-                                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                                      <Xmark width={12} height={12} />
                                     </button>
                                   </div>
                                   <div className="flex flex-col gap-1 flex-1 min-h-[2.5rem]">
@@ -902,7 +900,7 @@ export default function PracticeSetupPage() {
                             {drill.duration_minutes ? `${drill.duration_minutes} min` : ""}{drill.duration_minutes && drill.category ? " · " : ""}{drill.category}
                           </div>
                         </div>
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground/40 group-hover:text-primary shrink-0 transition-colors"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+                        <Plus width={18} height={18} className="text-muted-foreground/40 group-hover:text-primary shrink-0 transition-colors" />
                       </button>
                     ))}
                     {faded.map((drill) => (
@@ -951,12 +949,12 @@ export default function PracticeSetupPage() {
                 onClick={addSquadSplitBlock}
                 className="w-full flex items-center gap-3 rounded-xl border-2 border-primary/30 bg-primary/5 px-4 py-3.5 text-left hover:border-primary/50 hover:bg-primary/10 transition-all active:scale-[0.98] group"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary shrink-0"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                <Group width={18} height={18} className="text-primary shrink-0" />
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-medium text-primary">Squad Split</div>
                   <div className="text-xs text-muted-foreground">Split team into groups for station rotations</div>
                 </div>
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary/40 group-hover:text-primary shrink-0 transition-colors"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+                <Plus width={18} height={18} className="text-primary/40 group-hover:text-primary shrink-0 transition-colors" />
               </button>
             )}
 
@@ -980,7 +978,7 @@ export default function PracticeSetupPage() {
                 <span className="text-xs text-muted-foreground">min</span>
                 <Button variant="outline" className="h-9 text-xs shrink-0" onClick={addPlanBlock}>Add</Button>
                 <Button variant="outline" className="h-9 text-xs shrink-0" onClick={() => setShowAddBlock(false)}>
-                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                  <Xmark width={12} height={12} />
                 </Button>
               </div>
             ) : (
@@ -1003,13 +1001,13 @@ export default function PracticeSetupPage() {
           <div className="max-w-2xl mx-auto">
             {practice.completed ? (
               <div className="flex items-center justify-center gap-2 h-14 rounded-xl border-2 border-green-500/30 bg-green-500/10 text-green-400 font-bold text-lg">
-                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 7 17l-5-5"/><path d="m22 10-7.5 7.5L13 16"/></svg>
+                <DoubleCheck width={22} height={22} />
                 Practice Complete
               </div>
             ) : (
               <Link href={`/practices/${practiceId}/live`} className="block w-full">
                 <Button className="w-full h-14 text-lg font-bold glow-primary active:scale-[0.98] transition-transform">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="mr-2"><polygon points="6 3 20 12 6 21 6 3"/></svg>
+                  <Play width={22} height={22} className="mr-2" />
                   Start Practice
                 </Button>
               </Link>

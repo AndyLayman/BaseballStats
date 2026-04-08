@@ -12,6 +12,7 @@ import { formatAvg } from "@/lib/stats/calculations";
 import type { Game, GameLineup, Player, PlateAppearance, OpponentBatter } from "@/lib/scoring/types";
 import { fullName } from "@/lib/player-name";
 import { StatTip } from "@/components/stat-tip";
+import { MapPin } from 'iconoir-react';
 
 export default function GameDetailPage() {
   const params = useParams();
@@ -125,7 +126,7 @@ export default function GameDetailPage() {
               <div>
                 {game.venue && (
                   <div className="font-semibold text-sm flex items-center gap-1.5">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary shrink-0"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+                    <MapPin width="14" height="14" className="text-primary shrink-0" />
                     {game.venue}
                   </div>
                 )}
@@ -152,7 +153,7 @@ export default function GameDetailPage() {
                 className="mt-3 block rounded-xl overflow-hidden border border-border/30 bg-muted/20 hover:border-primary/30 transition-all"
               >
                 <div className="flex items-center justify-center gap-2 py-6 text-sm text-muted-foreground hover:text-primary transition-colors">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+                  <MapPin width="20" height="20" />
                   Open in Google Maps
                 </div>
               </a>

@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
+import { Menu } from "iconoir-react";
 
 interface MobileNavProps {
   links: { href: string; label: string }[];
@@ -17,11 +18,7 @@ export function MobileNav({ links }: MobileNavProps) {
     <div className="md:hidden">
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetTrigger className="inline-flex items-center justify-center h-10 w-10 rounded-lg hover:bg-accent transition-colors">
-          <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2">
-            <line x1="3" y1="6" x2="21" y2="6" />
-            <line x1="3" y1="12" x2="21" y2="12" />
-            <line x1="3" y1="18" x2="21" y2="18" />
-          </svg>
+          <Menu className="h-6 w-6" />
         </SheetTrigger>
         <SheetContent side="right" className="w-64 glass-strong border-border/50 p-0">
           <div className="flex flex-col px-5 pt-14 pb-6">
