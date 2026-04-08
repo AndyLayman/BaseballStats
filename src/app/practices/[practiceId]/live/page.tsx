@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -66,6 +66,7 @@ function isEmptyHtml(html: string) {
 
 export default function LivePracticePage() {
   const params = useParams();
+  const router = useRouter();
   const practiceId = params.practiceId as string;
 
   const [practice, setPractice] = useState<Practice | null>(null);
@@ -117,6 +118,10 @@ export default function LivePracticePage() {
 
   // Share
   const [shareMessage, setShareMessage] = useState("");
+
+  // End practice
+  const [showEndSummary, setShowEndSummary] = useState(false);
+  const [ending, setEnding] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -350,6 +355,14 @@ export default function LivePracticePage() {
   const absentCount = [...attendance.values()].filter((v) => v === false).length;
   const totalPlanMinutes = planItems.reduce((s, i) => s + i.duration_minutes, 0);
   const completedCount = planItems.filter((i) => i.completed).length;
+  const actionCompletedCount = actionItems.filter((a) => a.completed).length;
+
+  async function endPractice() {
+    setEnding(true);
+    await supabase.from("practices").update({ completed: true }).eq("id", practiceId);
+    setEnding(false);
+    router.push("/practices");
+  }
 
   return (
     <div className="max-w-2xl mx-auto space-y-6 pb-24">
@@ -846,6 +859,77 @@ export default function LivePracticePage() {
               </Card>
             );
           })}
+        </div>
+      )}
+
+      {/* End Practice */}
+      <Button
+        variant="outline"
+        className="w-full h-12 text-sm font-bold border-green-500/40 text-green-400 hover:bg-green-500/15 gap-2"
+        onClick={() => setShowEndSummary(true)}
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 7 17l-5-5"/><path d="m22 10-7.5 7.5L13 16"/></svg>
+        End Practice
+      </Button>
+
+      {/* Summary Modal */}
+      {showEndSummary && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={() => setShowEndSummary(false)}>
+          <div className="bg-card border border-border rounded-2xl max-w-md w-full p-6 space-y-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="text-center">
+              <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-green-500/20 mb-3">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-green-400"><path d="M18 6 7 17l-5-5"/><path d="m22 10-7.5 7.5L13 16"/></svg>
+              </div>
+              <h2 className="text-xl font-extrabold text-gradient">Practice Complete</h2>
+              <p className="text-sm text-muted-foreground mt-1">{practice.title} &middot; {new Date(practice.date + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}</p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="rounded-xl bg-muted/30 border border-border/50 p-3 text-center">
+                <div className="text-2xl font-extrabold text-green-400">{presentCount}</div>
+                <div className="text-[10px] text-muted-foreground uppercase tracking-wider mt-0.5">Present</div>
+              </div>
+              <div className="rounded-xl bg-muted/30 border border-border/50 p-3 text-center">
+                <div className="text-2xl font-extrabold">{absentCount}</div>
+                <div className="text-[10px] text-muted-foreground uppercase tracking-wider mt-0.5">Absent</div>
+              </div>
+              <div className="rounded-xl bg-muted/30 border border-border/50 p-3 text-center">
+                <div className="text-2xl font-extrabold">{completedCount}<span className="text-base font-normal text-muted-foreground">/{planItems.length}</span></div>
+                <div className="text-[10px] text-muted-foreground uppercase tracking-wider mt-0.5">Drills Done</div>
+              </div>
+              <div className="rounded-xl bg-muted/30 border border-border/50 p-3 text-center">
+                <div className="text-2xl font-extrabold">{totalPlanMinutes}<span className="text-base font-normal text-muted-foreground">m</span></div>
+                <div className="text-[10px] text-muted-foreground uppercase tracking-wider mt-0.5">Total Time</div>
+              </div>
+            </div>
+
+            {notes.length > 0 && (
+              <div className="rounded-xl bg-muted/30 border border-border/50 p-3">
+                <div className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">Player Notes</div>
+                <div className="text-sm">{notes.length} note{notes.length !== 1 ? "s" : ""} across {notesByPlayer.size} player{notesByPlayer.size !== 1 ? "s" : ""}</div>
+              </div>
+            )}
+
+            {actionItems.length > 0 && (
+              <div className="rounded-xl bg-muted/30 border border-border/50 p-3">
+                <div className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">Action Items</div>
+                <div className="text-sm">{actionCompletedCount}/{actionItems.length} completed</div>
+              </div>
+            )}
+
+            <div className="flex gap-3 pt-1">
+              <Button variant="outline" className="flex-1 h-11 text-sm" onClick={() => setShowEndSummary(false)}>
+                Keep Going
+              </Button>
+              <Button
+                className="flex-1 h-11 text-sm font-bold bg-green-600 hover:bg-green-700 text-white"
+                onClick={endPractice}
+                disabled={ending}
+              >
+                {ending ? "Saving..." : "Finish Practice"}
+              </Button>
+            </div>
+          </div>
         </div>
       )}
     </div>

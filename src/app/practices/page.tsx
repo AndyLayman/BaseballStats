@@ -150,11 +150,18 @@ export default function PracticesPage() {
               <Card className="card-hover glass mb-3">
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
-                    <div>
-                      <div className="font-semibold text-base">{p.title}</div>
-                      <div className="text-sm text-muted-foreground">
-                        {new Date(p.date + "T12:00:00").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
-                        {p.venue && <span className="ml-2">@ {p.venue}</span>}
+                    <div className="flex items-center gap-2.5">
+                      {p.completed && (
+                        <div className="h-5 w-5 rounded-full bg-green-500/20 border border-green-500/40 flex items-center justify-center shrink-0">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-green-400"><polyline points="20 6 9 17 4 12"/></svg>
+                        </div>
+                      )}
+                      <div>
+                        <div className="font-semibold text-base">{p.title}</div>
+                        <div className="text-sm text-muted-foreground">
+                          {new Date(p.date + "T12:00:00").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
+                          {p.venue && <span className="ml-2">@ {p.venue}</span>}
+                        </div>
                       </div>
                     </div>
                     <button
