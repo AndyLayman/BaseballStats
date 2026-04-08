@@ -105,21 +105,9 @@
 
 ## Depth & Effects
 
-### Glow Effects
+**Flat design — no gradients, no glows, no box-shadows.**
 
-```css
-/* Warm clay glow (primary accent) */
---glow-clay: 0 0 12px rgba(233, 215, 180, 0.3);
-
-/* Combined warm glow (active/playing states) */
---glow-accent: 0 0 20px rgba(233, 215, 180, 0.25), 0 0 40px rgba(87, 79, 61, 0.15);
-
-/* Status glows — use sparingly, only for status indicators */
---glow-danger: 0 0 12px rgba(250, 77, 77, 0.4);
---glow-success: 0 0 12px rgba(113, 163, 104, 0.4);
-```
-
-Cards and surfaces use **background color contrast** for hierarchy — no shadows.
+Cards and surfaces use **background color contrast** for hierarchy. Active/playing states use solid border colors (typically `--clay`).
 
 ---
 
@@ -129,7 +117,7 @@ Cards and surfaces use **background color contrast** for hierarchy — no shadow
 - **Background:** Infield Clay (`#E9D7B4`)
 - **Text:** Night Game (`#111111`)
 - **Border radius:** `--r-2` (8px)
-- **Hover:** Add `--glow-accent` box-shadow
+- **Hover:** Border color lightens to `--accent-hover`
 - **Active/pressed:** Scale down slightly (`transform: scale(0.97)`)
 
 ### Secondary Action
@@ -141,7 +129,7 @@ Cards and surfaces use **background color contrast** for hierarchy — no shadow
 ### Destructive / Danger
 - **Background:** High Heat (`#FA4D4D`)
 - **Text:** Night Game (`#111111`)
-- **Hover:** `box-shadow: var(--glow-danger)`
+- **Hover:** Border color intensifies
 
 ---
 
@@ -230,16 +218,14 @@ Cards and surfaces use **background color contrast** for hierarchy — no shadow
   --font: 'Montserrat', sans-serif;
   --font-weight: 300;
 
-  /* Glows */
-  --glow-clay: 0 0 12px rgba(233, 215, 180, 0.3);
-  --glow-accent: 0 0 20px rgba(233, 215, 180, 0.25), 0 0 40px rgba(87, 79, 61, 0.15);
-  --glow-danger: 0 0 12px rgba(250, 77, 77, 0.4);
-  --glow-success: 0 0 12px rgba(113, 163, 104, 0.4);
-
-  /* Legacy glow aliases */
-  --glow-teal: var(--glow-clay);
-  --glow-green: var(--glow-success);
-  --glow-purple: 0 0 12px rgba(87, 79, 61, 0.3);
+  /* Glows (disabled — flat design) */
+  --glow-clay: none;
+  --glow-accent: none;
+  --glow-danger: none;
+  --glow-success: none;
+  --glow-teal: none;
+  --glow-green: none;
+  --glow-purple: none;
 
   /* Motion */
   --duration-fast: 120ms;
@@ -288,9 +274,9 @@ The app should feel **dynamic and alive** — smooth transitions, playful micro-
 
 | Element               | Trigger       | Animation                                               |
 |-----------------------|---------------|----------------------------------------------------------|
-| Buttons               | Hover         | Scale up 1.03, glow fades in                             |
-| Buttons               | Press         | Scale down 0.97, glow intensifies                        |
-| Sound buttons         | Playing       | Pulse glow + equalizer animation                         |
+| Buttons               | Hover         | Scale up 1.03, border color lightens                     |
+| Buttons               | Press         | Scale down 0.97                                          |
+| Sound buttons         | Playing       | Solid accent bg + equalizer animation                    |
 | Cards                 | Page load     | Fade up + stagger (each card 50ms delay)                 |
 | Page transitions      | Tab switch    | Crossfade with slight slide                              |
 | Nav tabs              | Active        | Clay underline slides to active tab                      |
@@ -298,8 +284,8 @@ The app should feel **dynamic and alive** — smooth transitions, playful micro-
 | Upload                | File added    | Card slides in from bottom with spring easing            |
 | Remove                | Delete        | Card collapses height + fades out                        |
 | Now playing bar       | Song starts   | Slides up from bottom                                   |
-| Progress bar          | Playing       | Clay-to-dirt gradient fill                               |
-| Drag & drop           | Dragging      | Card lifts (scale 1.02) + glow appears                   |
+| Progress bar          | Playing       | Solid clay fill                                          |
+| Drag & drop           | Dragging      | Card lifts (scale 1.02) + border highlights              |
 | Player photo          | Hover         | Subtle scale 1.05                                        |
 
 ### Stagger Pattern for Lists
@@ -320,17 +306,10 @@ The app should feel **dynamic and alive** — smooth transitions, playful micro-
 }
 ```
 
-### Gradient Progress Bar
+### Progress Bar
 
 ```css
 #progress-bar {
-  background: linear-gradient(90deg, var(--clay), var(--dirt));
-  background-size: 200% 100%;
-  animation: gradientShift 3s ease-in-out infinite;
-}
-@keyframes gradientShift {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+  background: var(--clay);
 }
 ```

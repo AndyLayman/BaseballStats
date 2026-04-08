@@ -58,14 +58,6 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
       </head>
       <body className="min-h-full flex flex-col">
-        {/* Animated mesh gradient background */}
-        <div aria-hidden className="ambient-bg-mesh">
-          <div className="mesh-band-1" />
-          <div className="mesh-band-2" />
-          <div className="mesh-band-3" />
-        </div>
-        {/* Dot grid overlay */}
-        <div aria-hidden className="fixed inset-0 -z-[5] pointer-events-none dot-grid" />
         <header className="sticky top-0 z-50 border-b border-border/50 glass-strong">
           <div className="container mx-auto flex h-14 items-center justify-between px-4">
             <Link href="/" className="flex items-center gap-2 font-bold text-lg group">
