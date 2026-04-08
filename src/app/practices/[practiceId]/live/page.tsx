@@ -29,6 +29,7 @@ import {
   type DragEndEvent,
 } from "@dnd-kit/core";
 import { useDraggable, useDroppable } from "@dnd-kit/core";
+import { NavArrowLeft, ShareIos, NavArrowDown, NavArrowRight, Xmark, Check, Group, DoubleCheck } from 'iconoir-react';
 
 function DraggablePlayer({ player, color }: { player: Player; color: { bg: string; text: string; border: string } }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
@@ -369,13 +370,13 @@ export default function LivePracticePage() {
     <div className="max-w-2xl mx-auto space-y-6 pb-24">
       <div className="flex items-center justify-between">
         <Link href={`/practices/${practiceId}`} className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-primary transition-colors">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+          <NavArrowLeft width="16" height="16" />
           Setup
         </Link>
         <div className="flex items-center gap-2">
           {shareMessage && <span className="text-xs text-green-400 animate-slide-up">{shareMessage}</span>}
           <Button variant="outline" className="h-9 text-xs border-border/50 gap-1.5" onClick={handleShare}>
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" x2="12" y1="2" y2="15"/></svg>
+            <ShareIos width="14" height="14" />
             Share Plan
           </Button>
         </div>
@@ -462,7 +463,7 @@ export default function LivePracticePage() {
                       }`}
                     >
                       {item.completed ? (
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                        <Check width="14" height="14" />
                       ) : (
                         idx + 1
                       )}
@@ -470,7 +471,7 @@ export default function LivePracticePage() {
                     <div className="flex-1 min-w-0">
                       <div className={`text-sm font-semibold flex items-center gap-1.5 ${item.completed ? "line-through text-muted-foreground" : ""}`}>
                         {isSquadSplit && (
-                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary shrink-0"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                          <Group width="14" height="14" className="text-primary shrink-0" />
                         )}
                         {item.label}
                       </div>
@@ -486,20 +487,11 @@ export default function LivePracticePage() {
                       )}
                     </div>
                     {drill && (
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
+                      <NavArrowDown
                         width="16"
                         height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
                         className={`shrink-0 text-muted-foreground transition-transform ${isExpanded ? "rotate-180" : ""}`}
-                      >
-                        <path d="m6 9 6 6 6-6" />
-                      </svg>
+                      />
                     )}
                   </div>
 
@@ -555,7 +547,7 @@ export default function LivePracticePage() {
                                             onClick={() => setExpandedGroupDrill(isGiExpanded ? null : gi.id)}
                                             className={`w-full text-left text-[10px] font-medium ${color.text} opacity-80 flex items-center gap-1 hover:opacity-100 transition-opacity`}
                                           >
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={`shrink-0 transition-transform ${isGiExpanded ? "rotate-90" : ""}`}><path d="m9 18 6-6-6-6"/></svg>
+                                            <NavArrowRight width={10} height={10} className={`shrink-0 transition-transform ${isGiExpanded ? "rotate-90" : ""}`} />
                                             <span className="truncate">{gi.label}{gi.duration_minutes > 0 ? ` (${gi.duration_minutes}m)` : ""}</span>
                                           </button>
                                           {isGiExpanded && giDrill?.description && !isEmptyHtml(giDrill.description) && (
@@ -630,7 +622,7 @@ export default function LivePracticePage() {
                     }`}
                   >
                     {item.completed && (
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                      <Check width="12" height="12" />
                     )}
                   </button>
                   <span className={`flex-1 text-sm ${item.completed ? "line-through text-muted-foreground" : ""}`}>
@@ -645,7 +637,7 @@ export default function LivePracticePage() {
                     onClick={() => deleteActionItem(item.id)}
                     className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all shrink-0"
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                    <Xmark width="14" height="14" />
                   </button>
                 </div>
               ))}
@@ -762,7 +754,7 @@ export default function LivePracticePage() {
                     }`}
                   >
                     {item.completed && (
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                      <Check width="12" height="12" />
                     )}
                   </button>
                   <span className={`flex-1 text-sm ${item.completed ? "line-through text-muted-foreground" : ""}`}>
@@ -777,7 +769,7 @@ export default function LivePracticePage() {
                     onClick={() => deleteActionItem(item.id)}
                     className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all shrink-0"
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                    <Xmark width="14" height="14" />
                   </button>
                 </div>
               ))}
@@ -851,7 +843,7 @@ export default function LivePracticePage() {
                           onClick={() => handleDeleteNote(n.id)}
                           className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all text-xs shrink-0"
                         >
-                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                          <Xmark width="14" height="14" />
                         </button>
                       </div>
                     ))}
@@ -869,7 +861,7 @@ export default function LivePracticePage() {
         className="w-full h-12 text-sm font-bold border-green-500/40 text-green-400 hover:bg-green-500/15 gap-2"
         onClick={() => setShowEndSummary(true)}
       >
-        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 7 17l-5-5"/><path d="m22 10-7.5 7.5L13 16"/></svg>
+        <DoubleCheck width="18" height="18" />
         End Practice
       </Button>
 
@@ -879,7 +871,7 @@ export default function LivePracticePage() {
           <div className="bg-card border border-border rounded-2xl max-w-md w-full p-6 space-y-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>
             <div className="text-center">
               <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-green-500/20 mb-3">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-green-400"><path d="M18 6 7 17l-5-5"/><path d="m22 10-7.5 7.5L13 16"/></svg>
+                <DoubleCheck width="24" height="24" className="text-green-400" />
               </div>
               <h2 className="text-xl font-extrabold text-gradient">Practice Complete</h2>
               <p className="text-sm text-muted-foreground mt-1">{practice.title} &middot; {new Date(practice.date + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}</p>
