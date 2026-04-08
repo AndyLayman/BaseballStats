@@ -423,9 +423,9 @@ export default function PlanTemplatesPage() {
   // ── List mode ──
   return (
     <div className="max-w-2xl mx-auto space-y-6 pb-24">
-      <Link href="/practices" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-primary transition-colors">
+      <Link href="/schedule" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-primary transition-colors">
         <NavArrowLeft width="16" height="16" />
-        Practices
+        Schedule
       </Link>
 
       <div className="flex items-center justify-between gap-4">
