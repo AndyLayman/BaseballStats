@@ -188,6 +188,7 @@ export interface Practice {
   venue: string | null;
   venue_address: string | null;
   created_at: string;
+  completed: boolean;
 }
 
 export interface PracticeNote {
