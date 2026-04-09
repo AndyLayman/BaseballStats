@@ -10,7 +10,8 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { VenuePicker } from "@/components/venue-picker";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Trash, Check, Plus, Xmark } from "iconoir-react";
+import { Trash, Check, Plus, Xmark, EditPencil } from "iconoir-react";
+import { Label } from "@/components/ui/label";
 import { formatTime12 } from "@/lib/stats/calculations";
 import { TimePicker } from "@/components/time-picker";
 import type { Game, Practice } from "@/lib/scoring/types";
@@ -40,6 +41,76 @@ export default function SchedulePage() {
   const [selectedPractices, setSelectedPractices] = useState<Set<string>>(new Set());
   const [deleteTarget, setDeleteTarget] = useState<{ kind: "game"; data: Game } | { kind: "practice"; data: Practice } | null>(null);
   const [deleting, setDeleting] = useState(false);
+
+  // Edit dialog
+  const [editItem, setEditItem] = useState<{ kind: "game"; data: Game } | { kind: "practice"; data: Practice } | null>(null);
+  const [editDate, setEditDate] = useState("");
+  const [editTime, setEditTime] = useState("");
+  const [editVenue, setEditVenue] = useState("");
+  const [editVenueAddress, setEditVenueAddress] = useState("");
+  const [editOpponent, setEditOpponent] = useState("");
+  const [editLocation, setEditLocation] = useState<"home" | "away">("home");
+  const [editTitle, setEditTitle] = useState("");
+  const [savingEdit, setSavingEdit] = useState(false);
+
+  function startEdit(item: { kind: "game"; data: Game } | { kind: "practice"; data: Practice }) {
+    if (item.kind === "game") {
+      const g = item.data;
+      setEditOpponent(g.opponent);
+      setEditDate(g.date);
+      setEditTime(g.game_time || "");
+      setEditLocation(g.location as "home" | "away" || "home");
+      setEditVenue(g.venue || "");
+      setEditVenueAddress(g.venue_address || "");
+    } else {
+      const p = item.data;
+      setEditTitle(p.title);
+      setEditDate(p.date);
+      setEditTime(p.practice_time || "");
+      setEditVenue(p.venue || "");
+      setEditVenueAddress(p.venue_address || "");
+    }
+    setEditItem(item);
+  }
+
+  async function saveEdit() {
+    if (!editItem) return;
+    setSavingEdit(true);
+    if (editItem.kind === "game") {
+      const { error } = await supabase.from("games").update({
+        opponent: editOpponent.trim(),
+        date: editDate,
+        game_time: editTime.trim() || null,
+        location: editLocation,
+        venue: editVenue.trim() || null,
+        venue_address: editVenueAddress.trim() || null,
+      }).eq("id", editItem.data.id);
+      if (!error) {
+        setGames(games.map(g => g.id === editItem.data.id ? {
+          ...g, opponent: editOpponent.trim(), date: editDate,
+          game_time: editTime.trim() || null, location: editLocation,
+          venue: editVenue.trim() || null, venue_address: editVenueAddress.trim() || null,
+        } : g));
+      }
+    } else {
+      const { error } = await supabase.from("practices").update({
+        title: editTitle.trim(),
+        date: editDate,
+        practice_time: editTime.trim() || null,
+        venue: editVenue.trim() || null,
+        venue_address: editVenueAddress.trim() || null,
+      }).eq("id", editItem.data.id);
+      if (!error) {
+        setPractices(practices.map(p => p.id === editItem.data.id ? {
+          ...p, title: editTitle.trim(), date: editDate,
+          practice_time: editTime.trim() || null,
+          venue: editVenue.trim() || null, venue_address: editVenueAddress.trim() || null,
+        } : p));
+      }
+    }
+    setSavingEdit(false);
+    setEditItem(null);
+  }
 
   // Add menu + log practice form
   const [showAddMenu, setShowAddMenu] = useState(false);
@@ -406,6 +477,7 @@ export default function SchedulePage() {
                           selected={selectedGames.has(item.data.id)}
                           onToggleSelect={() => toggleSelectGame(item.data.id)}
                           onDelete={() => setDeleteTarget({ kind: "game", data: item.data as Game })}
+                          onEdit={() => startEdit({ kind: "game", data: item.data as Game })}
                           isFirst={isFirst}
                           isLast={isLast}
                         />
@@ -419,6 +491,7 @@ export default function SchedulePage() {
                         selected={selectedPractices.has(item.data.id)}
                         onToggleSelect={() => toggleSelectPractice(item.data.id)}
                         onDelete={() => setDeleteTarget({ kind: "practice", data: item.data as Practice })}
+                        onEdit={() => startEdit({ kind: "practice", data: item.data as Practice })}
                         isFirst={isFirst}
                         isLast={isLast}
                       />
@@ -487,6 +560,95 @@ export default function SchedulePage() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Edit dialog */}
+      <Dialog open={!!editItem} onOpenChange={(open) => !open && setEditItem(null)}>
+        <DialogContent className="max-w-sm max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit {editItem?.kind === "game" ? "Game" : "Practice"}</DialogTitle>
+          </DialogHeader>
+          {editItem && (
+            <div className="space-y-3">
+              {editItem.kind === "game" ? (
+                <div>
+                  <Label>Opponent</Label>
+                  <Input
+                    value={editOpponent}
+                    onChange={(e) => setEditOpponent(e.target.value)}
+                    className="h-11 bg-input/50 border-border/50 focus:border-primary/50"
+                  />
+                </div>
+              ) : (
+                <div>
+                  <Label>Title</Label>
+                  <Input
+                    value={editTitle}
+                    onChange={(e) => setEditTitle(e.target.value)}
+                    className="h-11 bg-input/50 border-border/50 focus:border-primary/50"
+                  />
+                </div>
+              )}
+              <div>
+                <Label>Date</Label>
+                <Input
+                  type="date"
+                  value={editDate}
+                  onChange={(e) => setEditDate(e.target.value)}
+                  className="h-11 bg-input/50 border-border/50 focus:border-primary/50"
+                />
+              </div>
+              <div>
+                <Label>Time</Label>
+                <div className="mt-1">
+                  <TimePicker value={editTime} onChange={setEditTime} />
+                </div>
+              </div>
+              {editItem.kind === "game" && (
+                <div>
+                  <Label>Location</Label>
+                  <div className="flex gap-2 mt-1">
+                    <Button
+                      type="button"
+                      variant={editLocation === "home" ? "default" : "outline"}
+                      onClick={() => setEditLocation("home")}
+                      className={`flex-1 h-11 ${editLocation !== "home" ? "border-border/50" : ""}`}
+                    >
+                      Home
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={editLocation === "away" ? "default" : "outline"}
+                      onClick={() => setEditLocation("away")}
+                      className={`flex-1 h-11 ${editLocation !== "away" ? "border-border/50" : ""}`}
+                    >
+                      Away
+                    </Button>
+                  </div>
+                </div>
+              )}
+              <div>
+                <Label>Venue</Label>
+                <div className="mt-1">
+                  <VenuePicker
+                    venue={editVenue}
+                    venueAddress={editVenueAddress}
+                    onVenueChange={setEditVenue}
+                    onAddressChange={setEditVenueAddress}
+                  />
+                </div>
+              </div>
+              <div className="flex gap-2 pt-1">
+                <Button variant="outline" className="flex-1 h-11" onClick={() => setEditItem(null)}>
+                  Cancel
+                </Button>
+                <Button className="flex-1 h-11 font-bold" onClick={saveEdit} disabled={savingEdit}>
+                  {savingEdit ? "Saving..." : "Save"}
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -499,6 +661,7 @@ function GameRow({
   selected,
   onToggleSelect,
   onDelete,
+  onEdit,
   isFirst,
   isLast,
 }: {
@@ -507,6 +670,7 @@ function GameRow({
   selected: boolean;
   onToggleSelect: () => void;
   onDelete: () => void;
+  onEdit: () => void;
   isFirst: boolean;
   isLast: boolean;
 }) {
@@ -585,18 +749,30 @@ function GameRow({
         ) : null}
       </div>
 
-      {/* Delete button in select mode */}
+      {/* Edit + Delete buttons in select mode */}
       {selectMode && (
-        <button
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            onDelete();
-          }}
-          className="p-2 rounded-lg text-muted-foreground/50 hover:text-destructive hover:bg-destructive/10 transition-colors shrink-0"
-        >
-          <Trash width={16} height={16} />
-        </button>
+        <div className="flex items-center shrink-0">
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onEdit();
+            }}
+            className="p-2 rounded-lg text-muted-foreground/50 hover:text-primary hover:bg-primary/10 transition-colors"
+          >
+            <EditPencil width={16} height={16} />
+          </button>
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onDelete();
+            }}
+            className="p-2 rounded-lg text-muted-foreground/50 hover:text-destructive hover:bg-destructive/10 transition-colors"
+          >
+            <Trash width={16} height={16} />
+          </button>
+        </div>
       )}
     </div>
   );
@@ -613,6 +789,7 @@ function PracticeRow({
   selected,
   onToggleSelect,
   onDelete,
+  onEdit,
   isFirst,
   isLast,
 }: {
@@ -621,6 +798,7 @@ function PracticeRow({
   selected: boolean;
   onToggleSelect: () => void;
   onDelete: () => void;
+  onEdit: () => void;
   isFirst: boolean;
   isLast: boolean;
 }) {
@@ -683,18 +861,30 @@ function PracticeRow({
         )}
       </div>
 
-      {/* Delete button in select mode */}
+      {/* Edit + Delete buttons in select mode */}
       {selectMode && (
-        <button
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            onDelete();
-          }}
-          className="p-2 rounded-lg text-muted-foreground/50 hover:text-destructive hover:bg-destructive/10 transition-colors shrink-0"
-        >
-          <Trash width={16} height={16} />
-        </button>
+        <div className="flex items-center shrink-0">
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onEdit();
+            }}
+            className="p-2 rounded-lg text-muted-foreground/50 hover:text-primary hover:bg-primary/10 transition-colors"
+          >
+            <EditPencil width={16} height={16} />
+          </button>
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onDelete();
+            }}
+            className="p-2 rounded-lg text-muted-foreground/50 hover:text-destructive hover:bg-destructive/10 transition-colors"
+          >
+            <Trash width={16} height={16} />
+          </button>
+        </div>
       )}
     </div>
   );
