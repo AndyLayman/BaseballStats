@@ -84,12 +84,12 @@ export function LiveGameTicker() {
   return (
     <Link
       href={`/games/${game.id}/live`}
-      className="flex items-center gap-2 px-2 py-1 rounded-lg bg-red-500/10 border border-red-500/30 hover:bg-red-500/20 transition-all group"
+      className="flex items-center gap-2 px-2 py-1 rounded-lg bg-primary/10 border border-primary/30 hover:bg-primary/20 transition-all group"
     >
       {/* Live dot */}
       <span className="relative flex h-2 w-2 shrink-0">
-        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
-        <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
+        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
+        <span className="relative inline-flex rounded-full h-2 w-2 bg-primary" />
       </span>
 
       {/* Score */}
@@ -139,7 +139,7 @@ export function LiveGameTicker() {
             <div
               key={i}
               className={`w-1.5 h-1.5 rounded-full ${
-                i < game.outs ? "bg-red-500" : "bg-muted-foreground/30"
+                i < game.outs ? "bg-primary" : "bg-muted-foreground/30"
               }`}
             />
           ))}
