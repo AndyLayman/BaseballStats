@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { formatAvg } from "@/lib/stats/calculations";
+import { NavArrowUp, NavArrowDown } from "iconoir-react";
 import { fullName } from "@/lib/player-name";
 import type { Player } from "@/lib/scoring/types";
 
@@ -282,7 +283,9 @@ export default function PlayersPage() {
                     >
                       {col.label}
                       {sortKey === col.key && (
-                        <span className="ml-1 text-primary">{sortDir === "asc" ? "▲" : "▼"}</span>
+                        sortDir === "asc"
+                          ? <NavArrowUp width={12} height={12} className="ml-0.5 inline text-primary" />
+                          : <NavArrowDown width={12} height={12} className="ml-0.5 inline text-primary" />
                       )}
                     </TableHead>
                   ))}
