@@ -112,10 +112,40 @@ const SLOT_LABELS = [
   "",
 ];
 
+type SortKey = "name" | "number" | "games" | "plate_appearances" | "at_bats" | "hits" | "singles" | "doubles" | "triples" | "home_runs" | "rbis" | "walks" | "strikeouts" | "stolen_bases" | "avg" | "obp" | "slg" | "ops";
+type SortDir = "asc" | "desc";
+
 export default function PlayersPage() {
   const [players, setPlayers] = useState<PlayerWithStats[]>([]);
   const [loading, setLoading] = useState(true);
   const [showOrder, setShowOrder] = useState(false);
+  const [sortKey, setSortKey] = useState<SortKey>("name");
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
+
+  function toggleSort(key: SortKey) {
+    if (sortKey === key) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortDir(key === "name" ? "asc" : "desc");
+    }
+  }
+
+  const sortedPlayers = useMemo(() => {
+    const sorted = [...players];
+    sorted.sort((a, b) => {
+      let cmp: number;
+      if (sortKey === "name") {
+        cmp = a.last_name.localeCompare(b.last_name) || a.first_name.localeCompare(b.first_name);
+      } else if (sortKey === "number") {
+        cmp = a.number - b.number;
+      } else {
+        cmp = a[sortKey] - b[sortKey];
+      }
+      return sortDir === "asc" ? cmp : -cmp;
+    });
+    return sorted;
+  }, [players, sortKey, sortDir]);
 
   useEffect(() => {
     async function load() {
@@ -225,28 +255,41 @@ export default function PlayersPage() {
             <Table className="[&_td]:py-3">
               <TableHeader>
                 <TableRow className="border-border/50">
-                  <TableHead className="sticky left-0 z-10 bg-[#0A0A0A] shadow-[2px_0_4px_-2px_rgba(0,0,0,0.3)] text-center w-10 px-2">#</TableHead>
-                  <TableHead className="whitespace-nowrap">Name</TableHead>
-                  <TableHead className="text-center whitespace-nowrap">AVG</TableHead>
-                  <TableHead className="text-center whitespace-nowrap">G</TableHead>
-                  <TableHead className="text-center whitespace-nowrap">PA</TableHead>
-                  <TableHead className="text-center whitespace-nowrap">AB</TableHead>
-                  <TableHead className="text-center whitespace-nowrap">H</TableHead>
-                  <TableHead className="text-center whitespace-nowrap">1B</TableHead>
-                  <TableHead className="text-center whitespace-nowrap">2B</TableHead>
-                  <TableHead className="text-center whitespace-nowrap">3B</TableHead>
-                  <TableHead className="text-center whitespace-nowrap">HR</TableHead>
-                  <TableHead className="text-center whitespace-nowrap">RBI</TableHead>
-                  <TableHead className="text-center whitespace-nowrap">BB</TableHead>
-                  <TableHead className="text-center whitespace-nowrap">SO</TableHead>
-                  <TableHead className="text-center whitespace-nowrap">SB</TableHead>
-                  <TableHead className="text-center whitespace-nowrap">OBP</TableHead>
-                  <TableHead className="text-center whitespace-nowrap">SLG</TableHead>
-                  <TableHead className="text-center whitespace-nowrap">OPS</TableHead>
+                  {([
+                    { key: "number", label: "#", sticky: true },
+                    { key: "name", label: "Name" },
+                    { key: "avg", label: "AVG" },
+                    { key: "games", label: "G" },
+                    { key: "plate_appearances", label: "PA" },
+                    { key: "at_bats", label: "AB" },
+                    { key: "hits", label: "H" },
+                    { key: "singles", label: "1B" },
+                    { key: "doubles", label: "2B" },
+                    { key: "triples", label: "3B" },
+                    { key: "home_runs", label: "HR" },
+                    { key: "rbis", label: "RBI" },
+                    { key: "walks", label: "BB" },
+                    { key: "strikeouts", label: "SO" },
+                    { key: "stolen_bases", label: "SB" },
+                    { key: "obp", label: "OBP" },
+                    { key: "slg", label: "SLG" },
+                    { key: "ops", label: "OPS" },
+                  ] as { key: SortKey; label: string; sticky?: boolean }[]).map((col) => (
+                    <TableHead
+                      key={col.key}
+                      onClick={() => toggleSort(col.key)}
+                      className={`whitespace-nowrap cursor-pointer select-none hover:text-foreground transition-colors ${col.sticky ? "sticky left-0 z-10 bg-[#0A0A0A] shadow-[2px_0_4px_-2px_rgba(0,0,0,0.3)] text-center w-10 px-2" : col.key === "name" ? "" : "text-center"}`}
+                    >
+                      {col.label}
+                      {sortKey === col.key && (
+                        <span className="ml-1 text-primary">{sortDir === "asc" ? "▲" : "▼"}</span>
+                      )}
+                    </TableHead>
+                  ))}
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {players.map((p) => (
+                {sortedPlayers.map((p) => (
                   <TableRow key={p.id} className="border-border/30 hover:bg-accent/30 transition-colors">
                     <TableCell className="sticky left-0 z-10 bg-[#0A0A0A] shadow-[2px_0_4px_-2px_rgba(0,0,0,0.3)] text-center w-10 px-2 font-bold tabular-nums">
                       {p.number}
