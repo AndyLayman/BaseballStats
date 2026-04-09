@@ -204,7 +204,7 @@ export default function PlayersPage() {
         <h1 className="text-3xl font-extrabold tracking-tight text-gradient">Players</h1>
         <Button
           onClick={() => setShowOrder(true)}
-          className="bg-[#E9D7B4] text-[#111111] font-semibold"
+          className="bg-primary text-primary-foreground font-semibold"
         >
           Optimized Order
         </Button>
@@ -221,7 +221,7 @@ export default function PlayersPage() {
             <div className="space-y-2">
               {optimizedOrder.map((p, i) => (
                 <div key={p.id} className="flex items-center gap-3 rounded-lg border border-border/50 p-3">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#E9D7B4] font-bold text-[#111111] text-sm shrink-0">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary font-bold text-primary-foreground text-sm shrink-0">
                     {i + 1}
                   </div>
                   <div className="min-w-0 flex-1">
@@ -279,7 +279,7 @@ export default function PlayersPage() {
                     <TableHead
                       key={col.key}
                       onClick={() => toggleSort(col.key)}
-                      className={`whitespace-nowrap cursor-pointer select-none hover:text-foreground transition-colors ${col.sticky ? "sticky left-0 z-10 bg-[#0A0A0A] shadow-[2px_0_4px_-2px_rgba(0,0,0,0.3)] text-center w-10 px-2" : col.key === "name" ? "" : "text-center"}`}
+                      className={`whitespace-nowrap cursor-pointer select-none hover:text-foreground transition-colors ${col.sticky ? "sticky left-0 z-10 bg-background shadow-[2px_0_4px_-2px_rgba(0,0,0,0.3)] text-center w-10 px-2" : col.key === "name" ? "" : "text-center"}`}
                     >
                       {col.label}
                       {sortKey === col.key && (
@@ -294,7 +294,7 @@ export default function PlayersPage() {
               <TableBody>
                 {sortedPlayers.map((p) => (
                   <TableRow key={p.id} className="border-border/30 hover:bg-accent/30 transition-colors">
-                    <TableCell className="sticky left-0 z-10 bg-[#0A0A0A] shadow-[2px_0_4px_-2px_rgba(0,0,0,0.3)] text-center w-10 px-2 font-bold tabular-nums">
+                    <TableCell className="sticky left-0 z-10 bg-background shadow-[2px_0_4px_-2px_rgba(0,0,0,0.3)] text-center w-10 px-2 font-bold tabular-nums">
                       {p.number}
                     </TableCell>
                     <TableCell className="font-medium whitespace-nowrap">

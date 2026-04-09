@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import Link from "next/link";
 import { MobileNav } from "@/components/mobile-nav";
 import { LiveGameTicker } from "@/components/live-game-ticker";
+import { ThemeToggle } from "@/components/theme-toggle";
 import "./globals.css";
 
 const isStaging = process.env.NEXT_PUBLIC_APP_ENV === "staging";
@@ -51,17 +52,24 @@ export default function RootLayout({
     <html
       lang="en"
       className="h-full antialiased dark"
+      suppressHydrationWarning
     >
       <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem("theme");if(t==="light"){document.documentElement.classList.remove("dark");document.documentElement.classList.add("light")}}catch(e){}})()`,
+          }}
+        />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
       </head>
       <body className="min-h-full flex flex-col">
-        <header className="sticky top-0 z-50 border-b border-border/50" style={{ background: '#181818' }}>
+        <header className="sticky top-0 z-50 border-b border-border/50 bg-sidebar">
           <div className="container mx-auto flex h-14 items-center justify-between px-4">
             <Link href="/" className="flex items-center gap-2 font-bold text-lg group">
-              <img src="/logos/Stats-White.svg" alt="Stats" className="h-6 w-auto transition-transform group-hover:scale-105" />
+              <img src="/logos/Stats-White.svg" alt="Stats" className="h-6 w-auto transition-transform group-hover:scale-105 dark:block hidden" />
+              <img src="/logos/Stats-Black.svg" alt="Stats" className="h-6 w-auto transition-transform group-hover:scale-105 dark:hidden block" />
               {isStaging && (
                 <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-amber-500/20 text-amber-400 border border-amber-500/30">
                   STG
@@ -83,6 +91,7 @@ export default function RootLayout({
                   {link.label}
                 </Link>
               ))}
+              <ThemeToggle />
             </nav>
 
             {/* Mobile hamburger */}

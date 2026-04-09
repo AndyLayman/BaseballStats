@@ -101,29 +101,29 @@ export function ProgressionChart({ appearances, gameLog }: Props) {
       <div className="h-48 sm:h-56">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={data} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" strokeOpacity={0.4} />
             <XAxis
               dataKey="label"
-              tick={{ fontSize: 10, fill: "#888" }}
+              tick={{ fontSize: 10, fill: "var(--muted-foreground)" }}
               tickLine={false}
-              axisLine={{ stroke: "rgba(255,255,255,0.1)" }}
+              axisLine={{ stroke: "var(--border)" }}
               interval="preserveStartEnd"
             />
             <YAxis
-              tick={{ fontSize: 10, fill: "#888" }}
+              tick={{ fontSize: 10, fill: "var(--muted-foreground)" }}
               tickLine={false}
-              axisLine={{ stroke: "rgba(255,255,255,0.1)" }}
+              axisLine={{ stroke: "var(--border)" }}
               domain={[0, "auto"]}
               tickFormatter={(v: number) => v.toFixed(3)}
             />
             <Tooltip
               contentStyle={{
-                background: "#1a1a1a",
-                border: "1px solid rgba(255,255,255,0.1)",
+                background: "var(--card)",
+                border: "1px solid var(--border)",
                 borderRadius: 8,
                 fontSize: 12,
               }}
-              labelStyle={{ color: "#888", fontSize: 11 }}
+              labelStyle={{ color: "var(--muted-foreground)", fontSize: 11 }}
               formatter={(value) => [Number(value).toFixed(3), activeConfig.label]}
             />
             <Line

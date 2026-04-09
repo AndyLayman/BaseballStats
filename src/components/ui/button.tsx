@@ -10,7 +10,7 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "text-[#111111] font-semibold bg-[#E9D7B4] hover:shadow-[0_0_20px_rgba(233,215,180,0.25),0_0_40px_rgba(87,79,61,0.15)] active:scale-[0.97]",
+        default: "text-primary-foreground font-semibold bg-primary hover:opacity-90 active:scale-[0.97]",
         outline:
           "border-border bg-background hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:border-input dark:bg-input/30 dark:hover:bg-input/50",
         secondary:

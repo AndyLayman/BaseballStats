@@ -103,27 +103,27 @@ export function LiveGameTicker() {
       <div className="flex items-center gap-1">
         <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0">
           {/* Diamond lines */}
-          <line x1="12" y1="20" x2="4" y2="12" stroke="#3A3A3A" strokeWidth="1" />
-          <line x1="4" y1="12" x2="12" y2="4" stroke="#3A3A3A" strokeWidth="1" />
-          <line x1="12" y1="4" x2="20" y2="12" stroke="#3A3A3A" strokeWidth="1" />
-          <line x1="20" y1="12" x2="12" y2="20" stroke="#3A3A3A" strokeWidth="1" />
+          <line x1="12" y1="20" x2="4" y2="12" stroke="var(--border)" strokeWidth="1" />
+          <line x1="4" y1="12" x2="12" y2="4" stroke="var(--border)" strokeWidth="1" />
+          <line x1="12" y1="4" x2="20" y2="12" stroke="var(--border)" strokeWidth="1" />
+          <line x1="20" y1="12" x2="12" y2="20" stroke="var(--border)" strokeWidth="1" />
           {/* Bases */}
           <rect x="10.5" y="18.5" width="3" height="3" rx="0.5"
-            fill="#141414" stroke="#3A3A3A" strokeWidth="0.5"
+            fill="var(--background)" stroke="var(--border)" strokeWidth="0.5"
             transform="rotate(45 12 20)" />
           <rect x="2.5" y="10.5" width="3" height="3" rx="0.5"
-            fill={game.runnerThird ? "#E9D7B4" : "#181818"}
-            stroke={game.runnerThird ? "#E9D7B4" : "#3A3A3A"}
+            fill={game.runnerThird ? "var(--primary)" : "var(--background)"}
+            stroke={game.runnerThird ? "var(--primary)" : "var(--border)"}
             strokeWidth="0.5"
             transform="rotate(45 4 12)" />
           <rect x="10.5" y="2.5" width="3" height="3" rx="0.5"
-            fill={game.runnerSecond ? "#E9D7B4" : "#181818"}
-            stroke={game.runnerSecond ? "#E9D7B4" : "#3A3A3A"}
+            fill={game.runnerSecond ? "var(--primary)" : "var(--background)"}
+            stroke={game.runnerSecond ? "var(--primary)" : "var(--border)"}
             strokeWidth="0.5"
             transform="rotate(45 12 4)" />
           <rect x="18.5" y="10.5" width="3" height="3" rx="0.5"
-            fill={game.runnerFirst ? "#E9D7B4" : "#181818"}
-            stroke={game.runnerFirst ? "#E9D7B4" : "#3A3A3A"}
+            fill={game.runnerFirst ? "var(--primary)" : "var(--background)"}
+            stroke={game.runnerFirst ? "var(--primary)" : "var(--border)"}
             strokeWidth="0.5"
             transform="rotate(45 20 12)" />
         </svg>
