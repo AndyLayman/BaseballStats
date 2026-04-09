@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { VenuePicker } from "@/components/venue-picker";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Trash, Check } from "iconoir-react";
+import { formatTime12 } from "@/lib/stats/calculations";
 import type { Game, Practice } from "@/lib/scoring/types";
 
 type ScheduleItem =
@@ -521,7 +522,7 @@ function GameRow({
       {/* Time + status */}
       <div className="flex items-center gap-2 shrink-0">
         {game.game_time && (
-          <span className="text-sm text-muted-foreground tabular-nums">{game.game_time}</span>
+          <span className="text-sm text-muted-foreground tabular-nums">{formatTime12(game.game_time)}</span>
         )}
         {game.status === "final" ? (
           <>

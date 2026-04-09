@@ -59,6 +59,14 @@ export function formatAvg(value: number): string {
   return value.toFixed(3).replace(/^0/, "");
 }
 
+export function formatTime12(time: string | null): string {
+  if (!time) return "Not set";
+  const [h, m] = time.split(":").map(Number);
+  const period = h >= 12 ? "PM" : "AM";
+  const hour = h === 0 ? 12 : h > 12 ? h - 12 : h;
+  return `${hour}:${m.toString().padStart(2, "0")} ${period}`;
+}
+
 // Format stat to standard display
 export function formatStat(value: number, decimals: number = 0): string {
   return decimals === 0 ? value.toString() : value.toFixed(decimals);

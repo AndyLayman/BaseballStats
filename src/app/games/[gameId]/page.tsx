@@ -10,18 +10,10 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { formatAvg } from "@/lib/stats/calculations";
+import { formatAvg, formatTime12 } from "@/lib/stats/calculations";
 import { CustomSelect } from "@/components/custom-select";
 import { VenuePicker } from "@/components/venue-picker";
 import { TimePicker } from "@/components/time-picker";
-
-function formatTime12(time: string | null): string {
-  if (!time) return "Not set";
-  const [h, m] = time.split(":").map(Number);
-  const period = h >= 12 ? "PM" : "AM";
-  const hour = h === 0 ? 12 : h > 12 ? h - 12 : h;
-  return `${hour}:${m.toString().padStart(2, "0")} ${period}`;
-}
 import type { Game, GameLineup, Player, PlateAppearance, OpponentBatter } from "@/lib/scoring/types";
 import { fullName } from "@/lib/player-name";
 import { StatTip } from "@/components/stat-tip";
