@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { Card, CardContent } from "@/components/ui/card";
@@ -10,6 +10,7 @@ import { formatAvg } from "@/lib/stats/calculations";
 import type { BattingStats, FieldingStats } from "@/lib/scoring/types";
 import { StatTip } from "@/components/stat-tip";
 import { computeBadges, BadgeRow } from "@/components/leaderboard-badges";
+import { useRefresh } from "@/components/pull-to-refresh";
 
 type SortKey = keyof BattingStats;
 
@@ -20,18 +21,18 @@ export default function LeaderboardPage() {
   const [sortAsc, setSortAsc] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    async function load() {
-      const [battingRes, fieldingRes] = await Promise.all([
-        supabase.from("batting_stats_season").select("*"),
-        supabase.from("fielding_stats_season").select("*"),
-      ]);
-      setBattingStats(battingRes.data ?? []);
-      setFieldingStats(fieldingRes.data ?? []);
-      setLoading(false);
-    }
-    load();
+  const load = useCallback(async () => {
+    const [battingRes, fieldingRes] = await Promise.all([
+      supabase.from("batting_stats_season").select("*"),
+      supabase.from("fielding_stats_season").select("*"),
+    ]);
+    setBattingStats(battingRes.data ?? []);
+    setFieldingStats(fieldingRes.data ?? []);
+    setLoading(false);
   }, []);
+
+  useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useRefresh(load);
 
   function handleSort(key: SortKey) {
     if (sortBy === key) {

@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { MilestoneFeed } from "@/components/milestone-feed";
+import { useRefresh } from "@/components/pull-to-refresh";
 import { formatTime12 } from "@/lib/stats/calculations";
 import { fullName } from "@/lib/player-name";
 import type { Game, Player, BattingStats, ChainAward } from "@/lib/scoring/types";
@@ -20,42 +21,42 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [showUpcoming, setShowUpcoming] = useState(false);
 
-  useEffect(() => {
-    async function load() {
-      const today = new Date().toISOString().split("T")[0];
-      const fiveDaysAgo = new Date(Date.now() - 5 * 86400000).toISOString().split("T")[0];
+  const load = useCallback(async () => {
+    const today = new Date().toISOString().split("T")[0];
+    const fiveDaysAgo = new Date(Date.now() - 5 * 86400000).toISOString().split("T")[0];
 
-      const [playersRes, recentRes, upcomingRes, allGamesRes, statsRes, gameChainRes, hardWorkerRes] = await Promise.all([
-        supabase.from("players").select("*").order("sort_order"),
-        supabase.from("games").select("*").gte("date", fiveDaysAgo).lte("date", today).order("date", { ascending: false }).limit(5),
-        supabase.from("games").select("*").gt("date", today).order("date", { ascending: true }).limit(5),
-        supabase.from("games").select("*").eq("status", "final"),
-        supabase.from("batting_stats_season").select("*").order("avg", { ascending: false }).limit(5),
-        supabase.from("chain_awards").select("*").eq("award_type", "game_chain").order("date", { ascending: false }).limit(1),
-        supabase.from("chain_awards").select("*").eq("award_type", "hard_worker").order("date", { ascending: false }).limit(1),
-      ]);
+    const [playersRes, recentRes, upcomingRes, allGamesRes, statsRes, gameChainRes, hardWorkerRes] = await Promise.all([
+      supabase.from("players").select("*").order("sort_order"),
+      supabase.from("games").select("*").gte("date", fiveDaysAgo).lte("date", today).order("date", { ascending: false }).limit(5),
+      supabase.from("games").select("*").gt("date", today).order("date", { ascending: true }).limit(5),
+      supabase.from("games").select("*").eq("status", "final"),
+      supabase.from("batting_stats_season").select("*").order("avg", { ascending: false }).limit(5),
+      supabase.from("chain_awards").select("*").eq("award_type", "game_chain").order("date", { ascending: false }).limit(1),
+      supabase.from("chain_awards").select("*").eq("award_type", "hard_worker").order("date", { ascending: false }).limit(1),
+    ]);
 
-      const recent = recentRes.data ?? [];
-      const upcoming = upcomingRes.data ?? [];
-      const allPlayers: Player[] = playersRes.data ?? [];
+    const recent = recentRes.data ?? [];
+    const upcoming = upcomingRes.data ?? [];
+    const allPlayers: Player[] = playersRes.data ?? [];
 
-      const gcAward: ChainAward | null = gameChainRes.data?.[0] ?? null;
-      const hwAward: ChainAward | null = hardWorkerRes.data?.[0] ?? null;
+    const gcAward: ChainAward | null = gameChainRes.data?.[0] ?? null;
+    const hwAward: ChainAward | null = hardWorkerRes.data?.[0] ?? null;
 
-      setPlayers(allPlayers);
-      setRecentGames(recent);
-      setUpcomingGames(upcoming);
-      setAllFinalGames(allGamesRes.data ?? []);
-      setBattingStats(statsRes.data ?? []);
-      setChainHolders({
-        gameChain: gcAward ? { player: allPlayers.find(p => p.id === gcAward.player_id)!, award: gcAward } : null,
-        hardWorker: hwAward ? { player: allPlayers.find(p => p.id === hwAward.player_id)!, award: hwAward } : null,
-      });
-      setShowUpcoming(recent.length === 0);
-      setLoading(false);
-    }
-    load();
+    setPlayers(allPlayers);
+    setRecentGames(recent);
+    setUpcomingGames(upcoming);
+    setAllFinalGames(allGamesRes.data ?? []);
+    setBattingStats(statsRes.data ?? []);
+    setChainHolders({
+      gameChain: gcAward ? { player: allPlayers.find(p => p.id === gcAward.player_id)!, award: gcAward } : null,
+      hardWorker: hwAward ? { player: allPlayers.find(p => p.id === hwAward.player_id)!, award: hwAward } : null,
+    });
+    setShowUpcoming(recent.length === 0);
+    setLoading(false);
   }, []);
+
+  useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useRefresh(load);
 
   if (loading) {
     return (

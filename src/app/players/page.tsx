@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState, useMemo } from "react";
+import { useCallback, useEffect, useState, useMemo } from "react";
 import { supabase } from "@/lib/supabase";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { formatAvg } from "@/lib/stats/calculations";
 import { NavArrowUp, NavArrowDown } from "iconoir-react";
 import { fullName } from "@/lib/player-name";
+import { useRefresh } from "@/components/pull-to-refresh";
 import type { Player } from "@/lib/scoring/types";
 
 interface PlayerWithStats extends Player {
@@ -148,45 +149,45 @@ export default function PlayersPage() {
     return sorted;
   }, [players, sortKey, sortDir]);
 
-  useEffect(() => {
-    async function load() {
-      const [playersRes, statsRes] = await Promise.all([
-        supabase.from("players").select("*"),
-        supabase.from("batting_stats_season").select("*"),
-      ]);
+  const load = useCallback(async () => {
+    const [playersRes, statsRes] = await Promise.all([
+      supabase.from("players").select("*"),
+      supabase.from("batting_stats_season").select("*"),
+    ]);
 
-      const allPlayers: Player[] = playersRes.data ?? [];
-      const allStats = statsRes.data ?? [];
+    const allPlayers: Player[] = playersRes.data ?? [];
+    const allStats = statsRes.data ?? [];
 
-      const merged: PlayerWithStats[] = allPlayers.map((p) => {
-        const s = allStats.find((st) => st.player_id === p.id);
-        return {
-          ...p,
-          games: s ? Number(s.games) : 0,
-          plate_appearances: s ? Number(s.plate_appearances) : 0,
-          at_bats: s ? Number(s.at_bats) : 0,
-          hits: s ? Number(s.hits) : 0,
-          singles: s ? Number(s.singles) : 0,
-          doubles: s ? Number(s.doubles) : 0,
-          triples: s ? Number(s.triples) : 0,
-          home_runs: s ? Number(s.home_runs) : 0,
-          rbis: s ? Number(s.rbis) : 0,
-          walks: s ? Number(s.walks) : 0,
-          strikeouts: s ? Number(s.strikeouts) : 0,
-          stolen_bases: s ? Number(s.stolen_bases) : 0,
-          avg: s ? Number(s.avg) : 0,
-          obp: s ? Number(s.obp) : 0,
-          slg: s ? Number(s.slg) : 0,
-          ops: s ? Number(s.ops) : 0,
-        };
-      });
+    const merged: PlayerWithStats[] = allPlayers.map((p) => {
+      const s = allStats.find((st) => st.player_id === p.id);
+      return {
+        ...p,
+        games: s ? Number(s.games) : 0,
+        plate_appearances: s ? Number(s.plate_appearances) : 0,
+        at_bats: s ? Number(s.at_bats) : 0,
+        hits: s ? Number(s.hits) : 0,
+        singles: s ? Number(s.singles) : 0,
+        doubles: s ? Number(s.doubles) : 0,
+        triples: s ? Number(s.triples) : 0,
+        home_runs: s ? Number(s.home_runs) : 0,
+        rbis: s ? Number(s.rbis) : 0,
+        walks: s ? Number(s.walks) : 0,
+        strikeouts: s ? Number(s.strikeouts) : 0,
+        stolen_bases: s ? Number(s.stolen_bases) : 0,
+        avg: s ? Number(s.avg) : 0,
+        obp: s ? Number(s.obp) : 0,
+        slg: s ? Number(s.slg) : 0,
+        ops: s ? Number(s.ops) : 0,
+      };
+    });
 
-      merged.sort((a, b) => a.last_name.localeCompare(b.last_name) || a.first_name.localeCompare(b.first_name));
-      setPlayers(merged);
-      setLoading(false);
-    }
-    load();
+    merged.sort((a, b) => a.last_name.localeCompare(b.last_name) || a.first_name.localeCompare(b.first_name));
+    setPlayers(merged);
+    setLoading(false);
   }, []);
+
+  useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useRefresh(load);
 
   const optimizedOrder = useMemo(() => generateOptimizedOrder(players), [players]);
 

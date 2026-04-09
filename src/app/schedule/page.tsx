@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState, useRef } from "react";
+import { useCallback, useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ import { Trash, Check, Plus, Xmark, EditPencil } from "iconoir-react";
 import { Label } from "@/components/ui/label";
 import { formatTime12 } from "@/lib/stats/calculations";
 import { TimePicker } from "@/components/time-picker";
+import { useRefresh } from "@/components/pull-to-refresh";
 import type { Game, Practice } from "@/lib/scoring/types";
 
 type ScheduleItem =
@@ -134,18 +135,18 @@ export default function SchedulePage() {
   const [newPracticeTime, setNewPracticeTime] = useState("");
   const [creating, setCreating] = useState(false);
 
-  useEffect(() => {
-    async function load() {
-      const [gamesRes, practicesRes] = await Promise.all([
-        supabase.from("games").select("*"),
-        supabase.from("practices").select("*"),
-      ]);
-      setGames(gamesRes.data ?? []);
-      setPractices(practicesRes.data ?? []);
-      setLoading(false);
-    }
-    load();
+  const loadSchedule = useCallback(async () => {
+    const [gamesRes, practicesRes] = await Promise.all([
+      supabase.from("games").select("*"),
+      supabase.from("practices").select("*"),
+    ]);
+    setGames(gamesRes.data ?? []);
+    setPractices(practicesRes.data ?? []);
+    setLoading(false);
   }, []);
+
+  useEffect(() => { loadSchedule(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useRefresh(loadSchedule);
 
   // Build unified items list sorted by date (upcoming first, then past)
   const items: ScheduleItem[] = [];

@@ -4,6 +4,11 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Prevent native pull-to-refresh so our custom one works */
+html, body {
+  overscroll-behavior-y: contain;
+}
+
 /* Date input fixes for iOS Safari */
 input[type="date"] {
   -webkit-appearance: none;
