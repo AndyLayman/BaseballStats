@@ -3,23 +3,21 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import type { Practice, Drill, PracticePlanItem, SquadGroup, SquadMember, Player } from "@/lib/scoring/types";
-import { firstName } from "@/lib/player-name";
-import { OpenBook, MapPin, Group, NavArrowDown, NavArrowRight } from 'iconoir-react'
+import type { Practice, Drill, PracticePlanItem, PracticeNote, ActionItem, PracticeAttendance, Player, SquadGroup, SquadMember } from "@/lib/scoring/types";
+import { firstName, fullName } from "@/lib/player-name";
 
 function isEmptyHtml(html: string) {
   return html.replace(/<[^>]*>/g, "").trim().length === 0;
 }
 
-const GROUP_COLORS = [
-  { bg: "bg-teal-500/20", text: "text-teal-400", border: "border-teal-500/40" },
-  { bg: "bg-purple-500/20", text: "text-purple-400", border: "border-purple-500/40" },
-  { bg: "bg-amber-500/20", text: "text-amber-400", border: "border-amber-500/40" },
-  { bg: "bg-blue-500/20", text: "text-blue-400", border: "border-blue-500/40" },
-  { bg: "bg-rose-500/20", text: "text-rose-400", border: "border-rose-500/40" },
-  { bg: "bg-green-500/20", text: "text-green-400", border: "border-green-500/40" },
-];
+function stripHtml(html: string) {
+  return html.replace(/<[^>]*>/g, "").trim();
+}
+
+function formatFullDate(dateStr: string): string {
+  const d = new Date(dateStr + "T12:00:00");
+  return d.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" });
+}
 
 export default function SharedPracticePage() {
   const params = useParams();
@@ -28,241 +26,238 @@ export default function SharedPracticePage() {
   const [practice, setPractice] = useState<Practice | null>(null);
   const [planItems, setPlanItems] = useState<PracticePlanItem[]>([]);
   const [drills, setDrills] = useState<Drill[]>([]);
+  const [notes, setNotes] = useState<PracticeNote[]>([]);
+  const [actionItems, setActionItems] = useState<ActionItem[]>([]);
+  const [attendance, setAttendance] = useState<Map<number, boolean>>(new Map());
+  const [players, setPlayers] = useState<Player[]>([]);
   const [squadGroups, setSquadGroups] = useState<SquadGroup[]>([]);
   const [squadMembers, setSquadMembers] = useState<SquadMember[]>([]);
-  const [players, setPlayers] = useState<Player[]>([]);
   const [loading, setLoading] = useState(true);
-  const [expandedItem, setExpandedItem] = useState<string | null>(null);
-  const [expandedGroupDrill, setExpandedGroupDrill] = useState<string | null>(null);
 
   useEffect(() => {
     async function load() {
-      const [practiceRes, planRes, drillsRes, groupsRes, membersRes, playersRes] = await Promise.all([
+      const [practiceRes, planRes, drillsRes, notesRes, actionRes, attendanceRes, playersRes, groupsRes, membersRes] = await Promise.all([
         supabase.from("practices").select("*").eq("id", practiceId).single(),
         supabase.from("practice_plan_items").select("*").eq("practice_id", practiceId).order("sort_order"),
         supabase.from("drills").select("*").order("name"),
+        supabase.from("practice_notes").select("*").eq("practice_id", practiceId).order("created_at"),
+        supabase.from("action_items").select("*").eq("practice_id", practiceId).order("created_at"),
+        supabase.from("practice_attendance").select("*").eq("practice_id", practiceId),
+        supabase.from("players").select("*").order("sort_order"),
         supabase.from("practice_squad_groups").select("*").eq("practice_id", practiceId).order("sort_order"),
         supabase.from("practice_squad_members").select("*"),
-        supabase.from("players").select("*").order("sort_order"),
       ]);
 
       setPractice(practiceRes.data);
-      const allItems = planRes.data ?? [];
-      setPlanItems(allItems);
+      setPlanItems(planRes.data ?? []);
       setDrills(drillsRes.data ?? []);
+      setNotes(notesRes.data ?? []);
+      setActionItems(actionRes.data ?? []);
+      setPlayers(playersRes.data ?? []);
 
       const groups = (groupsRes.data ?? []) as SquadGroup[];
       setSquadGroups(groups);
       const groupIds = new Set(groups.map((g) => g.id));
       setSquadMembers(((membersRes.data ?? []) as SquadMember[]).filter((m) => groupIds.has(m.group_id)));
-      setPlayers(playersRes.data ?? []);
+
+      const attMap = new Map<number, boolean>();
+      for (const a of (attendanceRes.data ?? []) as PracticeAttendance[]) {
+        attMap.set(a.player_id, a.present);
+      }
+      setAttendance(attMap);
       setLoading(false);
     }
     load();
   }, [practiceId]);
+
+  if (loading) {
+    return (
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "80px 0", fontFamily: "'Montserrat', sans-serif" }}>
+        <div style={{ width: 32, height: 32, borderRadius: "50%", border: "2px solid #CCC", borderTopColor: "transparent", animation: "spin 0.8s linear infinite" }} />
+      </div>
+    );
+  }
+
+  if (!practice) {
+    return <div style={{ textAlign: "center", padding: "80px 0", color: "#999", fontFamily: "'Montserrat', sans-serif" }}>Practice not found</div>;
+  }
+
+  const topLevelItems = planItems.filter((i) => !i.group_id);
+  const completedItems = topLevelItems.filter((i) => i.completed);
+  const presentPlayers = players.filter((p) => attendance.get(p.id) === true);
+  const absentPlayers = players.filter((p) => attendance.get(p.id) === false);
+
+  const notesByPlayer = new Map<number, PracticeNote[]>();
+  for (const n of notes) {
+    const arr = notesByPlayer.get(n.player_id) ?? [];
+    arr.push(n);
+    notesByPlayer.set(n.player_id, arr);
+  }
 
   function getDrill(drillId: string | null): Drill | undefined {
     if (!drillId) return undefined;
     return drills.find((d) => d.id === drillId);
   }
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <div className="h-8 w-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
-      </div>
-    );
-  }
-
-  if (!practice) {
-    return <div className="flex items-center justify-center py-20 text-muted-foreground">Practice not found</div>;
-  }
-
-  const topLevelItems = planItems.filter((i) => !i.group_id);
-  const totalMinutes = topLevelItems.reduce((s, i) => s + i.duration_minutes, 0);
-
+  // ============ PAPER DOCUMENT ============
   return (
-    <div className="max-w-2xl mx-auto space-y-6 pb-24 px-4">
-      {/* Header */}
-      <div className="pt-6">
-        <div className="flex items-center gap-2 mb-2">
-          <OpenBook width={18} height={18} className="text-primary" />
-          <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Practice Plan</span>
+    <div style={{ background: "#E8E8E8", minHeight: "100vh", padding: "24px 16px", fontFamily: "'Montserrat', sans-serif" }}>
+      <div style={{
+        background: "#FFFFFF",
+        color: "#1a1a1a",
+        maxWidth: "640px",
+        margin: "0 auto",
+        borderRadius: "8px",
+        boxShadow: "0 4px 24px rgba(0,0,0,0.12)",
+        padding: "40px 32px",
+      }}>
+        {/* Logo + Header */}
+        <div style={{ display: "flex", alignItems: "flex-start", marginBottom: "24px" }}>
+          <svg width="33" height="28" viewBox="0 0 33 28" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0, marginRight: "16px", marginTop: "2px" }}>
+            <path fillRule="evenodd" clipRule="evenodd" d="M6.82602 3.80953C11.9054 -1.26984 20.1407 -1.26984 25.2201 3.80953L31.3444 9.93381C32.28 10.8695 32.2801 12.3865 31.3444 13.3222L17.7173 26.9492C16.7816 27.8849 15.2646 27.8849 14.3289 26.9492L0.701741 13.3222C-0.233923 12.3865 -0.233904 10.8695 0.701741 9.93381L6.82602 3.80953ZM16.9149 3.21411C16.3178 3.15929 15.7168 3.16214 15.1202 3.22257L14.8005 3.255C13.4619 3.3906 12.1692 3.81828 11.0138 4.50791C10.5194 4.80305 10.0537 5.14404 9.62298 5.52628L9.19067 5.91001C8.90516 6.1634 9.03836 6.63444 9.41429 6.70075L14.6669 7.62732C17.3189 8.09514 19.9345 8.75021 22.4939 9.58752L27.7916 11.3205C28.0221 11.3959 28.1955 11.1072 28.0207 10.9391L22.758 5.88093L21.7436 5.103C20.3447 4.03017 18.6705 3.37528 16.9149 3.21411Z" fill="#111111"/>
+          </svg>
+          <div>
+            <h1 style={{ fontSize: "22px", fontWeight: 700, margin: 0, letterSpacing: "-0.02em", color: "#000" }}>
+              {practice.title}
+            </h1>
+            <p style={{ fontSize: "14px", fontWeight: 400, margin: "4px 0 0", color: "#666" }}>
+              {formatFullDate(practice.date)}
+              {practice.venue ? ` · ${practice.venue}` : ""}
+            </p>
+          </div>
         </div>
-        <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-gradient">{practice.title}</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          {new Date(practice.date + "T12:00:00").toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
-        </p>
-        {practice.venue && (
-          <div className="flex items-center gap-2 mt-1.5">
-            <MapPin width={14} height={14} className="text-primary shrink-0" />
-            <span className="text-sm">{practice.venue}</span>
-            {practice.venue_address && (
-              <a
-                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(practice.venue_address)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-xs text-primary hover:underline"
-              >
-                Directions
-              </a>
+
+        <hr style={{ border: "none", borderTop: "1.5px solid #E0E0E0", margin: "0 0 28px" }} />
+
+        {/* Attendance */}
+        {attendance.size > 0 && (
+          <div style={{ marginBottom: "28px" }}>
+            <h2 style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#999", margin: "0 0 10px" }}>Attendance</h2>
+            <p style={{ fontSize: "14px", fontWeight: 300, margin: "0 0 8px", color: "#333" }}>
+              {presentPlayers.length} present{absentPlayers.length > 0 ? ` · ${absentPlayers.length} absent` : ""}
+            </p>
+            {absentPlayers.length > 0 && (
+              <p style={{ fontSize: "13px", fontWeight: 300, color: "#888", margin: 0 }}>
+                Absent: {absentPlayers.map((p) => `${firstName(p)}`).join(", ")}
+              </p>
             )}
           </div>
         )}
+
+        {/* What We Covered */}
         {topLevelItems.length > 0 && (
-          <p className="text-xs text-muted-foreground mt-2">
-            {topLevelItems.length} block{topLevelItems.length !== 1 ? "s" : ""} &middot; {totalMinutes} min total
-          </p>
-        )}
-      </div>
-
-      {/* Plan Items */}
-      {topLevelItems.length > 0 ? (
-        <div className="space-y-2">
-          {topLevelItems.map((item, idx) => {
-            const drill = getDrill(item.drill_id);
-            const isExpanded = expandedItem === item.id;
-            const hasDetails = drill?.description && !isEmptyHtml(drill.description);
-            const isSquadSplit = item.label === "Squad Split" && !item.drill_id;
-
-            return (
-              <Card key={item.id} className="glass overflow-visible">
-                <div
-                  className={`flex items-center gap-3 p-4 ${hasDetails ? "cursor-pointer" : ""}`}
-                  onClick={() => hasDetails && setExpandedItem(isExpanded ? null : item.id)}
-                >
-                  <div className="h-8 w-8 rounded-lg bg-primary/15 border border-primary/30 shrink-0 flex items-center justify-center text-sm font-bold text-primary">
-                    {isSquadSplit ? (
-                      <Group width={14} height={14} />
-                    ) : (
-                      idx + 1
+          <div style={{ marginBottom: "28px" }}>
+            <h2 style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#999", margin: "0 0 10px" }}>
+              What We Covered
+            </h2>
+            <ul style={{ margin: 0, paddingLeft: "20px", fontSize: "14px", fontWeight: 300, lineHeight: 1.9, color: "#333" }}>
+              {topLevelItems.map((item) => {
+                const drill = getDrill(item.drill_id);
+                const isSquadSplit = item.label === "Squad Split" && !item.drill_id;
+                return (
+                  <li key={item.id} style={{ textDecoration: item.completed ? undefined : undefined }}>
+                    <span style={{ fontWeight: item.completed ? 400 : 300 }}>
+                      {item.completed ? "✓ " : "○ "}
+                      {item.label}
+                    </span>
+                    {!isSquadSplit && item.duration_minutes > 0 && (
+                      <span style={{ color: "#999", fontSize: "12px" }}> ({item.duration_minutes} min)</span>
                     )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-semibold">{item.label}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {isSquadSplit
-                        ? `${squadGroups.length} group${squadGroups.length !== 1 ? "s" : ""}`
-                        : `${item.duration_minutes} min${drill?.category ? ` · ${drill.category}` : ""}`}
-                    </div>
-                  </div>
-                  {hasDetails && (
-                    <NavArrowDown
-                      width={16}
-                      height={16}
-                      className={`shrink-0 text-muted-foreground transition-transform ${isExpanded ? "rotate-180" : ""}`}
-                    />
-                  )}
-                </div>
+                    {isSquadSplit && squadGroups.length > 0 && (
+                      <span style={{ color: "#999", fontSize: "12px" }}> ({squadGroups.length} groups)</span>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+            <p style={{ fontSize: "12px", fontWeight: 300, color: "#999", margin: "8px 0 0" }}>
+              {completedItems.length}/{topLevelItems.length} completed
+            </p>
+          </div>
+        )}
 
-                {/* Expanded drill details */}
-                {isExpanded && drill?.description && !isEmptyHtml(drill.description) && (
-                  <div className="px-4 pb-4 border-t border-border/30">
-                    <div
-                      className="text-sm prose prose-invert prose-sm max-w-none mt-3"
-                      dangerouslySetInnerHTML={{ __html: drill.description }}
-                    />
-                  </div>
-                )}
-
-                {/* Squad Split — groups with drills and players */}
-                {isSquadSplit && squadGroups.length > 0 && (
-                  <div className="px-4 pb-4 border-t border-border/30 pt-3">
-                    <div className="grid grid-cols-2 gap-2">
-                      {squadGroups.map((group) => {
-                        const color = GROUP_COLORS[group.color_index % GROUP_COLORS.length];
-                        const groupDrills = planItems.filter((i) => i.group_id === group.id);
-                        const groupPlayers = squadMembers
-                          .filter((m) => m.group_id === group.id)
-                          .map((m) => players.find((p) => p.id === m.player_id))
-                          .filter((p): p is Player => !!p);
-
-                        return (
-                          <div
-                            key={group.id}
-                            className={`rounded-xl border-2 ${color.border} ${color.bg} p-2.5 space-y-2`}
-                          >
-                            <div className={`text-xs font-bold ${color.text}`}>{group.name}</div>
-
-                            {/* Drills */}
-                            {groupDrills.length > 0 && (
-                              <div className="space-y-1">
-                                {groupDrills.map((gi) => {
-                                  const giDrill = getDrill(gi.drill_id);
-                                  const isGiExpanded = expandedGroupDrill === gi.id;
-                                  return (
-                                    <div key={gi.id}>
-                                      <button
-                                        onClick={() => setExpandedGroupDrill(isGiExpanded ? null : gi.id)}
-                                        className={`w-full text-left text-[10px] font-medium ${color.text} opacity-80 flex items-center gap-1 hover:opacity-100 transition-opacity`}
-                                      >
-                                        <NavArrowRight width={10} height={10} className={`shrink-0 transition-transform ${isGiExpanded ? "rotate-90" : ""}`} />
-                                        <span className="truncate">{gi.label}{gi.duration_minutes > 0 ? ` (${gi.duration_minutes}m)` : ""}</span>
-                                      </button>
-                                      {isGiExpanded && giDrill?.description && !isEmptyHtml(giDrill.description) && (
-                                        <div
-                                          className="mt-1 ml-3 text-[10px] text-muted-foreground prose prose-invert max-w-none"
-                                          dangerouslySetInnerHTML={{ __html: giDrill.description }}
-                                        />
-                                      )}
-                                      {isGiExpanded && (!giDrill?.description || isEmptyHtml(giDrill.description ?? "")) && (
-                                        <p className="mt-1 ml-3 text-[10px] text-muted-foreground italic">No description.</p>
-                                      )}
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            )}
-
-                            {/* Players */}
-                            {groupPlayers.length > 0 && (
-                              <div className="flex flex-wrap gap-1 pt-1 border-t border-white/10">
-                                {groupPlayers.map((p) => (
-                                  <span
-                                    key={p.id}
-                                    className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${color.bg} ${color.text} border ${color.border}`}
-                                  >
-                                    #{p.number} {firstName(p)}
-                                  </span>
-                                ))}
-                              </div>
-                            )}
-
-                            {groupDrills.length === 0 && groupPlayers.length === 0 && (
-                              <p className="text-[10px] text-muted-foreground italic">No drills or players assigned.</p>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-              </Card>
-            );
-          })}
-        </div>
-      ) : (
-        <p className="text-muted-foreground text-center py-12">No practice plan set up yet.</p>
-      )}
-
-      {/* Team Notes (read-only) */}
-      {practice.notes && !isEmptyHtml(practice.notes) && (
-        <Card className="glass">
-          <CardHeader className="pb-2 px-4">
-            <CardTitle className="text-sm text-muted-foreground uppercase tracking-wider font-medium">Team Notes</CardTitle>
-          </CardHeader>
-          <CardContent className="px-4 pb-4">
+        {/* Team Notes */}
+        {practice.notes && !isEmptyHtml(practice.notes) && (
+          <div style={{ marginBottom: "28px" }}>
+            <h2 style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#999", margin: "0 0 10px" }}>Team Notes</h2>
             <div
-              className="text-sm prose prose-invert prose-sm max-w-none"
+              style={{ fontSize: "14px", fontWeight: 300, lineHeight: 1.75, color: "#333" }}
               dangerouslySetInnerHTML={{ __html: practice.notes }}
             />
-          </CardContent>
-        </Card>
-      )}
+          </div>
+        )}
 
-      {/* Footer */}
-      <div className="text-center text-xs text-muted-foreground pt-4">
-        <p>Shared from Baseball Stats</p>
+        {/* Player Notes */}
+        {notesByPlayer.size > 0 && (
+          <div style={{ marginBottom: "28px" }}>
+            <h2 style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#999", margin: "0 0 10px" }}>Player Notes</h2>
+            {[...notesByPlayer.entries()].map(([pid, playerNotes]) => {
+              const player = players.find((p) => p.id === pid);
+              if (!player) return null;
+              return (
+                <div key={pid} style={{ marginBottom: "12px" }}>
+                  <p style={{ fontSize: "13px", fontWeight: 600, color: "#222", margin: "0 0 4px" }}>
+                    #{player.number} {fullName(player)}
+                  </p>
+                  {playerNotes.map((n) => (
+                    <div key={n.id} style={{ fontSize: "13px", fontWeight: 300, lineHeight: 1.6, color: "#444", marginBottom: "4px", paddingLeft: "12px" }}>
+                      {n.focus_area && (
+                        <span style={{ fontSize: "10px", fontWeight: 700, color: "#888", textTransform: "uppercase", marginRight: "6px" }}>
+                          {n.focus_area}
+                        </span>
+                      )}
+                      {stripHtml(n.note)}
+                    </div>
+                  ))}
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Action Items */}
+        {actionItems.length > 0 && (
+          <div style={{ marginBottom: "8px" }}>
+            <h2 style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#999", margin: "0 0 10px" }}>Action Items</h2>
+            <ul style={{ margin: 0, padding: 0, listStyle: "none", fontSize: "14px", fontWeight: 300, lineHeight: 2, color: "#333" }}>
+              {actionItems.map((item) => {
+                const player = item.player_id ? players.find((p) => p.id === item.player_id) : null;
+                return (
+                  <li key={item.id} style={{ display: "flex", alignItems: "flex-start", gap: "10px" }}>
+                    <span style={{
+                      display: "inline-block",
+                      width: "16px",
+                      height: "16px",
+                      border: item.completed ? "none" : "1.5px solid #CCC",
+                      borderRadius: "3px",
+                      flexShrink: 0,
+                      marginTop: "5px",
+                      background: item.completed ? "#DDD" : "none",
+                      textAlign: "center",
+                      lineHeight: "16px",
+                      fontSize: "11px",
+                      color: "#888",
+                    }}>
+                      {item.completed ? "✓" : ""}
+                    </span>
+                    <span style={{ textDecoration: item.completed ? "line-through" : "none", color: item.completed ? "#999" : "#333" }}>
+                      {item.text}
+                      {player && (
+                        <span style={{ fontSize: "12px", color: "#999" }}> (#{player.number})</span>
+                      )}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}
+
+        {/* Footer */}
+        <hr style={{ border: "none", borderTop: "1px solid #EEE", margin: "28px 0 16px" }} />
+        <p style={{ fontSize: "11px", fontWeight: 300, color: "#BBB", textAlign: "center", margin: 0 }}>
+          Shared from Baseball Stats
+        </p>
       </div>
     </div>
   );

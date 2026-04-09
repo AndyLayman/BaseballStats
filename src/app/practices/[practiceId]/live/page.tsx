@@ -374,7 +374,7 @@ export default function LivePracticePage() {
           Setup
         </Link>
         <div className="flex items-center gap-2">
-          {shareMessage && <span className="text-xs text-green-400 animate-slide-up">{shareMessage}</span>}
+          {shareMessage && <span className="text-xs text-primary animate-slide-up">{shareMessage}</span>}
           <Button variant="outline" className="h-9 text-xs border-border/50 gap-1.5" onClick={handleShare}>
             <ShareIos width="14" height="14" />
             Share Plan
@@ -384,8 +384,8 @@ export default function LivePracticePage() {
 
       <div>
         <div className="flex items-center gap-2">
-          <div className="h-3 w-3 rounded-full bg-green-500 animate-pulse" />
-          <span className="text-xs font-bold uppercase tracking-wider text-green-400">Live Practice</span>
+          <div className="h-3 w-3 rounded-full bg-primary animate-pulse" />
+          <span className="text-xs font-bold uppercase tracking-wider text-primary">Live Practice</span>
         </div>
         <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-gradient mt-1">{practice.title}</h1>
         <p className="text-sm text-muted-foreground mt-1">
@@ -416,9 +416,9 @@ export default function LivePracticePage() {
                   onClick={() => toggleAttendance(p.id)}
                   className={`h-10 rounded-xl text-xs font-bold border-2 transition-all active:scale-95 select-none truncate px-1 ${
                     status === true
-                      ? "bg-green-500/20 text-green-400 border-green-500/40"
+                      ? "bg-primary/15 text-primary border-primary/30"
                       : status === false
-                      ? "bg-red-500/15 text-red-400/60 border-red-500/30 line-through"
+                      ? "bg-muted/10 text-muted-foreground/40 border-border/30 line-through"
                       : "bg-muted/30 text-foreground border-border/50"
                   }`}
                 >
@@ -427,7 +427,7 @@ export default function LivePracticePage() {
               );
             })}
           </div>
-          <p className="text-[10px] text-muted-foreground mt-2">Tap: present (green), tap again: absent (red), tap again: reset.</p>
+          <p className="text-[10px] text-muted-foreground mt-2">Tap: present, tap again: absent, tap again: reset.</p>
         </CardContent>
       </Card>
 
@@ -858,7 +858,7 @@ export default function LivePracticePage() {
       {/* End Practice */}
       <Button
         variant="outline"
-        className="w-full h-12 text-sm font-bold border-green-500/40 text-green-400 hover:bg-green-500/15 gap-2"
+        className="w-full h-12 text-sm font-bold border-primary/30 text-primary hover:bg-primary/10 gap-2"
         onClick={() => setShowEndSummary(true)}
       >
         <DoubleCheck width="18" height="18" />
@@ -870,8 +870,8 @@ export default function LivePracticePage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={() => setShowEndSummary(false)}>
           <div className="bg-card border border-border rounded-2xl max-w-md w-full p-6 space-y-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>
             <div className="text-center">
-              <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-green-500/20 mb-3">
-                <DoubleCheck width="24" height="24" className="text-green-400" />
+              <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-primary/15 mb-3">
+                <DoubleCheck width="24" height="24" className="text-primary" />
               </div>
               <h2 className="text-xl font-extrabold text-gradient">Practice Complete</h2>
               <p className="text-sm text-muted-foreground mt-1">{practice.title} &middot; {new Date(practice.date + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}</p>
@@ -879,7 +879,7 @@ export default function LivePracticePage() {
 
             <div className="grid grid-cols-2 gap-3">
               <div className="rounded-xl bg-muted/30 border border-border/50 p-3 text-center">
-                <div className="text-2xl font-extrabold text-green-400">{presentCount}</div>
+                <div className="text-2xl font-extrabold text-primary">{presentCount}</div>
                 <div className="text-[10px] text-muted-foreground uppercase tracking-wider mt-0.5">Present</div>
               </div>
               <div className="rounded-xl bg-muted/30 border border-border/50 p-3 text-center">
@@ -915,7 +915,7 @@ export default function LivePracticePage() {
                 Keep Going
               </Button>
               <Button
-                className="flex-1 h-11 text-sm font-bold bg-green-600 hover:bg-green-700 text-white"
+                className="flex-1 h-11 text-sm font-bold"
                 onClick={endPractice}
                 disabled={ending}
               >

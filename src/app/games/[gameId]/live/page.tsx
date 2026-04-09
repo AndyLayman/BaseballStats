@@ -24,19 +24,19 @@ import { fullName, firstName } from "@/lib/player-name";
 import { ChainAwardPicker } from "@/components/chain-award-picker";
 
 const RESULT_BUTTONS: { result: PlateAppearanceResult; label: string; color: string }[] = [
-  { result: "1B", label: "1B", color: "bg-green-500 hover:bg-green-400 active:bg-green-600" },
-  { result: "2B", label: "2B", color: "bg-blue-500 hover:bg-blue-400 active:bg-blue-600" },
-  { result: "3B", label: "3B", color: "bg-amber-500 hover:bg-amber-400 active:bg-amber-600" },
-  { result: "HR", label: "HR", color: "bg-red-500 hover:bg-red-400 active:bg-red-600" },
-  { result: "BB", label: "BB", color: "bg-violet-500 hover:bg-violet-400 active:bg-violet-600" },
-  { result: "SO", label: "K", color: "bg-muted-foreground hover:opacity-90 active:opacity-80" },
-  { result: "GO", label: "GO", color: "bg-secondary hover:opacity-90 active:opacity-80" },
-  { result: "FO", label: "FO", color: "bg-secondary hover:opacity-90 active:opacity-80" },
-  { result: "FC", label: "FC", color: "bg-secondary hover:opacity-90 active:opacity-80" },
-  { result: "DP", label: "DP", color: "bg-destructive hover:opacity-90 active:opacity-80" },
-  { result: "SAC", label: "SAC", color: "bg-secondary hover:opacity-90 active:opacity-80" },
-  { result: "HBP", label: "HBP", color: "bg-violet-500 hover:bg-violet-400 active:bg-violet-600" },
-  { result: "E", label: "E", color: "bg-orange-500 hover:bg-orange-400 active:bg-orange-600" },
+  { result: "1B", label: "1B", color: "bg-primary text-primary-foreground" },
+  { result: "2B", label: "2B", color: "bg-primary text-primary-foreground" },
+  { result: "3B", label: "3B", color: "bg-primary text-primary-foreground" },
+  { result: "HR", label: "HR", color: "bg-primary text-primary-foreground" },
+  { result: "BB", label: "BB", color: "bg-primary text-primary-foreground" },
+  { result: "SO", label: "K", color: "bg-muted-foreground" },
+  { result: "GO", label: "GO", color: "bg-secondary" },
+  { result: "FO", label: "FO", color: "bg-secondary" },
+  { result: "FC", label: "FC", color: "bg-secondary" },
+  { result: "DP", label: "DP", color: "bg-destructive" },
+  { result: "SAC", label: "SAC", color: "bg-secondary" },
+  { result: "HBP", label: "HBP", color: "bg-primary text-primary-foreground" },
+  { result: "E", label: "E", color: "bg-destructive" },
 ];
 
 const NON_BATTED = ["BB", "SO", "HBP"];
@@ -1455,12 +1455,10 @@ export default function LiveScoringPage() {
           }}
         >
           <div className="text-center animate-slide-up space-y-4">
-            {/* Animated baseball */}
+            {/* Logo */}
             <div className="flex justify-center">
-              <svg viewBox="0 0 24 24" className="h-20 w-20" fill="none" strokeWidth="1.5" style={{ animation: "spin-slow 2s ease-in-out" }}>
-                <circle cx="12" cy="12" r="10.5" stroke="#E9D7B4" />
-                <path d="M 6.5 3.5 Q 4 8 6 12 Q 8 16 6.5 20.5" stroke="#E9D7B4" strokeLinecap="round" />
-                <path d="M 17.5 3.5 Q 20 8 18 12 Q 16 16 17.5 20.5" stroke="#E9D7B4" strokeLinecap="round" />
+              <svg width="66" height="56" viewBox="0 0 33 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path fillRule="evenodd" clipRule="evenodd" d="M6.82602 3.80953C11.9054 -1.26984 20.1407 -1.26984 25.2201 3.80953L31.3444 9.93381C32.28 10.8695 32.2801 12.3865 31.3444 13.3222L17.7173 26.9492C16.7816 27.8849 15.2646 27.8849 14.3289 26.9492L0.701741 13.3222C-0.233923 12.3865 -0.233904 10.8695 0.701741 9.93381L6.82602 3.80953ZM16.9149 3.21411C16.3178 3.15929 15.7168 3.16214 15.1202 3.22257L14.8005 3.255C13.4619 3.3906 12.1692 3.81828 11.0138 4.50791C10.5194 4.80305 10.0537 5.14404 9.62298 5.52628L9.19067 5.91001C8.90516 6.1634 9.03836 6.63444 9.41429 6.70075L14.6669 7.62732C17.3189 8.09514 19.9345 8.75021 22.4939 9.58752L27.7916 11.3205C28.0221 11.3959 28.1955 11.1072 28.0207 10.9391L22.758 5.88093L21.7436 5.103C20.3447 4.03017 18.6705 3.37528 16.9149 3.21411Z" fill="#E9D7B4"/>
               </svg>
             </div>
 
@@ -1495,14 +1493,6 @@ export default function LiveScoringPage() {
             </div>
           </div>
 
-          <style>{`
-            @keyframes spin-slow {
-              0% { transform: rotate(0deg) scale(0.5); opacity: 0; }
-              30% { transform: rotate(180deg) scale(1.1); opacity: 1; }
-              50% { transform: rotate(360deg) scale(1); }
-              100% { transform: rotate(360deg) scale(1); }
-            }
-          `}</style>
         </div>
       )}
     </div>
