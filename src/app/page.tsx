@@ -7,7 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { MilestoneFeed } from "@/components/milestone-feed";
 import { formatTime12 } from "@/lib/stats/calculations";
-import type { Game, Player, BattingStats } from "@/lib/scoring/types";
+import { fullName } from "@/lib/player-name";
+import type { Game, Player, BattingStats, ChainAward } from "@/lib/scoring/types";
 
 export default function Dashboard() {
   const [players, setPlayers] = useState<Player[]>([]);
@@ -15,6 +16,7 @@ export default function Dashboard() {
   const [upcomingGames, setUpcomingGames] = useState<Game[]>([]);
   const [allFinalGames, setAllFinalGames] = useState<Game[]>([]);
   const [battingStats, setBattingStats] = useState<BattingStats[]>([]);
+  const [chainHolders, setChainHolders] = useState<{ gameChain: { player: Player; award: ChainAward } | null; hardWorker: { player: Player; award: ChainAward } | null }>({ gameChain: null, hardWorker: null });
   const [loading, setLoading] = useState(true);
   const [showUpcoming, setShowUpcoming] = useState(false);
 
@@ -23,22 +25,32 @@ export default function Dashboard() {
       const today = new Date().toISOString().split("T")[0];
       const fiveDaysAgo = new Date(Date.now() - 5 * 86400000).toISOString().split("T")[0];
 
-      const [playersRes, recentRes, upcomingRes, allGamesRes, statsRes] = await Promise.all([
+      const [playersRes, recentRes, upcomingRes, allGamesRes, statsRes, gameChainRes, hardWorkerRes] = await Promise.all([
         supabase.from("players").select("*").order("sort_order"),
         supabase.from("games").select("*").gte("date", fiveDaysAgo).lte("date", today).order("date", { ascending: false }).limit(5),
         supabase.from("games").select("*").gt("date", today).order("date", { ascending: true }).limit(5),
         supabase.from("games").select("*").eq("status", "final"),
         supabase.from("batting_stats_season").select("*").order("avg", { ascending: false }).limit(5),
+        supabase.from("chain_awards").select("*").eq("award_type", "game_chain").order("date", { ascending: false }).limit(1),
+        supabase.from("chain_awards").select("*").eq("award_type", "hard_worker").order("date", { ascending: false }).limit(1),
       ]);
 
       const recent = recentRes.data ?? [];
       const upcoming = upcomingRes.data ?? [];
+      const allPlayers: Player[] = playersRes.data ?? [];
 
-      setPlayers(playersRes.data ?? []);
+      const gcAward: ChainAward | null = gameChainRes.data?.[0] ?? null;
+      const hwAward: ChainAward | null = hardWorkerRes.data?.[0] ?? null;
+
+      setPlayers(allPlayers);
       setRecentGames(recent);
       setUpcomingGames(upcoming);
       setAllFinalGames(allGamesRes.data ?? []);
       setBattingStats(statsRes.data ?? []);
+      setChainHolders({
+        gameChain: gcAward ? { player: allPlayers.find(p => p.id === gcAward.player_id)!, award: gcAward } : null,
+        hardWorker: hwAward ? { player: allPlayers.find(p => p.id === hwAward.player_id)!, award: hwAward } : null,
+      });
       setShowUpcoming(recent.length === 0);
       setLoading(false);
     }
@@ -192,7 +204,49 @@ export default function Dashboard() {
         <CardHeader>
           <CardTitle className="text-lg text-gradient">Awards & Milestones</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
+          {(chainHolders.gameChain || chainHolders.hardWorker) && (
+            <div className="grid grid-cols-2 gap-3">
+              {chainHolders.gameChain && chainHolders.gameChain.player && (
+                <Link
+                  href={`/players/${chainHolders.gameChain.player.id}`}
+                  className="rounded-xl border border-border/50 p-3 hover:bg-accent hover:border-primary/20 transition-all group"
+                >
+                  <div className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground mb-1">Game Chain</div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">🏆</span>
+                    <div className="min-w-0">
+                      <div className="font-bold text-sm truncate group-hover:text-primary transition-colors">
+                        #{chainHolders.gameChain.player.number} {fullName(chainHolders.gameChain.player)}
+                      </div>
+                      <div className="text-[10px] text-muted-foreground">
+                        Since {new Date(chainHolders.gameChain.award.date + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              )}
+              {chainHolders.hardWorker && chainHolders.hardWorker.player && (
+                <Link
+                  href={`/players/${chainHolders.hardWorker.player.id}`}
+                  className="rounded-xl border border-border/50 p-3 hover:bg-accent hover:border-primary/20 transition-all group"
+                >
+                  <div className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground mb-1">Hard Worker</div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">💪</span>
+                    <div className="min-w-0">
+                      <div className="font-bold text-sm truncate group-hover:text-primary transition-colors">
+                        #{chainHolders.hardWorker.player.number} {fullName(chainHolders.hardWorker.player)}
+                      </div>
+                      <div className="text-[10px] text-muted-foreground">
+                        Since {new Date(chainHolders.hardWorker.award.date + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              )}
+            </div>
+          )}
           <MilestoneFeed />
         </CardContent>
       </Card>
