@@ -676,14 +676,11 @@ function PracticeRow({
         )}
       </div>
 
-      {/* Time + badge */}
+      {/* Time */}
       <div className="flex items-center gap-2 shrink-0">
         {practice.practice_time && (
           <span className="text-sm text-muted-foreground tabular-nums">{formatTime12(practice.practice_time)}</span>
         )}
-        <Badge variant="outline" className="border-border/50 text-muted-foreground bg-muted/30">
-          Practice
-        </Badge>
       </div>
 
       {/* Delete button in select mode */}
