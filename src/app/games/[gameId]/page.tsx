@@ -13,6 +13,15 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { formatAvg } from "@/lib/stats/calculations";
 import { CustomSelect } from "@/components/custom-select";
 import { VenuePicker } from "@/components/venue-picker";
+import { TimePicker } from "@/components/time-picker";
+
+function formatTime12(time: string | null): string {
+  if (!time) return "Not set";
+  const [h, m] = time.split(":").map(Number);
+  const period = h >= 12 ? "PM" : "AM";
+  const hour = h === 0 ? 12 : h > 12 ? h - 12 : h;
+  return `${hour}:${m.toString().padStart(2, "0")} ${period}`;
+}
 import type { Game, GameLineup, Player, PlateAppearance, OpponentBatter } from "@/lib/scoring/types";
 import { fullName } from "@/lib/player-name";
 import { StatTip } from "@/components/stat-tip";
@@ -113,7 +122,7 @@ export default function GameDetailPage() {
       notes: editNotes.trim() || null,
     }).eq("id", gameId);
     if (!error) {
-      setGame({ ...game, opponent: editOpponent.trim(), date: editDate, location: editLocation, notes: editNotes.trim() || null });
+      setGame({ ...game, opponent: editOpponent.trim(), date: editDate, location: editLocation, game_time: editGameTime.trim() || null, notes: editNotes.trim() || null });
       setEditingInfo(false);
     }
     setSavingInfo(false);
@@ -235,7 +244,7 @@ export default function GameDetailPage() {
           </h1>
           <p className="text-muted-foreground">
             {gameDate.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric", year: "numeric" })}
-            {game.game_time ? ` · ${game.game_time}` : ""}
+            {game.game_time ? ` · ${formatTime12(game.game_time)}` : ""}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -333,7 +342,7 @@ export default function GameDetailPage() {
               </div>
               <div>
                 <div className="text-muted-foreground text-xs">Time</div>
-                <div className="font-medium">{game.game_time || "Not set"}</div>
+                <div className="font-medium">{formatTime12(game.game_time)}</div>
               </div>
               {game.notes && (
                 <div className="col-span-2">
@@ -370,26 +379,20 @@ export default function GameDetailPage() {
                 className="h-11 bg-input/50 border-border/50 focus:border-primary/50"
               />
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label htmlFor="edit-date">Date</Label>
-                <Input
-                  id="edit-date"
-                  type="date"
-                  value={editDate}
-                  onChange={(e) => setEditDate(e.target.value)}
-                  className="h-11 bg-input/50 border-border/50 focus:border-primary/50"
-                />
-              </div>
-              <div>
-                <Label htmlFor="edit-time">Game Time</Label>
-                <Input
-                  id="edit-time"
-                  type="time"
-                  value={editGameTime}
-                  onChange={(e) => setEditGameTime(e.target.value)}
-                  className="h-11 bg-input/50 border-border/50 focus:border-primary/50"
-                />
+            <div>
+              <Label htmlFor="edit-date">Date</Label>
+              <Input
+                id="edit-date"
+                type="date"
+                value={editDate}
+                onChange={(e) => setEditDate(e.target.value)}
+                className="h-11 bg-input/50 border-border/50 focus:border-primary/50"
+              />
+            </div>
+            <div>
+              <Label>Game Time</Label>
+              <div className="mt-1">
+                <TimePicker value={editGameTime} onChange={setEditGameTime} />
               </div>
             </div>
             <div>
@@ -475,7 +478,7 @@ export default function GameDetailPage() {
       )}
 
       {isScheduled && editingVenue && (
-        <Card className="glass border-primary/30">
+        <Card className="glass border-primary/30 relative z-10">
           <CardContent className="p-4 space-y-3">
             <div className="flex items-center justify-between">
               <div className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Edit Venue</div>

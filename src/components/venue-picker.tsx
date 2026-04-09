@@ -103,19 +103,21 @@ export function VenuePicker({ venue, venueAddress, onVenueChange, onAddressChang
       </div>
 
       {/* Inline venue name + address fields */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="space-y-2">
         <Input
           value={venue}
           onChange={(e) => onVenueChange(e.target.value)}
           placeholder="Field name"
           className="h-12 text-base bg-input/50 border-border/50 focus:border-primary/50"
         />
-        <AddressAutocomplete
-          value={venueAddress}
-          onChange={onAddressChange}
-          placeholder="Address"
-          className="h-12 text-base bg-input/50 border-border/50 focus:border-primary/50"
-        />
+        <div className="relative z-20">
+          <AddressAutocomplete
+            value={venueAddress}
+            onChange={onAddressChange}
+            placeholder="Address"
+            className="h-12 text-base bg-input/50 border-border/50 focus:border-primary/50"
+          />
+        </div>
       </div>
 
       {/* Manage venues modal */}
