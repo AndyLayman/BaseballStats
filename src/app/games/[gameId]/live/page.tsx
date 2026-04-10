@@ -807,7 +807,7 @@ export default function LiveScoringPage() {
   }
 
   return (
-    <div className="space-y-3 max-w-lg mx-auto pb-24">
+    <div className="space-y-3 max-w-lg md:max-w-4xl mx-auto pb-24">
       {/* Scoreboard */}
       <Card className="glass-strong gradient-border glow-primary">
         <CardContent className="p-3 sm:p-4">
@@ -1090,106 +1090,136 @@ export default function LiveScoringPage() {
 
       {/* At-bat flow — shared for both halves */}
       {activeBatter && (
-        <>
-          {/* Pitch counter */}
-          <Card className="glass">
-            <CardContent className="p-3 sm:p-4 space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="text-center">
-                  <div className="text-3xl font-extrabold tabular-nums text-gradient-bright">{pitchCount.balls}-{pitchCount.strikes}</div>
-                  <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium mt-0.5">Count</div>
+        <div className="md:grid md:grid-cols-2 md:gap-4 space-y-3 md:space-y-0">
+          {/* Left column: Spray chart + play log (on desktop) */}
+          <div className="space-y-3">
+            {/* Spray chart + hit type */}
+            <Card className="glass">
+              <CardContent className="px-1 pt-1 pb-3 space-y-3">
+                <div className="flex justify-center">
+                  <SprayChart
+                    onClick={(x, y) => setSprayPoint({ x, y })}
+                    selectedPoint={sprayPoint}
+                    hitType={hitType}
+                    ghostMarkers={batterHistory}
+                    runners={{
+                      first: !!gameState.runnerFirst,
+                      second: !!gameState.runnerSecond,
+                      third: !!gameState.runnerThird,
+                    }}
+                    className="w-full touch-none"
+                  />
                 </div>
-                <div className="flex flex-col gap-1.5 items-end">
-                  <div className="flex items-center gap-1 flex-wrap justify-end">
-                    {Array.from({ length: pitchCount.balls }).map((_, i) => (
-                      <div key={`b-${i}`} className="w-3 h-3 rounded-full bg-success border-2 border-success" />
-                    ))}
-                    {pitchCount.balls === 0 && <div className="w-3 h-3 rounded-full border-2 border-muted-foreground/30" />}
-                    <span className="text-[10px] text-muted-foreground ml-0.5">B</span>
-                  </div>
-                  <div className="flex items-center gap-1 flex-wrap justify-end">
-                    {Array.from({ length: pitchCount.strikes }).map((_, i) => (
-                      <div key={`s-${i}`} className="w-3 h-3 rounded-full bg-destructive border-2 border-destructive" />
-                    ))}
-                    {pitchCount.strikes === 0 && <div className="w-3 h-3 rounded-full border-2 border-muted-foreground/30" />}
-                    <span className="text-[10px] text-muted-foreground ml-0.5">S</span>
-                  </div>
-                </div>
-              </div>
-              <div className="grid grid-cols-3 gap-2">
-                <button
-                  className="h-12 rounded-xl text-sm font-bold border-2 border-success/30 bg-success/10 text-success active:scale-95 transition-all select-none"
-                  onClick={() => {
-                    setPitchCount({ ...pitchCount, balls: pitchCount.balls + 1 });
-                  }}
-                >
-                  Ball
-                </button>
-                <button
-                  className="h-12 rounded-xl text-sm font-bold border-2 border-destructive/30 bg-destructive/10 text-destructive active:scale-95 transition-all select-none"
-                  onClick={() => {
-                    setPitchCount({ ...pitchCount, strikes: pitchCount.strikes + 1 });
-                  }}
-                >
-                  Strike
-                </button>
-                <button
-                  className="h-12 rounded-xl text-sm font-bold border-2 border-border/30 text-muted-foreground active:scale-95 transition-all select-none"
-                  onClick={() => {
-                    setPitchCount({ ...pitchCount, strikes: pitchCount.strikes + 1 });
-                  }}
-                >
-                  Foul
-                </button>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Spray chart + hit type */}
-          <Card className="glass">
-            <CardContent className="px-1 pt-1 pb-3 space-y-3">
-              <div className="flex justify-center">
-                <SprayChart
-                  onClick={(x, y) => setSprayPoint({ x, y })}
-                  selectedPoint={sprayPoint}
-                  hitType={hitType}
-                  ghostMarkers={batterHistory}
-                  runners={{
-                    first: !!gameState.runnerFirst,
-                    second: !!gameState.runnerSecond,
-                    third: !!gameState.runnerThird,
-                  }}
-                  className="w-full touch-none"
-                />
-              </div>
-              {/* Clear + hit type buttons — inline below spray chart */}
-              {sprayPoint && (!selectedResult || !NON_BATTED.includes(selectedResult)) && (
-                <div className="grid grid-cols-5 gap-2">
-                  <button
-                    className="h-10 rounded-xl text-sm font-bold border-2 transition-all active:scale-95 select-none bg-muted/30 text-muted-foreground border-border/50 hover:bg-destructive/20 hover:text-destructive hover:border-destructive/50"
-                    onClick={() => { setSprayPoint(null); setHitType(null); }}
-                  >
-                    Clear
-                  </button>
-                  {HIT_TYPE_BUTTONS.map(({ type, label }) => (
+                {/* Clear + hit type buttons — inline below spray chart */}
+                {sprayPoint && (!selectedResult || !NON_BATTED.includes(selectedResult)) && (
+                  <div className="grid grid-cols-5 gap-2">
                     <button
-                      key={type}
-                      className={`h-10 rounded-xl text-sm font-bold border-2 transition-all active:scale-95 select-none ${
-                        hitType === type
-                          ? "bg-primary text-primary-foreground border-transparent shadow-lg glow-primary"
-                          : "bg-muted/30 text-foreground border-border/50 hover:bg-accent hover:border-border"
-                      }`}
-                      onClick={() => setHitType(hitType === type ? null : type)}
+                      className="h-10 rounded-xl text-sm font-bold border-2 transition-all active:scale-95 select-none bg-muted/30 text-muted-foreground border-border/50 hover:bg-destructive/20 hover:text-destructive hover:border-destructive/50"
+                      onClick={() => { setSprayPoint(null); setHitType(null); }}
                     >
-                      {label}
+                      Clear
                     </button>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                    {HIT_TYPE_BUTTONS.map(({ type, label }) => (
+                      <button
+                        key={type}
+                        className={`h-10 rounded-xl text-sm font-bold border-2 transition-all active:scale-95 select-none ${
+                          hitType === type
+                            ? "bg-primary text-primary-foreground border-transparent shadow-lg glow-primary"
+                            : "bg-muted/30 text-foreground border-border/50 hover:bg-accent hover:border-border"
+                        }`}
+                        onClick={() => setHitType(hitType === type ? null : type)}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
 
-          {/* Result buttons */}
+            {/* Play log — in left column on desktop, at the bottom on mobile */}
+            <div className="hidden md:block">
+              {playLog.length > 0 && (
+                <Card className="glass">
+                  <CardHeader className="pb-2 px-3 sm:px-6">
+                    <CardTitle className="text-lg text-gradient">Play Log</CardTitle>
+                  </CardHeader>
+                  <CardContent className="px-3 sm:px-6 pb-3">
+                    <div className="space-y-1 max-h-48 overflow-y-auto">
+                      {[...playLog].reverse().map((play, i) => (
+                        <div key={i} className="flex items-center justify-between text-sm py-2 border-b border-border/30 last:border-0">
+                          <span>
+                            <span className="text-muted-foreground">Inn {play.inning}</span>{" "}
+                            {play.team === "them" && <span className="text-xs text-orange-400 mr-1">[OPP]</span>}
+                            <span className="font-medium">{play.playerName}</span>
+                          </span>
+                          <Badge variant="outline" className="border-primary/30 text-primary">{play.notation}</Badge>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          </div>
+
+          {/* Right column: Pitch counter + results + RBIs + runners */}
+          <div className="space-y-3">
+            {/* Pitch counter */}
+            <Card className="glass">
+              <CardContent className="p-3 sm:p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="text-center">
+                    <div className="text-3xl font-extrabold tabular-nums text-gradient-bright">{pitchCount.balls}-{pitchCount.strikes}</div>
+                    <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium mt-0.5">Count</div>
+                  </div>
+                  <div className="flex flex-col gap-1.5 items-end">
+                    <div className="flex items-center gap-1 flex-wrap justify-end">
+                      {Array.from({ length: pitchCount.balls }).map((_, i) => (
+                        <div key={`b-${i}`} className="w-3 h-3 rounded-full bg-success border-2 border-success" />
+                      ))}
+                      {pitchCount.balls === 0 && <div className="w-3 h-3 rounded-full border-2 border-muted-foreground/30" />}
+                      <span className="text-[10px] text-muted-foreground ml-0.5">B</span>
+                    </div>
+                    <div className="flex items-center gap-1 flex-wrap justify-end">
+                      {Array.from({ length: pitchCount.strikes }).map((_, i) => (
+                        <div key={`s-${i}`} className="w-3 h-3 rounded-full bg-destructive border-2 border-destructive" />
+                      ))}
+                      {pitchCount.strikes === 0 && <div className="w-3 h-3 rounded-full border-2 border-muted-foreground/30" />}
+                      <span className="text-[10px] text-muted-foreground ml-0.5">S</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    className="h-12 rounded-xl text-sm font-bold border-2 border-success/30 bg-success/10 text-success active:scale-95 transition-all select-none"
+                    onClick={() => {
+                      setPitchCount({ ...pitchCount, balls: pitchCount.balls + 1 });
+                    }}
+                  >
+                    Ball
+                  </button>
+                  <button
+                    className="h-12 rounded-xl text-sm font-bold border-2 border-destructive/30 bg-destructive/10 text-destructive active:scale-95 transition-all select-none"
+                    onClick={() => {
+                      setPitchCount({ ...pitchCount, strikes: pitchCount.strikes + 1 });
+                    }}
+                  >
+                    Strike
+                  </button>
+                  <button
+                    className="h-12 rounded-xl text-sm font-bold border-2 border-border/30 text-muted-foreground active:scale-95 transition-all select-none"
+                    onClick={() => {
+                      setPitchCount({ ...pitchCount, strikes: pitchCount.strikes + 1 });
+                    }}
+                  >
+                    Foul
+                  </button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Result buttons */}
           <Card className="glass">
             <CardHeader className="pb-2 px-3 sm:px-6">
               <CardTitle className="text-lg text-gradient">Result</CardTitle>
@@ -1400,13 +1430,14 @@ export default function LiveScoringPage() {
             );
           })()}
 
-        </>
+          </div>{/* end right column */}
+        </div>
       )}
 
       {/* Confirm bar — fixed at bottom of screen */}
       {activeBatter && selectedResult && (
         <div className="fixed bottom-0 left-0 right-0 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] glass-strong border-t border-border/50 z-40">
-          <div className="max-w-lg mx-auto flex gap-2 items-center">
+          <div className="max-w-lg md:max-w-4xl mx-auto flex gap-2 items-center">
             <input
               type="text"
               value={notationOverride !== null ? notationOverride : (sprayPoint ? (() => { const fp = sprayToPosition(sprayPoint.x, sprayPoint.y); return generateNotation(selectedResult, fp, { first: gameState.runnerFirst, second: gameState.runnerSecond, third: gameState.runnerThird }, fp === 8 ? sprayCfSide(sprayPoint.x, sprayPoint.y) : undefined); })() : selectedResult)}
@@ -1424,28 +1455,30 @@ export default function LiveScoringPage() {
         </div>
       )}
 
-      {/* Play log */}
-      {playLog.length > 0 && (
-        <Card className="glass">
-          <CardHeader className="pb-2 px-3 sm:px-6">
-            <CardTitle className="text-lg text-gradient">Play Log</CardTitle>
-          </CardHeader>
-          <CardContent className="px-3 sm:px-6 pb-3">
-            <div className="space-y-1 max-h-48 overflow-y-auto">
-              {[...playLog].reverse().map((play, i) => (
-                <div key={i} className="flex items-center justify-between text-sm py-2 border-b border-border/30 last:border-0">
-                  <span>
-                    <span className="text-muted-foreground">Inn {play.inning}</span>{" "}
-                    {play.team === "them" && <span className="text-xs text-orange-400 mr-1">[OPP]</span>}
-                    <span className="font-medium">{play.playerName}</span>
-                  </span>
-                  <Badge variant="outline" className="border-primary/30 text-primary">{play.notation}</Badge>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      {/* Play log — mobile only (desktop shows in left column) */}
+      <div className="md:hidden">
+        {playLog.length > 0 && (
+          <Card className="glass">
+            <CardHeader className="pb-2 px-3 sm:px-6">
+              <CardTitle className="text-lg text-gradient">Play Log</CardTitle>
+            </CardHeader>
+            <CardContent className="px-3 sm:px-6 pb-3">
+              <div className="space-y-1 max-h-48 overflow-y-auto">
+                {[...playLog].reverse().map((play, i) => (
+                  <div key={i} className="flex items-center justify-between text-sm py-2 border-b border-border/30 last:border-0">
+                    <span>
+                      <span className="text-muted-foreground">Inn {play.inning}</span>{" "}
+                      {play.team === "them" && <span className="text-xs text-orange-400 mr-1">[OPP]</span>}
+                      <span className="font-medium">{play.playerName}</span>
+                    </span>
+                    <Badge variant="outline" className="border-primary/30 text-primary">{play.notation}</Badge>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
       {/* Half-inning transition overlay */}
       {halfInningTransition && (
         <div
