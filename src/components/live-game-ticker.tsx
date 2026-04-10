@@ -89,8 +89,8 @@ export function LiveGameTicker() {
     >
       {/* Live dot */}
       <span className="relative flex h-2 w-2 shrink-0">
-        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
-        <span className="relative inline-flex rounded-full h-2 w-2 bg-primary" />
+        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75" />
+        <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
       </span>
 
       {/* Score */}
@@ -104,28 +104,31 @@ export function LiveGameTicker() {
       <div className="flex items-center gap-1">
         <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0">
           {/* Diamond lines */}
-          <line x1="12" y1="20" x2="4" y2="12" stroke="var(--border)" strokeWidth="1" />
-          <line x1="4" y1="12" x2="12" y2="4" stroke="var(--border)" strokeWidth="1" />
-          <line x1="12" y1="4" x2="20" y2="12" stroke="var(--border)" strokeWidth="1" />
-          <line x1="20" y1="12" x2="12" y2="20" stroke="var(--border)" strokeWidth="1" />
-          {/* Bases */}
+          <line x1="12" y1="20" x2="4" y2="12" stroke="#E9D7B4" strokeWidth="1" opacity="0.6" />
+          <line x1="4" y1="12" x2="12" y2="4" stroke="#E9D7B4" strokeWidth="1" opacity="0.6" />
+          <line x1="12" y1="4" x2="20" y2="12" stroke="#E9D7B4" strokeWidth="1" opacity="0.6" />
+          <line x1="20" y1="12" x2="12" y2="20" stroke="#E9D7B4" strokeWidth="1" opacity="0.6" />
+          {/* Home plate */}
           <rect x="10.5" y="18.5" width="3" height="3" rx="0.5"
-            fill="var(--background)" stroke="var(--border)" strokeWidth="0.5"
+            fill="#E9D7B4" opacity="0.6"
             transform="rotate(45 12 20)" />
+          {/* 3rd base */}
           <rect x="2.5" y="10.5" width="3" height="3" rx="0.5"
-            fill={game.runnerThird ? "var(--primary)" : "var(--background)"}
-            stroke={game.runnerThird ? "var(--primary)" : "var(--border)"}
-            strokeWidth="0.5"
+            fill={game.runnerThird ? "#E9D7B4" : "#111111"}
+            stroke="#E9D7B4" strokeWidth="0.5"
+            opacity={game.runnerThird ? 1 : 0.5}
             transform="rotate(45 4 12)" />
+          {/* 2nd base */}
           <rect x="10.5" y="2.5" width="3" height="3" rx="0.5"
-            fill={game.runnerSecond ? "var(--primary)" : "var(--background)"}
-            stroke={game.runnerSecond ? "var(--primary)" : "var(--border)"}
-            strokeWidth="0.5"
+            fill={game.runnerSecond ? "#E9D7B4" : "#111111"}
+            stroke="#E9D7B4" strokeWidth="0.5"
+            opacity={game.runnerSecond ? 1 : 0.5}
             transform="rotate(45 12 4)" />
+          {/* 1st base */}
           <rect x="18.5" y="10.5" width="3" height="3" rx="0.5"
-            fill={game.runnerFirst ? "var(--primary)" : "var(--background)"}
-            stroke={game.runnerFirst ? "var(--primary)" : "var(--border)"}
-            strokeWidth="0.5"
+            fill={game.runnerFirst ? "#E9D7B4" : "#111111"}
+            stroke="#E9D7B4" strokeWidth="0.5"
+            opacity={game.runnerFirst ? 1 : 0.5}
             transform="rotate(45 20 12)" />
         </svg>
 
