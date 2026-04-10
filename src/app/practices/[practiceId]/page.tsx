@@ -130,6 +130,7 @@ export default function PracticeSetupPage() {
 
   // Drag and drop
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
+  const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 5 } })
@@ -674,12 +675,27 @@ export default function PracticeSetupPage() {
                       <div className="flex items-center gap-3 p-3 group">
                         {!isSquadSplit && <PlanItemDragHandle itemId={item.id} />}
                         <span className="text-xs text-muted-foreground font-bold w-5 shrink-0">{fullIdx + 1}</span>
-                        <div className="flex-1 min-w-0">
+                        <button
+                          className="flex-1 min-w-0 text-left"
+                          onClick={() => {
+                            const drill = item.drill_id ? drills.find(d => d.id === item.drill_id) : null;
+                            if (drill?.description || isSquadSplit) {
+                              setExpandedItemId(expandedItemId === item.id ? null : item.id);
+                            }
+                          }}
+                        >
                           <div className="text-sm font-medium truncate flex items-center gap-1.5">
                             {isSquadSplit && (
                               <Group width={14} height={14} className="text-primary shrink-0" />
                             )}
                             {item.label}
+                            {(() => {
+                              const drill = item.drill_id ? drills.find(d => d.id === item.drill_id) : null;
+                              if (drill?.description) return (
+                                <NavArrowDown width={12} height={12} className={`text-muted-foreground/50 shrink-0 transition-transform ${expandedItemId === item.id ? "rotate-180" : ""}`} />
+                              );
+                              return null;
+                            })()}
                           </div>
                           {item.drill_id && (
                             <div className="text-[10px] text-primary/60">From drill library</div>
@@ -687,7 +703,7 @@ export default function PracticeSetupPage() {
                           {isSquadSplit && (
                             <div className="text-[10px] text-primary/60">{squadGroups.length} group{squadGroups.length !== 1 ? "s" : ""} · {planItems.filter((i) => i.group_id).length} drill{planItems.filter((i) => i.group_id).length !== 1 ? "s" : ""}</div>
                           )}
-                        </div>
+                        </button>
                         {!isSquadSplit && (
                           editingDurationId === item.id ? (
                             <div className="flex items-center gap-1 shrink-0">
@@ -739,6 +755,20 @@ export default function PracticeSetupPage() {
                           </button>
                         </div>
                       </div>
+
+                      {/* Expanded drill description */}
+                      {expandedItemId === item.id && item.drill_id && (() => {
+                        const drill = drills.find(d => d.id === item.drill_id);
+                        if (!drill?.description) return null;
+                        return (
+                          <div className="px-3 pb-3 border-t border-border/30 pt-2">
+                            <div className="text-xs text-muted-foreground whitespace-pre-wrap leading-relaxed">{drill.description}</div>
+                            {drill.category && (
+                              <span className="inline-block mt-1.5 text-[10px] font-medium px-2 py-0.5 rounded-full bg-primary/10 text-primary/70">{drill.category}</span>
+                            )}
+                          </div>
+                        );
+                      })()}
 
                       {/* Squad Split inline editor */}
                       {isSquadSplit && (
@@ -821,10 +851,19 @@ export default function PracticeSetupPage() {
                 {activeDragId ? (() => {
                   const draggedItem = planItems.find((i) => i.id === activeDragId);
                   if (!draggedItem) return null;
+                  const fullIdx = planItems.findIndex((i) => i.id === draggedItem.id);
                   return (
-                    <div className="flex items-center gap-2 h-8 px-2.5 rounded-lg text-xs font-bold border-2 border-primary/60 bg-primary/20 text-primary shadow-lg cursor-grabbing max-w-xs min-w-0">
-                      <span className="truncate">{draggedItem.label}</span>
-                      {draggedItem.duration_minutes > 0 && <span className="text-[10px] opacity-60">{draggedItem.duration_minutes}m</span>}
+                    <div className="rounded-xl border-2 border-primary/60 bg-sidebar shadow-xl cursor-grabbing" style={{ width: 'calc(100vw - 4rem)', maxWidth: '600px' }}>
+                      <div className="flex items-center gap-3 p-3">
+                        <span className="text-xs text-muted-foreground font-bold w-5 shrink-0">{fullIdx + 1}</span>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-medium truncate">{draggedItem.label}</div>
+                          {draggedItem.drill_id && (
+                            <div className="text-[10px] text-primary/60">From drill library</div>
+                          )}
+                        </div>
+                        <span className="text-xs text-muted-foreground shrink-0 tabular-nums">{draggedItem.duration_minutes}m</span>
+                      </div>
                     </div>
                   );
                 })() : null}
