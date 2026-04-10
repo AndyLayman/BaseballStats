@@ -819,7 +819,7 @@ export default function LiveScoringPage() {
             </div>
             <div className="text-center px-3 relative">
               {/* Base runners diamond — tap occupied base for stolen base */}
-              <svg viewBox="0 0 80 80" className="w-20 h-20 sm:w-24 sm:h-24 mx-auto">
+              <svg viewBox="0 0 80 80" className="w-28 h-28 sm:w-32 sm:h-32 mx-auto">
                 <line x1="40" y1="65" x2="15" y2="40" stroke="#E9D7B4" strokeWidth="1.5" opacity="0.6" />
                 <line x1="15" y1="40" x2="40" y2="15" stroke="#E9D7B4" strokeWidth="1.5" opacity="0.6" />
                 <line x1="40" y1="15" x2="65" y2="40" stroke="#E9D7B4" strokeWidth="1.5" opacity="0.6" />
