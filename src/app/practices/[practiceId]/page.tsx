@@ -191,12 +191,12 @@ export default function PracticeSetupPage() {
 
   // ---- Squad Groups ----
   const GROUP_COLORS = [
-    { bg: "bg-teal-500/20", text: "text-teal-400", border: "border-teal-500/40" },
-    { bg: "bg-purple-500/20", text: "text-purple-400", border: "border-purple-500/40" },
-    { bg: "bg-amber-500/20", text: "text-amber-400", border: "border-amber-500/40" },
-    { bg: "bg-blue-500/20", text: "text-blue-400", border: "border-blue-500/40" },
-    { bg: "bg-rose-500/20", text: "text-rose-400", border: "border-rose-500/40" },
-    { bg: "bg-green-500/20", text: "text-green-400", border: "border-green-500/40" },
+    { bg: "bg-primary/20", text: "text-primary", border: "border-primary/40" },
+    { bg: "bg-primary/15", text: "text-primary/80", border: "border-primary/30" },
+    { bg: "bg-primary/10", text: "text-primary/70", border: "border-primary/25" },
+    { bg: "bg-primary/20", text: "text-primary", border: "border-primary/40" },
+    { bg: "bg-primary/15", text: "text-primary/80", border: "border-primary/30" },
+    { bg: "bg-primary/10", text: "text-primary/70", border: "border-primary/25" },
   ];
 
   async function addSquadGroup() {
@@ -457,8 +457,8 @@ export default function PracticeSetupPage() {
                         key={p.id}
                         className={`h-10 rounded-xl text-xs font-bold border-2 flex items-center justify-center truncate px-1 ${
                           present
-                            ? "bg-green-500/20 text-green-400 border-green-500/40"
-                            : "bg-red-500/15 text-red-400/60 border-red-500/30 line-through"
+                            ? "bg-primary/15 text-primary border-primary/30"
+                            : "bg-muted/10 text-muted-foreground/40 border-border/30 line-through"
                         }`}
                       >
                         #{p.number} {firstName(p)}
@@ -491,9 +491,9 @@ export default function PracticeSetupPage() {
                     <div key={item.id} className="rounded-xl border-2 border-border/50 bg-muted/20 p-3">
                       <div className="flex items-center gap-3">
                         {!isSquadSplit && (
-                          <div className={`h-5 w-5 rounded-full flex items-center justify-center shrink-0 ${item.completed ? "bg-green-500/20 border border-green-500/40" : "bg-muted/50 border border-border/50"}`}>
+                          <div className={`h-5 w-5 rounded-full flex items-center justify-center shrink-0 ${item.completed ? "bg-primary/20 border border-primary/40" : "bg-muted/50 border border-border/50"}`}>
                             {item.completed && (
-                              <Check width={10} height={10} className="text-green-400" />
+                              <Check width={10} height={10} className="text-primary" />
                             )}
                           </div>
                         )}
@@ -585,9 +585,9 @@ export default function PracticeSetupPage() {
               <CardContent className="px-4 pb-4 space-y-1.5">
                 {actionItems.map((item) => (
                   <div key={item.id} className="flex items-center gap-2">
-                    <div className={`h-4 w-4 rounded flex items-center justify-center shrink-0 ${item.completed ? "bg-green-500/20 border border-green-500/40" : "bg-muted/50 border border-border/50"}`}>
+                    <div className={`h-4 w-4 rounded flex items-center justify-center shrink-0 ${item.completed ? "bg-primary/20 border border-primary/40" : "bg-muted/50 border border-border/50"}`}>
                       {item.completed && (
-                        <Check width={8} height={8} className="text-green-400" />
+                        <Check width={8} height={8} className="text-primary" />
                       )}
                     </div>
                     <span className={`flex-1 text-sm ${item.completed ? "line-through text-muted-foreground" : ""}`}>{item.text}</span>
@@ -1002,7 +1002,7 @@ export default function PracticeSetupPage() {
         <div className="fixed bottom-0 left-0 right-0 z-20 bg-background/90 backdrop-blur-md border-t border-border/50 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
           <div className="max-w-2xl mx-auto">
             {practice.completed ? (
-              <div className="flex items-center justify-center gap-2 h-14 rounded-xl border-2 border-green-500/30 bg-green-500/10 text-green-400 font-bold text-lg">
+              <div className="flex items-center justify-center gap-2 h-14 rounded-xl border-2 border-primary/30 bg-primary/10 text-primary font-bold text-lg">
                 <DoubleCheck width={22} height={22} />
                 Practice Complete
               </div>

@@ -189,10 +189,11 @@ export default function LiveScoringPage() {
 
   const persistState = useCallback(
     async (state: GameState) => {
-      // Resolve the leadoff batter for the current half-inning
-      // When it's bottom (our at-bat) and outs === 0, the current batter is the leadoff
+      // Resolve the leadoff batter for our next at-bat
+      // When it's top (our half just ended / we're on defense), currentBatterIndex
+      // points to whoever leads off next time we bat
       let leadoffPlayerId: number | null = null;
-      if (state.currentHalf === "bottom" && state.outs === 0 && state.lineup.length > 0) {
+      if (state.currentHalf === "top" && state.lineup.length > 0) {
         const idx = state.currentBatterIndex % state.lineup.length;
         leadoffPlayerId = state.lineup[idx].player_id;
       }
