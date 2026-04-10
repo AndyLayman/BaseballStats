@@ -865,11 +865,11 @@ export default function LiveScoringPage() {
               <div className="flex items-center justify-center gap-0.5 text-sm font-bold mt-1">
                 {gameState.currentHalf === "top" ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />} {gameState.currentInning}
               </div>
-              <div className="flex gap-1.5 mt-1 justify-center">
+              <div className="flex gap-1 sm:gap-1.5 mt-1 justify-center">
                 {[0, 1, 2].map((i) => (
                   <div
                     key={i}
-                    className={`w-3.5 h-3.5 rounded-full border-2 transition-colors ${
+                    className={`w-2 h-2 sm:w-3.5 sm:h-3.5 rounded-full border sm:border-2 transition-colors ${
                       i < gameState.outs
                         ? "bg-destructive border-destructive shadow-[0_0_6px_rgba(250,77,77,0.5)]"
                         : "bg-transparent border-muted-foreground/40"
@@ -1061,6 +1061,37 @@ export default function LiveScoringPage() {
         </Card>
       )}
 
+      {/* Now Batting — mobile only (desktop shows in right column) */}
+      {isOurBatting && batter && (
+        <Card className="md:hidden border-primary/30 bg-primary/5 animate-slide-up">
+          <CardContent className="p-3">
+            <div className="text-center">
+              <div className="text-xs text-gradient uppercase tracking-widest font-semibold">Now Batting</div>
+              <div className="text-2xl font-extrabold mt-0.5 text-gradient-bright">{batter.playerName}</div>
+              {hitProbability !== null && (
+                <div className="mt-1 flex items-center justify-center gap-1.5">
+                  <div className="h-1.5 w-20 rounded-full bg-muted/50 overflow-hidden">
+                    <div
+                      className="h-full rounded-full transition-all duration-500"
+                      style={{
+                        width: `${hitProbability}%`,
+                        backgroundColor: hitProbability >= 40 ? "var(--success)" : hitProbability >= 25 ? "var(--primary)" : "var(--destructive)",
+                      }}
+                    />
+                  </div>
+                  <span className="text-xs font-bold tabular-nums" style={{
+                    color: hitProbability >= 40 ? "var(--success)" : hitProbability >= 25 ? "var(--primary)" : "var(--destructive)",
+                  }}>
+                    {hitProbability}%
+                  </span>
+                  <span className="text-[10px] text-muted-foreground">hit</span>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* At-bat flow — shared for both halves */}
       {activeBatter && (
         <div className="md:grid md:grid-cols-2 md:gap-4 space-y-3 md:space-y-0">
@@ -1138,9 +1169,9 @@ export default function LiveScoringPage() {
 
           {/* Right column: Now batting + pitch counter + results + RBIs + runners */}
           <div className="space-y-3">
-            {/* Current batter display */}
+            {/* Current batter display — desktop only (mobile shows above) */}
             {isOurBatting && batter && (
-              <Card className="border-primary/30 bg-primary/5 animate-slide-up">
+              <Card className="hidden md:block border-primary/30 bg-primary/5 animate-slide-up">
                 <CardContent className="p-3 sm:p-4">
                   <div className="text-center">
                     <div className="text-xs text-gradient uppercase tracking-widest font-semibold">Now Batting</div>
