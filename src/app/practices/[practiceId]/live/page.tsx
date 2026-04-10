@@ -110,12 +110,12 @@ export default function LivePracticePage() {
   );
 
   const GROUP_COLORS = [
-    { bg: "bg-teal-500/20", text: "text-teal-400", border: "border-teal-500/40" },
-    { bg: "bg-purple-500/20", text: "text-purple-400", border: "border-purple-500/40" },
-    { bg: "bg-amber-500/20", text: "text-amber-400", border: "border-amber-500/40" },
-    { bg: "bg-blue-500/20", text: "text-blue-400", border: "border-blue-500/40" },
-    { bg: "bg-rose-500/20", text: "text-rose-400", border: "border-rose-500/40" },
-    { bg: "bg-green-500/20", text: "text-green-400", border: "border-green-500/40" },
+    { bg: "bg-primary/20", text: "text-primary", border: "border-primary/40" },
+    { bg: "bg-primary/15", text: "text-primary/80", border: "border-primary/30" },
+    { bg: "bg-primary/10", text: "text-primary/70", border: "border-primary/25" },
+    { bg: "bg-primary/20", text: "text-primary", border: "border-primary/40" },
+    { bg: "bg-primary/15", text: "text-primary/80", border: "border-primary/30" },
+    { bg: "bg-primary/10", text: "text-primary/70", border: "border-primary/25" },
   ];
 
   // Share
@@ -603,9 +603,9 @@ export default function LivePracticePage() {
 
       {/* Carry-Forward Action Items */}
       {openActionItems.length > 0 && (
-        <Card className="glass border-amber-500/30">
+        <Card className="glass border-primary/30">
           <CardHeader className="pb-2 px-4">
-            <CardTitle className="text-sm text-amber-400 uppercase tracking-wider font-medium">
+            <CardTitle className="text-sm text-primary uppercase tracking-wider font-medium">
               Open Action Items (from previous)
             </CardTitle>
           </CardHeader>
@@ -618,7 +618,7 @@ export default function LivePracticePage() {
                     className={`h-5 w-5 rounded border-2 shrink-0 flex items-center justify-center transition-all ${
                       item.completed
                         ? "bg-primary/20 border-primary/40 text-primary"
-                        : "border-amber-500/40 hover:border-primary/40"
+                        : "border-primary/40 hover:border-primary/60"
                     }`}
                   >
                     {item.completed && (
