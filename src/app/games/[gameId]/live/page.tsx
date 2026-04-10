@@ -1244,9 +1244,10 @@ export default function LiveScoringPage() {
                     key={result}
                     className={`h-14 sm:h-12 rounded-xl text-base font-bold border-2 transition-all active:scale-95 select-none ${
                       selectedResult === result
-                        ? `${color} text-white border-transparent shadow-lg`
+                        ? "border-transparent shadow-lg"
                         : "bg-muted/30 text-foreground border-border/50 hover:bg-accent hover:border-border"
                     }`}
+                    style={selectedResult === result ? { background: 'var(--clay)', color: '#111111' } : undefined}
                     onClick={() => {
                       setSelectedResult(result);
                       // Auto-select hit type based on result
