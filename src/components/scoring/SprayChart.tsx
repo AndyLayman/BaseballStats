@@ -58,12 +58,12 @@ export function SprayChart({
       onClick={handleClick}
       onTouchEnd={handleTouch}
     >
-      {/* Foul lines */}
-      <line x1="150" y1="280" x2="10" y2="140" stroke="#E9D7B4" strokeWidth="1.5" opacity="0.4" />
-      <line x1="150" y1="280" x2="290" y2="140" stroke="#E9D7B4" strokeWidth="1.5" opacity="0.4" />
+      {/* Foul lines — trimmed to meet the outfield fence arc */}
+      <line x1="150" y1="280" x2="16" y2="146" stroke="#E9D7B4" strokeWidth="1.5" opacity="0.4" />
+      <line x1="150" y1="280" x2="284" y2="146" stroke="#E9D7B4" strokeWidth="1.5" opacity="0.4" />
 
       {/* Outfield fence arc */}
-      <path d="M 10 155 A 160 160 0 0 1 290 155" fill="none" stroke="#E9D7B4" strokeWidth="2" opacity="0.5" />
+      <path d="M 16 146 A 160 160 0 0 1 284 146" fill="none" stroke="#E9D7B4" strokeWidth="2" opacity="0.5" />
 
       {/* Infield diamond fill */}
       <path d="M 150 280 L 80 210 L 150 140 L 220 210 Z" fill="#E9D7B4" opacity="0.1" />

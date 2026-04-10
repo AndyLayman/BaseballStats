@@ -1013,37 +1013,6 @@ export default function LiveScoringPage() {
         </>
       )}
 
-      {/* Our batting — current batter display */}
-      {isOurBatting && batter && (
-        <Card className="border-primary/30 bg-primary/5 animate-slide-up">
-          <CardContent className="p-3 sm:p-4">
-            <div className="text-center">
-              <div className="text-xs text-gradient uppercase tracking-widest font-semibold">Now Batting</div>
-              <div className="text-2xl sm:text-xl font-extrabold mt-0.5 text-gradient-bright">{batter.playerName}</div>
-              {hitProbability !== null && (
-                <div className="mt-1 flex items-center justify-center gap-1.5">
-                  <div className="h-1.5 w-20 rounded-full bg-muted/50 overflow-hidden">
-                    <div
-                      className="h-full rounded-full transition-all duration-500"
-                      style={{
-                        width: `${hitProbability}%`,
-                        backgroundColor: hitProbability >= 40 ? "var(--success)" : hitProbability >= 25 ? "var(--primary)" : "var(--destructive)",
-                      }}
-                    />
-                  </div>
-                  <span className="text-xs font-bold tabular-nums" style={{
-                    color: hitProbability >= 40 ? "var(--success)" : hitProbability >= 25 ? "var(--primary)" : "var(--destructive)",
-                  }}>
-                    {hitProbability}%
-                  </span>
-                  <span className="text-[10px] text-muted-foreground">hit</span>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
       {/* Lineup builder if our lineup is empty */}
       {isOurBatting && !batter && gameState && (
         <Card className="glass animate-slide-up">
@@ -1167,8 +1136,38 @@ export default function LiveScoringPage() {
             </div>
           </div>
 
-          {/* Right column: Pitch counter + results + RBIs + runners */}
+          {/* Right column: Now batting + pitch counter + results + RBIs + runners */}
           <div className="space-y-3">
+            {/* Current batter display */}
+            {isOurBatting && batter && (
+              <Card className="border-primary/30 bg-primary/5 animate-slide-up">
+                <CardContent className="p-3 sm:p-4">
+                  <div className="text-center">
+                    <div className="text-xs text-gradient uppercase tracking-widest font-semibold">Now Batting</div>
+                    <div className="text-2xl sm:text-xl font-extrabold mt-0.5 text-gradient-bright">{batter.playerName}</div>
+                    {hitProbability !== null && (
+                      <div className="mt-1 flex items-center justify-center gap-1.5">
+                        <div className="h-1.5 w-20 rounded-full bg-muted/50 overflow-hidden">
+                          <div
+                            className="h-full rounded-full transition-all duration-500"
+                            style={{
+                              width: `${hitProbability}%`,
+                              backgroundColor: hitProbability >= 40 ? "var(--success)" : hitProbability >= 25 ? "var(--primary)" : "var(--destructive)",
+                            }}
+                          />
+                        </div>
+                        <span className="text-xs font-bold tabular-nums" style={{
+                          color: hitProbability >= 40 ? "var(--success)" : hitProbability >= 25 ? "var(--primary)" : "var(--destructive)",
+                        }}>
+                          {hitProbability}%
+                        </span>
+                        <span className="text-[10px] text-muted-foreground">hit</span>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
             {/* Pitch counter */}
             <Card className="glass">
               <CardContent className="p-3 sm:p-4 space-y-3">

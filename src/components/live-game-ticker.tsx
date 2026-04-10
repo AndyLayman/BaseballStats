@@ -102,30 +102,30 @@ export function LiveGameTicker() {
 
       {/* Mini diamond + inning */}
       <div className="flex items-center gap-1">
-        <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0">
+        <svg viewBox="0 0 24 24" className="h-5 w-5 shrink-0">
           {/* Diamond lines */}
-          <line x1="12" y1="20" x2="4" y2="12" stroke="#E9D7B4" strokeWidth="1" opacity="0.6" />
-          <line x1="4" y1="12" x2="12" y2="4" stroke="#E9D7B4" strokeWidth="1" opacity="0.6" />
-          <line x1="12" y1="4" x2="20" y2="12" stroke="#E9D7B4" strokeWidth="1" opacity="0.6" />
-          <line x1="20" y1="12" x2="12" y2="20" stroke="#E9D7B4" strokeWidth="1" opacity="0.6" />
+          <line x1="12" y1="20" x2="4" y2="12" stroke="#E9D7B4" strokeWidth="1.5" opacity="0.6" />
+          <line x1="4" y1="12" x2="12" y2="4" stroke="#E9D7B4" strokeWidth="1.5" opacity="0.6" />
+          <line x1="12" y1="4" x2="20" y2="12" stroke="#E9D7B4" strokeWidth="1.5" opacity="0.6" />
+          <line x1="20" y1="12" x2="12" y2="20" stroke="#E9D7B4" strokeWidth="1.5" opacity="0.6" />
           {/* Home plate */}
-          <rect x="9" y="17" width="6" height="6" rx="0.5"
+          <rect x="8.5" y="16.5" width="7" height="7" rx="0.5"
             fill="#E9D7B4" opacity="0.6"
             transform="rotate(45 12 20)" />
           {/* 3rd base */}
-          <rect x="1" y="9" width="6" height="6" rx="0.5"
+          <rect x="0.5" y="8.5" width="7" height="7" rx="0.5"
             fill={game.runnerThird ? "#E9D7B4" : "#111111"}
-            stroke="#E9D7B4" strokeWidth="0.5"
+            stroke="#E9D7B4" strokeWidth="0.75"
             transform="rotate(45 4 12)" />
           {/* 2nd base */}
-          <rect x="9" y="1" width="6" height="6" rx="0.5"
+          <rect x="8.5" y="0.5" width="7" height="7" rx="0.5"
             fill={game.runnerSecond ? "#E9D7B4" : "#111111"}
-            stroke="#E9D7B4" strokeWidth="0.5"
+            stroke="#E9D7B4" strokeWidth="0.75"
             transform="rotate(45 12 4)" />
           {/* 1st base */}
-          <rect x="17" y="9" width="6" height="6" rx="0.5"
+          <rect x="16.5" y="8.5" width="7" height="7" rx="0.5"
             fill={game.runnerFirst ? "#E9D7B4" : "#111111"}
-            stroke="#E9D7B4" strokeWidth="0.5"
+            stroke="#E9D7B4" strokeWidth="0.75"
             transform="rotate(45 20 12)" />
         </svg>
 
