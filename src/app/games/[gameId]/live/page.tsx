@@ -810,19 +810,19 @@ export default function LiveScoringPage() {
 
   return (
     <>
-    {/* Expandable scoreboard — attached to header */}
-    <div className="sticky top-14 z-40 flex flex-col items-center">
+    {/* Expandable scoreboard — fixed below header */}
+    <div className="fixed top-14 left-0 right-0 z-40 flex flex-col items-center pointer-events-none">
       {/* Pull tab */}
       <button
         onClick={() => setScoreboardExpanded(!scoreboardExpanded)}
-        className="flex items-center justify-center w-12 h-5 rounded-b-lg bg-sidebar border border-t-0 border-border/50 hover:bg-primary/20 transition-all active:scale-95"
+        className="pointer-events-auto flex items-center justify-center w-12 h-5 rounded-b-lg bg-sidebar border border-t-0 border-border/50 hover:bg-primary/20 transition-all active:scale-95"
       >
         <ChevronDown className={`w-3.5 h-3.5 text-muted-foreground transition-transform duration-300 ${scoreboardExpanded ? "rotate-180" : ""}`} />
       </button>
 
       {/* Expanded scoreboard panel */}
       <div
-        className={`w-full max-w-lg md:max-w-4xl overflow-hidden transition-all duration-300 ease-in-out ${
+        className={`pointer-events-auto w-full max-w-lg md:max-w-4xl px-4 overflow-hidden transition-all duration-300 ease-in-out ${
           scoreboardExpanded ? "max-h-48 opacity-100 mt-2" : "max-h-0 opacity-0"
         }`}
       >
