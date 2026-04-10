@@ -85,7 +85,7 @@ export function LiveGameTicker() {
   return (
     <Link
       href={`/games/${game.id}/live`}
-      className="flex items-center gap-2 px-2 py-1 rounded-lg bg-primary/10 border border-primary/30 hover:bg-primary/20 transition-all group"
+      className="flex items-center gap-2 px-2 py-1 rounded-lg bg-primary/10 border border-primary/30 hover:bg-primary/20 transition-all group overflow-visible"
     >
       {/* Live dot */}
       <span className="relative flex h-2 w-2 shrink-0">
@@ -101,8 +101,8 @@ export function LiveGameTicker() {
       </div>
 
       {/* Mini diamond + inning */}
-      <div className="flex items-center gap-1">
-        <svg viewBox="0 0 24 24" className="h-5 w-5 shrink-0">
+      <div className="flex items-center gap-1 overflow-visible">
+        <svg viewBox="0 0 24 24" className="h-6 w-6 shrink-0" overflow="visible">
           {/* Diamond lines */}
           <line x1="12" y1="20" x2="4" y2="12" stroke="#E9D7B4" strokeWidth="1.5" opacity="0.6" />
           <line x1="4" y1="12" x2="12" y2="4" stroke="#E9D7B4" strokeWidth="1.5" opacity="0.6" />
