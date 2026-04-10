@@ -809,23 +809,23 @@ export default function LiveScoringPage() {
   }
 
   return (
-    <div className="space-y-3 max-w-lg md:max-w-4xl mx-auto pb-24">
-      {/* Expandable scoreboard — pulls down from header */}
-      <div className="relative">
-        {/* Pull tab */}
-        <button
-          onClick={() => setScoreboardExpanded(!scoreboardExpanded)}
-          className="mx-auto flex items-center justify-center w-12 h-5 rounded-b-lg bg-primary/10 border border-t-0 border-primary/30 hover:bg-primary/20 transition-all active:scale-95"
-        >
-          <ChevronDown className={`w-3.5 h-3.5 text-muted-foreground transition-transform duration-300 ${scoreboardExpanded ? "rotate-180" : ""}`} />
-        </button>
+    <>
+    {/* Expandable scoreboard — attached to header */}
+    <div className="sticky top-14 z-40 flex flex-col items-center">
+      {/* Pull tab */}
+      <button
+        onClick={() => setScoreboardExpanded(!scoreboardExpanded)}
+        className="flex items-center justify-center w-12 h-5 rounded-b-lg bg-sidebar border border-t-0 border-border/50 hover:bg-primary/20 transition-all active:scale-95"
+      >
+        <ChevronDown className={`w-3.5 h-3.5 text-muted-foreground transition-transform duration-300 ${scoreboardExpanded ? "rotate-180" : ""}`} />
+      </button>
 
-        {/* Expanded scoreboard panel */}
-        <div
-          className={`overflow-hidden transition-all duration-300 ease-in-out ${
-            scoreboardExpanded ? "max-h-48 opacity-100 mt-2" : "max-h-0 opacity-0"
-          }`}
-        >
+      {/* Expanded scoreboard panel */}
+      <div
+        className={`w-full max-w-lg md:max-w-4xl overflow-hidden transition-all duration-300 ease-in-out ${
+          scoreboardExpanded ? "max-h-48 opacity-100 mt-2" : "max-h-0 opacity-0"
+        }`}
+      >
           <Card className="glass-strong gradient-border glow-primary">
             <CardContent className="px-3 py-1.5 sm:px-4 sm:py-2">
               <div className="flex items-center justify-between">
@@ -901,9 +901,10 @@ export default function LiveScoringPage() {
               </div>
             </CardContent>
           </Card>
-        </div>
       </div>
+    </div>
 
+    <div className="space-y-3 max-w-lg md:max-w-4xl mx-auto pb-24">
       {/* Stolen base action — shown when a runner's base is tapped */}
       {sbRunner && (() => {
         const runner = sbRunner === "first" ? gameState.runnerFirst
@@ -1636,5 +1637,6 @@ export default function LiveScoringPage() {
         </div>
       )}
     </div>
+    </>
   );
 }
