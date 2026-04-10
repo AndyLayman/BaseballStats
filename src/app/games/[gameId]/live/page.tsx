@@ -75,6 +75,8 @@ export default function LiveScoringPage() {
   const [playLog, setPlayLog] = useState<{ notation: string; playerName: string; inning: number; team: "us" | "them" }[]>([]);
   const [newOpponentName, setNewOpponentName] = useState("");
   const [pitchCount, setPitchCount] = useState<{ balls: number; strikes: number }>({ balls: 0, strikes: 0 });
+  const [totalPitches, setTotalPitches] = useState<{ us: number; them: number }>({ us: 0, them: 0 });
+  const [totalPitchesHistory, setTotalPitchesHistory] = useState<{ us: number; them: number }[]>([]);
   const [errorPosition, setErrorPosition] = useState<{ pos: number; cf?: "LC" | "RC"; key: string } | null>(null);
   const [batterHistory, setBatterHistory] = useState<{ x: number; y: number; result: PlateAppearanceResult; hitType: HitType | null }[]>([]);
   const [inningPositions, setInningPositions] = useState<{ player_id: number; position: string }[]>([]);
@@ -267,6 +269,13 @@ export default function LiveScoringPage() {
     };
 
     setStateHistory((prev) => [...prev, gameState]);
+    // Track total pitches: pitches this AB = balls + strikes + 1 (the result pitch)
+    const abPitches = pitchCount.balls + pitchCount.strikes + 1;
+    setTotalPitchesHistory((prev) => [...prev, totalPitches]);
+    setTotalPitches((prev) => ({
+      us: isOpponent ? prev.us + abPitches : prev.us,
+      them: isOpponent ? prev.them : prev.them + abPitches,
+    }));
     const newState = isOpponent
       ? recordOpponentAtBat(gameState, payload)
       : recordAtBat(gameState, payload);
@@ -398,6 +407,11 @@ export default function LiveScoringPage() {
     setStateHistory((prev) => prev.slice(0, -1));
     setGameState(prevState);
     setPlayLog((prev) => prev.slice(0, -1));
+    // Restore previous total pitches
+    if (totalPitchesHistory.length > 0) {
+      setTotalPitches(totalPitchesHistory[totalPitchesHistory.length - 1]);
+      setTotalPitchesHistory((prev) => prev.slice(0, -1));
+    }
     await persistState(prevState);
 
     const { data: lastPA } = await supabase
@@ -966,6 +980,17 @@ export default function LiveScoringPage() {
         >
           Undo
         </Button>
+
+        {/* Total Pitches */}
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary/10 border border-primary/30">
+          <span className="text-[10px] uppercase tracking-wider font-medium text-muted-foreground">Pitches</span>
+          <div className="flex items-center gap-1.5 text-sm font-bold tabular-nums">
+            <span className="text-foreground">{totalPitches.us}</span>
+            <span className="text-muted-foreground">-</span>
+            <span className="text-foreground">{totalPitches.them}</span>
+          </div>
+        </div>
+
         <Button
           variant="ghost"
           onClick={handleEndGame}
