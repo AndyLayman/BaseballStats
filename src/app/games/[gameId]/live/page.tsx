@@ -22,6 +22,7 @@ import { isAtBat, isHit, totalBases } from "@/lib/stats/calculations";
 import type { GameState, PlateAppearanceResult, RecordAtBatPayload, RunnerAdvance, Player, GameLineup, OpponentBatter, HitType } from "@/lib/scoring/types";
 import { fullName, firstName } from "@/lib/player-name";
 import { ChainAwardPicker } from "@/components/chain-award-picker";
+import { ChevronUp, ChevronDown } from "lucide-react";
 
 const RESULT_BUTTONS: { result: PlateAppearanceResult; label: string; color: string }[] = [
   { result: "1B", label: "1B", color: "bg-primary text-primary-foreground" },
@@ -864,9 +865,8 @@ export default function LiveScoringPage() {
                   transform="rotate(45 65 40)" pointerEvents="none"
                 />
               </svg>
-              <div className="flex items-center justify-center gap-1.5 text-sm font-bold mt-1">
-                <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                {gameState.currentHalf === "top" ? "\u25B2" : "\u25BC"} {gameState.currentInning}
+              <div className="flex items-center justify-center gap-0.5 text-sm font-bold mt-1">
+                {gameState.currentHalf === "top" ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />} {gameState.currentInning}
               </div>
               <div className="flex gap-1.5 mt-1 justify-center">
                 {[0, 1, 2].map((i) => (
