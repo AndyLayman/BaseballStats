@@ -819,11 +819,11 @@ export default function LiveScoringPage() {
             <div className="text-center px-3">
               {/* Base runners diamond — tap occupied base for stolen base */}
               <svg viewBox="0 0 80 80" className="w-14 h-14 sm:w-16 sm:h-16 mx-auto">
-                <line x1="40" y1="65" x2="15" y2="40" stroke="var(--border)" strokeWidth="1.5" />
-                <line x1="15" y1="40" x2="40" y2="15" stroke="var(--border)" strokeWidth="1.5" />
-                <line x1="40" y1="15" x2="65" y2="40" stroke="var(--border)" strokeWidth="1.5" />
-                <line x1="65" y1="40" x2="40" y2="65" stroke="var(--border)" strokeWidth="1.5" />
-                <rect x="37" y="62" width="6" height="6" fill="var(--background)" stroke="var(--border)" transform="rotate(45 40 65)" />
+                <line x1="40" y1="65" x2="15" y2="40" stroke="#E9D7B4" strokeWidth="1.5" opacity="0.6" />
+                <line x1="15" y1="40" x2="40" y2="15" stroke="#E9D7B4" strokeWidth="1.5" opacity="0.6" />
+                <line x1="40" y1="15" x2="65" y2="40" stroke="#E9D7B4" strokeWidth="1.5" opacity="0.6" />
+                <line x1="65" y1="40" x2="40" y2="65" stroke="#E9D7B4" strokeWidth="1.5" opacity="0.6" />
+                <rect x="37" y="62" width="6" height="6" fill="#E9D7B4" opacity="0.6" transform="rotate(45 40 65)" />
                 {/* 3rd base */}
                 <rect
                   x="6" y="31" width="18" height="18" fill="transparent" rx="2"
@@ -831,8 +831,10 @@ export default function LiveScoringPage() {
                   onClick={() => gameState.runnerThird && setSbRunner(sbRunner === "third" ? null : "third")}
                 />
                 <rect x="12" y="37" width="6" height="6"
-                  fill={gameState.runnerThird ? "var(--primary)" : "var(--background)"}
-                  stroke={gameState.runnerThird ? "var(--primary)" : "var(--border)"}
+                  fill={gameState.runnerThird ? "#111111" : "var(--background)"}
+                  stroke="#E9D7B4"
+                  strokeWidth={gameState.runnerThird ? "1.5" : "1"}
+                  opacity={gameState.runnerThird ? 1 : 0.5}
                   transform="rotate(45 15 40)" pointerEvents="none"
                 />
                 {/* 2nd base */}
@@ -842,8 +844,10 @@ export default function LiveScoringPage() {
                   onClick={() => gameState.runnerSecond && setSbRunner(sbRunner === "second" ? null : "second")}
                 />
                 <rect x="37" y="12" width="6" height="6"
-                  fill={gameState.runnerSecond ? "var(--primary)" : "var(--background)"}
-                  stroke={gameState.runnerSecond ? "var(--primary)" : "var(--border)"}
+                  fill={gameState.runnerSecond ? "#111111" : "var(--background)"}
+                  stroke="#E9D7B4"
+                  strokeWidth={gameState.runnerSecond ? "1.5" : "1"}
+                  opacity={gameState.runnerSecond ? 1 : 0.5}
                   transform="rotate(45 40 15)" pointerEvents="none"
                 />
                 {/* 1st base */}
@@ -853,12 +857,15 @@ export default function LiveScoringPage() {
                   onClick={() => gameState.runnerFirst && setSbRunner(sbRunner === "first" ? null : "first")}
                 />
                 <rect x="62" y="37" width="6" height="6"
-                  fill={gameState.runnerFirst ? "var(--primary)" : "var(--background)"}
-                  stroke={gameState.runnerFirst ? "var(--primary)" : "var(--border)"}
+                  fill={gameState.runnerFirst ? "#111111" : "var(--background)"}
+                  stroke="#E9D7B4"
+                  strokeWidth={gameState.runnerFirst ? "1.5" : "1"}
+                  opacity={gameState.runnerFirst ? 1 : 0.5}
                   transform="rotate(45 65 40)" pointerEvents="none"
                 />
               </svg>
-              <div className="text-sm font-bold mt-1">
+              <div className="flex items-center justify-center gap-1.5 text-sm font-bold mt-1">
+                <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
                 {gameState.currentHalf === "top" ? "\u25B2" : "\u25BC"} {gameState.currentInning}
               </div>
               <div className="flex gap-1.5 mt-1 justify-center">
