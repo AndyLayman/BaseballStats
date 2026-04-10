@@ -1100,7 +1100,7 @@ export default function LiveScoringPage() {
             {/* Spray chart + hit type */}
             <Card className="glass">
               <CardContent className="px-1 pt-1 pb-3 space-y-3">
-                <div className="flex justify-center">
+                <div className="relative flex justify-center">
                   <SprayChart
                     onClick={(x, y) => setSprayPoint({ x, y })}
                     selectedPoint={sprayPoint}
@@ -1113,20 +1113,23 @@ export default function LiveScoringPage() {
                     }}
                     className="w-full touch-none"
                   />
-                </div>
-                {/* Clear + hit type buttons — inline below spray chart */}
-                {sprayPoint && (!selectedResult || !NON_BATTED.includes(selectedResult)) && (
-                  <div className="grid grid-cols-5 gap-2">
+                  {/* Clear button — upper right of spray chart */}
+                  {sprayPoint && (
                     <button
-                      className="h-10 rounded-xl text-sm font-bold border-2 transition-all active:scale-95 select-none bg-muted/30 text-muted-foreground border-border/50 hover:bg-destructive/20 hover:text-destructive hover:border-destructive/50"
+                      className="absolute top-1 right-1 h-7 px-2.5 rounded-lg text-xs font-bold border transition-all active:scale-95 select-none bg-muted/30 text-muted-foreground border-border/50 hover:bg-destructive/20 hover:text-destructive hover:border-destructive/50"
                       onClick={() => { setSprayPoint(null); setHitType(null); }}
                     >
                       Clear
                     </button>
+                  )}
+                </div>
+                {/* Hit type buttons */}
+                {sprayPoint && (!selectedResult || !NON_BATTED.includes(selectedResult)) && (
+                  <div className="grid grid-cols-4 gap-1.5 sm:gap-2 px-1">
                     {HIT_TYPE_BUTTONS.map(({ type, label }) => (
                       <button
                         key={type}
-                        className={`h-10 rounded-xl text-sm font-bold border-2 transition-all active:scale-95 select-none ${
+                        className={`h-8 sm:h-10 rounded-lg sm:rounded-xl text-[11px] sm:text-sm font-bold border-2 transition-all active:scale-95 select-none ${
                           hitType === type
                             ? "bg-primary text-primary-foreground border-transparent shadow-lg glow-primary"
                             : "bg-muted/30 text-foreground border-border/50 hover:bg-accent hover:border-border"
