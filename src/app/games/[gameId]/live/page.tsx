@@ -817,9 +817,9 @@ export default function LiveScoringPage() {
               <div className="text-4xl sm:text-5xl font-extrabold tabular-nums text-gradient-bright">{gameState.ourScore}</div>
               <div className="text-xs text-muted-foreground mt-1 uppercase tracking-wider font-medium truncate max-w-[100px] mx-auto">{ourTeamName}</div>
             </div>
-            <div className="text-center px-3">
+            <div className="text-center px-3 relative">
               {/* Base runners diamond — tap occupied base for stolen base */}
-              <svg viewBox="0 0 80 80" className="w-14 h-14 sm:w-16 sm:h-16 mx-auto">
+              <svg viewBox="0 0 80 80" className="w-20 h-20 sm:w-24 sm:h-24 mx-auto">
                 <line x1="40" y1="65" x2="15" y2="40" stroke="#E9D7B4" strokeWidth="1.5" opacity="0.6" />
                 <line x1="15" y1="40" x2="40" y2="15" stroke="#E9D7B4" strokeWidth="1.5" opacity="0.6" />
                 <line x1="40" y1="15" x2="65" y2="40" stroke="#E9D7B4" strokeWidth="1.5" opacity="0.6" />
@@ -865,20 +865,23 @@ export default function LiveScoringPage() {
                   transform="rotate(45 65 40)" pointerEvents="none"
                 />
               </svg>
-              <div className="flex items-center justify-center gap-0.5 text-sm font-bold mt-1">
-                {gameState.currentHalf === "top" ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />} {gameState.currentInning}
-              </div>
-              <div className="flex gap-1.5 mt-1 justify-center">
-                {[0, 1, 2].map((i) => (
-                  <div
-                    key={i}
-                    className={`w-3.5 h-3.5 rounded-full border-2 transition-colors ${
-                      i < gameState.outs
-                        ? "bg-destructive border-destructive shadow-[0_0_6px_rgba(250,77,77,0.5)]"
-                        : "bg-transparent border-muted-foreground/40"
-                    }`}
-                  />
-                ))}
+              {/* Inning + outs inside the diamond */}
+              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                <div className="flex items-center gap-0.5 text-sm font-bold">
+                  {gameState.currentHalf === "top" ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />} {gameState.currentInning}
+                </div>
+                <div className="flex gap-1 mt-0.5">
+                  {[0, 1, 2].map((i) => (
+                    <div
+                      key={i}
+                      className={`w-2.5 h-2.5 rounded-full border-[1.5px] transition-colors ${
+                        i < gameState.outs
+                          ? "bg-destructive border-destructive shadow-[0_0_4px_rgba(250,77,77,0.5)]"
+                          : "bg-transparent border-muted-foreground/40"
+                      }`}
+                    />
+                  ))}
+                </div>
               </div>
             </div>
             <div className="text-center flex-1">
