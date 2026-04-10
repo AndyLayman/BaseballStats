@@ -62,6 +62,7 @@ export default function LiveScoringPage() {
   const [rbis, setRbis] = useState(0);
   const [hitType, setHitType] = useState<HitType | null>(null);
   const [sbRunner, setSbRunner] = useState<"first" | "second" | "third" | null>(null);
+  const [scoreboardExpanded, setScoreboardExpanded] = useState(false);
   const [halfInningTransition, setHalfInningTransition] = useState<{
     fromHalf: "top" | "bottom";
     inning: number;
@@ -809,82 +810,99 @@ export default function LiveScoringPage() {
 
   return (
     <div className="space-y-3 max-w-lg md:max-w-4xl mx-auto pb-24">
-      {/* Scoreboard */}
-      <Card className="glass-strong gradient-border glow-primary">
-        <CardContent className="px-3 py-1.5 sm:px-4 sm:py-2">
-          <div className="flex items-center justify-between">
-            <div className="text-center flex-1">
-              <div className="text-3xl sm:text-4xl font-extrabold tabular-nums text-gradient-bright">{gameState.ourScore}</div>
-              <div className="text-xs text-muted-foreground uppercase tracking-wider font-medium truncate max-w-[100px] mx-auto">{ourTeamName}</div>
-            </div>
-            <div className="text-center px-3">
-              {/* Base runners diamond — tap occupied base for stolen base */}
-              <svg viewBox="0 0 80 80" className="w-14 h-14 sm:w-16 sm:h-16 mx-auto">
-                <line x1="40" y1="65" x2="15" y2="40" stroke="#E9D7B4" strokeWidth="1.5" opacity="0.6" />
-                <line x1="15" y1="40" x2="40" y2="15" stroke="#E9D7B4" strokeWidth="1.5" opacity="0.6" />
-                <line x1="40" y1="15" x2="65" y2="40" stroke="#E9D7B4" strokeWidth="1.5" opacity="0.6" />
-                <line x1="65" y1="40" x2="40" y2="65" stroke="#E9D7B4" strokeWidth="1.5" opacity="0.6" />
-                <rect x="37" y="62" width="6" height="6" fill="#E9D7B4" opacity="0.6" transform="rotate(45 40 65)" />
-                {/* 3rd base */}
-                <rect
-                  x="6" y="31" width="18" height="18" fill="transparent" rx="2"
-                  className={gameState.runnerThird ? "cursor-pointer" : ""}
-                  onClick={() => gameState.runnerThird && setSbRunner(sbRunner === "third" ? null : "third")}
-                />
-                <rect x="12" y="37" width="6" height="6"
-                  fill={gameState.runnerThird ? "#E9D7B4" : "#111111"}
-                  stroke="#E9D7B4"
-                  strokeWidth="1"
-                  transform="rotate(45 15 40)" pointerEvents="none"
-                />
-                {/* 2nd base */}
-                <rect
-                  x="31" y="6" width="18" height="18" fill="transparent" rx="2"
-                  className={gameState.runnerSecond ? "cursor-pointer" : ""}
-                  onClick={() => gameState.runnerSecond && setSbRunner(sbRunner === "second" ? null : "second")}
-                />
-                <rect x="37" y="12" width="6" height="6"
-                  fill={gameState.runnerSecond ? "#E9D7B4" : "#111111"}
-                  stroke="#E9D7B4"
-                  strokeWidth="1"
-                  transform="rotate(45 40 15)" pointerEvents="none"
-                />
-                {/* 1st base */}
-                <rect
-                  x="56" y="31" width="18" height="18" fill="transparent" rx="2"
-                  className={gameState.runnerFirst ? "cursor-pointer" : ""}
-                  onClick={() => gameState.runnerFirst && setSbRunner(sbRunner === "first" ? null : "first")}
-                />
-                <rect x="62" y="37" width="6" height="6"
-                  fill={gameState.runnerFirst ? "#E9D7B4" : "#111111"}
-                  stroke="#E9D7B4"
-                  strokeWidth="1"
-                  transform="rotate(45 65 40)" pointerEvents="none"
-                />
-              </svg>
-              <div className="flex items-center justify-center gap-0.5 text-sm font-bold mt-1">
-                {gameState.currentHalf === "top" ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />} {gameState.currentInning}
+      {/* Expandable scoreboard — pulls down from header */}
+      <div className="relative">
+        {/* Pull tab */}
+        <button
+          onClick={() => setScoreboardExpanded(!scoreboardExpanded)}
+          className="mx-auto flex items-center justify-center w-12 h-5 rounded-b-lg bg-primary/10 border border-t-0 border-primary/30 hover:bg-primary/20 transition-all active:scale-95"
+        >
+          <ChevronDown className={`w-3.5 h-3.5 text-muted-foreground transition-transform duration-300 ${scoreboardExpanded ? "rotate-180" : ""}`} />
+        </button>
+
+        {/* Expanded scoreboard panel */}
+        <div
+          className={`overflow-hidden transition-all duration-300 ease-in-out ${
+            scoreboardExpanded ? "max-h-48 opacity-100 mt-2" : "max-h-0 opacity-0"
+          }`}
+        >
+          <Card className="glass-strong gradient-border glow-primary">
+            <CardContent className="px-3 py-1.5 sm:px-4 sm:py-2">
+              <div className="flex items-center justify-between">
+                <div className="text-center flex-1">
+                  <div className="text-3xl sm:text-4xl font-extrabold tabular-nums text-gradient-bright">{gameState.ourScore}</div>
+                  <div className="text-xs text-muted-foreground uppercase tracking-wider font-medium truncate max-w-[100px] mx-auto">{ourTeamName}</div>
+                </div>
+                <div className="text-center px-3">
+                  {/* Base runners diamond — tap occupied base for stolen base */}
+                  <svg viewBox="0 0 80 80" className="w-14 h-14 sm:w-16 sm:h-16 mx-auto">
+                    <line x1="40" y1="65" x2="15" y2="40" stroke="#E9D7B4" strokeWidth="1.5" opacity="0.6" />
+                    <line x1="15" y1="40" x2="40" y2="15" stroke="#E9D7B4" strokeWidth="1.5" opacity="0.6" />
+                    <line x1="40" y1="15" x2="65" y2="40" stroke="#E9D7B4" strokeWidth="1.5" opacity="0.6" />
+                    <line x1="65" y1="40" x2="40" y2="65" stroke="#E9D7B4" strokeWidth="1.5" opacity="0.6" />
+                    <rect x="37" y="62" width="6" height="6" fill="#E9D7B4" transform="rotate(45 40 65)" />
+                    {/* 3rd base */}
+                    <rect
+                      x="6" y="31" width="18" height="18" fill="transparent" rx="2"
+                      className={gameState.runnerThird ? "cursor-pointer" : ""}
+                      onClick={() => gameState.runnerThird && setSbRunner(sbRunner === "third" ? null : "third")}
+                    />
+                    <rect x="12" y="37" width="6" height="6"
+                      fill={gameState.runnerThird ? "#E9D7B4" : "#111111"}
+                      stroke="#E9D7B4"
+                      strokeWidth="1"
+                      transform="rotate(45 15 40)" pointerEvents="none"
+                    />
+                    {/* 2nd base */}
+                    <rect
+                      x="31" y="6" width="18" height="18" fill="transparent" rx="2"
+                      className={gameState.runnerSecond ? "cursor-pointer" : ""}
+                      onClick={() => gameState.runnerSecond && setSbRunner(sbRunner === "second" ? null : "second")}
+                    />
+                    <rect x="37" y="12" width="6" height="6"
+                      fill={gameState.runnerSecond ? "#E9D7B4" : "#111111"}
+                      stroke="#E9D7B4"
+                      strokeWidth="1"
+                      transform="rotate(45 40 15)" pointerEvents="none"
+                    />
+                    {/* 1st base */}
+                    <rect
+                      x="56" y="31" width="18" height="18" fill="transparent" rx="2"
+                      className={gameState.runnerFirst ? "cursor-pointer" : ""}
+                      onClick={() => gameState.runnerFirst && setSbRunner(sbRunner === "first" ? null : "first")}
+                    />
+                    <rect x="62" y="37" width="6" height="6"
+                      fill={gameState.runnerFirst ? "#E9D7B4" : "#111111"}
+                      stroke="#E9D7B4"
+                      strokeWidth="1"
+                      transform="rotate(45 65 40)" pointerEvents="none"
+                    />
+                  </svg>
+                  <div className="flex items-center justify-center gap-0.5 text-sm font-bold mt-1">
+                    {gameState.currentHalf === "top" ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />} {gameState.currentInning}
+                  </div>
+                  <div className="flex gap-1 sm:gap-1.5 mt-1 justify-center">
+                    {[0, 1, 2].map((i) => (
+                      <div
+                        key={i}
+                        className={`w-2 h-2 sm:w-3.5 sm:h-3.5 rounded-full border sm:border-2 transition-colors ${
+                          i < gameState.outs
+                            ? "bg-destructive border-destructive shadow-[0_0_6px_rgba(250,77,77,0.5)]"
+                            : "bg-transparent border-muted-foreground/40"
+                        }`}
+                      />
+                    ))}
+                  </div>
+                </div>
+                <div className="text-center flex-1">
+                  <div className="text-3xl sm:text-4xl font-extrabold tabular-nums text-gradient-bright">{gameState.opponentScore}</div>
+                  <div className="text-xs text-muted-foreground uppercase tracking-wider font-medium truncate max-w-[100px] mx-auto">{opponentName}</div>
+                </div>
               </div>
-              <div className="flex gap-1 sm:gap-1.5 mt-1 justify-center">
-                {[0, 1, 2].map((i) => (
-                  <div
-                    key={i}
-                    className={`w-2 h-2 sm:w-3.5 sm:h-3.5 rounded-full border sm:border-2 transition-colors ${
-                      i < gameState.outs
-                        ? "bg-destructive border-destructive shadow-[0_0_6px_rgba(250,77,77,0.5)]"
-                        : "bg-transparent border-muted-foreground/40"
-                    }`}
-                  />
-                ))}
-              </div>
-            </div>
-            <div className="text-center flex-1">
-              <div className="text-3xl sm:text-4xl font-extrabold tabular-nums text-gradient-bright">{gameState.opponentScore}</div>
-              <div className="text-xs text-muted-foreground uppercase tracking-wider font-medium truncate max-w-[100px] mx-auto">{opponentName}</div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
 
       {/* Stolen base action — shown when a runner's base is tapped */}
       {sbRunner && (() => {
