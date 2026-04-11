@@ -335,6 +335,13 @@ export default function GameDetailPage() {
           </p>
         </div>
         <div className="flex items-center gap-3">
+          {game.status === "final" && (
+            <Link href={`/games/${gameId}/cards`}>
+              <Button variant="outline" className="border-primary/30 text-primary hover:bg-primary/10">
+                Player Cards
+              </Button>
+            </Link>
+          )}
           {game.status !== "final" && (
             <Link href={`/games/${gameId}/live`}>
               <Button className="glow-primary">
