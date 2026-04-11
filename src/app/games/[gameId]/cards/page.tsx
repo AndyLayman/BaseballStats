@@ -547,6 +547,7 @@ export default function PlayerCardsPage() {
   const gameId = params.gameId as string;
   const [game, setGame] = useState<Game | null>(null);
   const [playerStats, setPlayerStats] = useState<PlayerGameStats[]>([]);
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -611,11 +612,12 @@ export default function PlayerCardsPage() {
     year: "numeric",
   });
   const isWin = game.our_score > game.opponent_score;
+  const selected = selectedIndex !== null ? playerStats[selectedIndex] : null;
 
   return (
     <div className="max-w-6xl mx-auto">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex items-center justify-between mb-6">
         <div>
           <Link href={`/games/${gameId}`} className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-primary transition-colors mb-1">
             <NavArrowLeft width={16} height={16} />
@@ -635,18 +637,91 @@ export default function PlayerCardsPage() {
         </button>
       </div>
 
-      {/* Cards Grid */}
-      <div className="flex flex-wrap justify-center gap-8 pb-12">
-        {playerStats.map((stats) => (
+      {selected ? (
+        /* ── Single Card View ── */
+        <div className="flex flex-col items-center pb-12">
+          {/* Nav: prev / name / next */}
+          <div className="flex items-center gap-4 mb-6 w-full max-w-sm">
+            <button
+              onClick={() => setSelectedIndex((selectedIndex! - 1 + playerStats.length) % playerStats.length)}
+              className="p-2 rounded-lg hover:bg-muted/50 active:scale-95 transition-all text-muted-foreground hover:text-foreground"
+            >
+              <NavArrowLeft width={20} height={20} />
+            </button>
+            <button
+              onClick={() => setSelectedIndex(null)}
+              className="flex-1 text-center"
+            >
+              <div className="text-lg font-extrabold text-foreground">{fullName(selected.player)}</div>
+              <div className="text-xs text-muted-foreground">
+                #{selected.player.number} &middot; Tap to pick another
+              </div>
+            </button>
+            <button
+              onClick={() => setSelectedIndex((selectedIndex! + 1) % playerStats.length)}
+              className="p-2 rounded-lg hover:bg-muted/50 active:scale-95 transition-all text-muted-foreground hover:text-foreground"
+              style={{ transform: "scaleX(-1)" }}
+            >
+              <NavArrowLeft width={20} height={20} />
+            </button>
+          </div>
+
+          {/* The card */}
           <PlayerCard
-            key={stats.playerId}
-            stats={stats}
+            key={selected.playerId}
+            stats={selected}
             game={game}
             opponentName={game.opponent}
             gameDate={gameDate}
           />
-        ))}
-      </div>
+        </div>
+      ) : (
+        /* ── Player Picker ── */
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pb-12">
+          {playerStats.map((stats, i) => {
+            const rarity = getRarity(stats);
+            const config = RARITY_CONFIG[rarity];
+            const gradientStr = `linear-gradient(135deg, ${config.colors.join(", ")})`;
+            return (
+              <button
+                key={stats.playerId}
+                onClick={() => setSelectedIndex(i)}
+                className="relative overflow-hidden rounded-xl border border-border/50 p-4 text-left transition-all active:scale-[0.97] hover:border-primary/30 hover:bg-muted/30"
+                style={{ boxShadow: `0 0 12px ${config.glow}` }}
+              >
+                {/* Rarity accent bar */}
+                <div className="absolute top-0 left-0 right-0 h-0.5" style={{ background: gradientStr }} />
+
+                <div className="flex items-center gap-3">
+                  {/* Jersey number */}
+                  <div
+                    className="text-3xl font-black leading-none shrink-0"
+                    style={{
+                      backgroundImage: gradientStr,
+                      WebkitBackgroundClip: "text",
+                      WebkitTextFillColor: "transparent",
+                    }}
+                  >
+                    {stats.player.number}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="font-bold text-sm text-foreground truncate">{fullName(stats.player)}</div>
+                    <div className="text-[10px] text-muted-foreground">
+                      {stats.hits}/{stats.atBats} &middot; {stats.rbis} RBI
+                    </div>
+                    <span
+                      className="text-[9px] font-black uppercase tracking-widest"
+                      style={{ backgroundImage: gradientStr, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}
+                    >
+                      {config.label}
+                    </span>
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
