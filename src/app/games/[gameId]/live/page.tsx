@@ -164,6 +164,14 @@ export default function LiveScoringPage() {
 
       setGameState(state);
 
+      // Restore persisted pitch counts
+      if (stateRes.data) {
+        setTotalPitches({
+          us: stateRes.data.pitches_us ?? 0,
+          them: stateRes.data.pitches_them ?? 0,
+        });
+      }
+
       if (gameRes.data?.status === "scheduled") {
         setShowPregame(true);
       }
@@ -193,7 +201,7 @@ export default function LiveScoringPage() {
   }, [gameId]);
 
   const persistState = useCallback(
-    async (state: GameState) => {
+    async (state: GameState, pitches?: { us: number; them: number }) => {
       // Resolve the leadoff batter for our next at-bat
       // When it's top (our half just ended / we're on defense), currentBatterIndex
       // points to whoever leads off next time we bat
@@ -202,6 +210,8 @@ export default function LiveScoringPage() {
         const idx = state.currentBatterIndex % state.lineup.length;
         leadoffPlayerId = state.lineup[idx].player_id;
       }
+      // Use provided pitches or fall back to current state
+      pitches = pitches ?? totalPitches;
 
       await Promise.all([
         supabase.from("game_state").upsert({
@@ -218,6 +228,8 @@ export default function LiveScoringPage() {
           current_batter_index: state.currentBatterIndex,
           opponent_batter_index: state.opponentBatterIndex,
           leadoff_player_id: leadoffPlayerId,
+          pitches_us: pitches.us,
+          pitches_them: pitches.them,
           updated_at: new Date().toISOString(),
         }),
         supabase.from("games").update({
@@ -227,7 +239,7 @@ export default function LiveScoringPage() {
         }).eq("id", gameId),
       ]);
     },
-    [gameId]
+    [gameId, totalPitches]
   );
 
   function buildRunnerAdvances(result: PlateAppearanceResult, state: GameState): RunnerAdvance[] {
@@ -403,11 +415,14 @@ export default function LiveScoringPage() {
     setGameState(prevState);
     setPlayLog((prev) => prev.slice(0, -1));
     // Restore previous total pitches
+    const restoredPitches = totalPitchesHistory.length > 0
+      ? totalPitchesHistory[totalPitchesHistory.length - 1]
+      : totalPitches;
     if (totalPitchesHistory.length > 0) {
-      setTotalPitches(totalPitchesHistory[totalPitchesHistory.length - 1]);
+      setTotalPitches(restoredPitches);
       setTotalPitchesHistory((prev) => prev.slice(0, -1));
     }
-    await persistState(prevState);
+    await persistState(prevState, restoredPitches);
 
     const { data: lastPA } = await supabase
       .from("plate_appearances")
@@ -489,10 +504,17 @@ export default function LiveScoringPage() {
   function addPitch() {
     if (!gameState) return;
     const isOpponent = gameState.currentHalf === "top";
-    setTotalPitches((prev) => ({
-      us: isOpponent ? prev.us + 1 : prev.us,
-      them: isOpponent ? prev.them : prev.them + 1,
-    }));
+    const next = {
+      us: isOpponent ? totalPitches.us + 1 : totalPitches.us,
+      them: isOpponent ? totalPitches.them : totalPitches.them + 1,
+    };
+    setTotalPitches(next);
+    // Persist immediately so count survives refresh
+    void supabase.from("game_state").update({
+      pitches_us: next.us,
+      pitches_them: next.them,
+      updated_at: new Date().toISOString(),
+    }).eq("game_id", gameId);
   }
 
   function handleEndGame() {
