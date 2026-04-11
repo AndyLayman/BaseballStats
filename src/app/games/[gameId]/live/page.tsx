@@ -89,6 +89,12 @@ export default function LiveScoringPage() {
   const [gameNotes, setGameNotes] = useState("");
   const [gameDate, setGameDate] = useState<string>("");
 
+  // Baseball: top of inning = away team bats, bottom = home team bats
+  // When we're home, opponent bats in top; when we're away, opponent bats in bottom
+  function isOpponentHalf(half: "top" | "bottom"): boolean {
+    return gameLocation === "home" ? half === "top" : half === "bottom";
+  }
+
   // --- localStorage backup ---
   const lsKey = `live-scoring-${gameId}`;
 
@@ -302,10 +308,11 @@ export default function LiveScoringPage() {
   const persistState = useCallback(
     async (state: GameState, pitches?: { us: number; them: number }) => {
       // Resolve the leadoff batter for our next at-bat
-      // When it's top (our half just ended / we're on defense), currentBatterIndex
+      // When opponent is batting (we're on defense), currentBatterIndex
       // points to whoever leads off next time we bat
       let leadoffPlayerId: number | null = null;
-      if (state.currentHalf === "top" && state.lineup.length > 0) {
+      const opponentUp = gameLocation === "home" ? state.currentHalf === "top" : state.currentHalf === "bottom";
+      if (opponentUp && state.lineup.length > 0) {
         const idx = state.currentBatterIndex % state.lineup.length;
         leadoffPlayerId = state.lineup[idx].player_id;
       }
@@ -338,7 +345,7 @@ export default function LiveScoringPage() {
         }).eq("id", gameId),
       ]);
     },
-    [gameId, totalPitches]
+    [gameId, totalPitches, gameLocation]
   );
 
   function buildRunnerAdvances(result: PlateAppearanceResult, state: GameState): RunnerAdvance[] {
@@ -352,7 +359,7 @@ export default function LiveScoringPage() {
   async function handleConfirmAtBat() {
     if (!gameState || !selectedResult) return;
 
-    const isOpponent = gameState.currentHalf === "top";
+    const isOpponent = isOpponentHalf(gameState.currentHalf);
     const batter = isOpponent ? getCurrentOpponentBatter(gameState) : getCurrentBatter(gameState);
     if (!batter) return;
     const isBattedBall = !NON_BATTED.includes(selectedResult);
@@ -583,7 +590,7 @@ export default function LiveScoringPage() {
     else if (to === "third") newState.runnerThird = runner;
     else if (to === "home") {
       // Runner scores
-      if (gameState.currentHalf === "top") {
+      if (isOpponentHalf(gameState.currentHalf)) {
         newState.opponentScore = gameState.opponentScore + 1;
       } else {
         newState.ourScore = gameState.ourScore + 1;
@@ -612,7 +619,7 @@ export default function LiveScoringPage() {
     const baseLabel = from === "first" ? "1st" : from === "second" ? "2nd" : "3rd";
     const destLabel = to === "second" ? "2nd" : to === "third" ? "3rd" : "Home";
     setPlayLog((prev) => {
-      const updated = [...prev, { notation: `SB ${baseLabel}→${destLabel}`, playerName: runner.playerName, inning: gameState.currentInning, team: gameState.currentHalf === "top" ? "them" as const : "us" as const }];
+      const updated = [...prev, { notation: `SB ${baseLabel}→${destLabel}`, playerName: runner.playerName, inning: gameState.currentInning, team: isOpponentHalf(gameState.currentHalf) ? "them" as const : "us" as const }];
       saveToLocal({ gameState: newState, playLog: updated });
       return updated;
     });
@@ -623,7 +630,7 @@ export default function LiveScoringPage() {
   // Increment total pitch count for the pitching team (called on every Ball/Strike/Foul click)
   function addPitch() {
     if (!gameState) return;
-    const isOpponent = gameState.currentHalf === "top";
+    const isOpponent = isOpponentHalf(gameState.currentHalf);
     const next = {
       us: isOpponent ? totalPitches.us + 1 : totalPitches.us,
       them: isOpponent ? totalPitches.them : totalPitches.them + 1,
@@ -661,8 +668,8 @@ export default function LiveScoringPage() {
   // Compute derived values for hooks (must be before any early return)
   const batter = gameState ? getCurrentBatter(gameState) : null;
   const opponentBatter = gameState ? getCurrentOpponentBatter(gameState) : null;
-  const isOurBatting = gameState?.currentHalf === "bottom";
-  const isOpponentBatting = gameState?.currentHalf === "top";
+  const isOpponentBatting = gameState ? isOpponentHalf(gameState.currentHalf) : false;
+  const isOurBatting = gameState ? !isOpponentBatting : false;
   const activeBatter = isOurBatting ? batter : opponentBatter;
 
   // Resolve current batter's photo
