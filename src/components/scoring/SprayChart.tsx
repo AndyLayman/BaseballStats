@@ -1,8 +1,22 @@
 "use client";
 
 import { useCallback } from "react";
-import { getResultColor } from "@/lib/scoring/scorebook";
 import type { PlateAppearanceResult, HitType } from "@/lib/scoring/types";
+
+const CREAM = "#E9D7B4";
+
+/** Map a PA result to a pattern fill id (or solid/none) */
+function getResultFill(result: PlateAppearanceResult): { fill: string; stroke: string; strokeW: number } {
+  switch (result) {
+    case "1B": return { fill: "url(#pat-stripe)", stroke: CREAM, strokeW: 1 };
+    case "2B": return { fill: "url(#pat-dot)", stroke: CREAM, strokeW: 1 };
+    case "3B": return { fill: "url(#pat-cross)", stroke: CREAM, strokeW: 1 };
+    case "HR": return { fill: CREAM, stroke: CREAM, strokeW: 0 };
+    case "E":
+    case "ROE": return { fill: "url(#pat-hz)", stroke: CREAM, strokeW: 1 };
+    default:   return { fill: "none", stroke: CREAM, strokeW: 1.5 }; // outs = hollow ring
+  }
+}
 
 interface SprayChartProps {
   onClick?: (x: number, y: number) => void;
@@ -60,6 +74,28 @@ export function SprayChart({
       onClick={handleClick}
       onTouchEnd={handleTouch}
     >
+      {/* Pattern definitions for monotone result markers */}
+      <defs>
+        {/* 1B — diagonal stripes */}
+        <pattern id="pat-stripe" width="4" height="4" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+          <rect width="2.5" height="4" fill={CREAM} />
+        </pattern>
+        {/* 2B — dot fill */}
+        <pattern id="pat-dot" width="3.5" height="3.5" patternUnits="userSpaceOnUse">
+          <circle cx="1" cy="1" r="0.9" fill={CREAM} />
+          <circle cx="2.75" cy="2.75" r="0.9" fill={CREAM} />
+        </pattern>
+        {/* 3B — crosshatch */}
+        <pattern id="pat-cross" width="4" height="4" patternUnits="userSpaceOnUse">
+          <line x1="0" y1="0" x2="4" y2="4" stroke={CREAM} strokeWidth="1.2" />
+          <line x1="4" y1="0" x2="0" y2="4" stroke={CREAM} strokeWidth="1.2" />
+        </pattern>
+        {/* Error — horizontal stripes */}
+        <pattern id="pat-hz" width="3" height="3" patternUnits="userSpaceOnUse">
+          <line x1="0" y1="1.5" x2="3" y2="1.5" stroke={CREAM} strokeWidth="1" />
+        </pattern>
+      </defs>
+
       {/* Foul lines — trimmed to meet the outfield fence arc */}
       <line x1="150" y1="280" x2="16" y2="146" stroke="#E9D7B4" strokeWidth="1.5" opacity="0.4" />
       <line x1="150" y1="280" x2="284" y2="146" stroke="#E9D7B4" strokeWidth="1.5" opacity="0.4" />
@@ -148,7 +184,7 @@ export function SprayChart({
         </text>
       ))}
 
-      {/* Heat zones overlay */}
+      {/* Heat zones overlay — uniform warm glow for density */}
       {heatMode && ghostMarkers.length > 0 && (
         <g>
           {ghostMarkers.map((m, i) => (
@@ -157,7 +193,7 @@ export function SprayChart({
               cx={m.x}
               cy={m.y}
               r="20"
-              fill={getResultColor(m.result)}
+              fill={CREAM}
               opacity={0.12}
             />
           ))}
@@ -165,28 +201,31 @@ export function SprayChart({
       )}
 
       {/* Ghost markers — previous at-bats for this hitter */}
-      {!heatMode && ghostMarkers.map((m, i) => (
-        <g key={`ghost-${i}`} opacity="0.2">
-          {m.hitType && (
-            <TrajectoryPath
-              fromX={homeX}
-              fromY={homeY}
-              toX={m.x}
-              toY={m.y}
-              hitType={m.hitType}
-              ghost
+      {!heatMode && ghostMarkers.map((m, i) => {
+        const rf = getResultFill(m.result);
+        return (
+          <g key={`ghost-${i}`} opacity="0.25">
+            {m.hitType && (
+              <TrajectoryPath
+                fromX={homeX}
+                fromY={homeY}
+                toX={m.x}
+                toY={m.y}
+                hitType={m.hitType}
+                ghost
+              />
+            )}
+            <circle
+              cx={m.x}
+              cy={m.y}
+              r="3.5"
+              fill={rf.fill}
+              stroke={rf.stroke}
+              strokeWidth={rf.strokeW * 0.6}
             />
-          )}
-          <circle
-            cx={m.x}
-            cy={m.y}
-            r="3.5"
-            fill={getResultColor(m.result)}
-            stroke="#F7F7F7"
-            strokeWidth="0.75"
-          />
-        </g>
-      ))}
+          </g>
+        );
+      })}
 
       {/* Trajectory line from home plate to selected point */}
       {selectedPoint && (
@@ -200,18 +239,21 @@ export function SprayChart({
       )}
 
       {/* Existing markers (current game, all batters) */}
-      {markers.map((m, i) => (
-        <circle
-          key={i}
-          cx={m.x}
-          cy={m.y}
-          r="6"
-          fill={getResultColor(m.result)}
-          stroke="#F7F7F7"
-          strokeWidth="1.5"
-          opacity="0.85"
-        />
-      ))}
+      {markers.map((m, i) => {
+        const rf = getResultFill(m.result);
+        return (
+          <circle
+            key={i}
+            cx={m.x}
+            cy={m.y}
+            r="6"
+            fill={rf.fill}
+            stroke={rf.stroke}
+            strokeWidth={rf.strokeW}
+            opacity="0.85"
+          />
+        );
+      })}
 
       {/* Selected point — pulse animation */}
       {selectedPoint && (

@@ -325,15 +325,28 @@ export default function PlayerDetailPage() {
               </div>
               <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 mt-2 px-3">
                 {[
-                  { label: "1B", color: "#22c55e" },
-                  { label: "2B", color: "#3b82f6" },
-                  { label: "3B", color: "#f59e0b" },
-                  { label: "HR", color: "#ef4444" },
-                  { label: "Out", color: "#9ca3af" },
-                  { label: "Error", color: "#f97316" },
+                  { label: "1B", pat: "pat-stripe" },
+                  { label: "2B", pat: "pat-dot" },
+                  { label: "3B", pat: "pat-cross" },
+                  { label: "HR", pat: "solid" },
+                  { label: "Out", pat: "hollow" },
+                  { label: "Error", pat: "pat-hz" },
                 ].map((item) => (
                   <div key={item.label} className="flex items-center gap-1.5">
-                    <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
+                    <svg width="12" height="12" className="inline-block">
+                      <defs>
+                        <pattern id={`leg-stripe`} width="4" height="4" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="2.5" height="4" fill="#E9D7B4" /></pattern>
+                        <pattern id={`leg-dot`} width="3.5" height="3.5" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r="0.9" fill="#E9D7B4" /><circle cx="2.75" cy="2.75" r="0.9" fill="#E9D7B4" /></pattern>
+                        <pattern id={`leg-cross`} width="4" height="4" patternUnits="userSpaceOnUse"><line x1="0" y1="0" x2="4" y2="4" stroke="#E9D7B4" strokeWidth="1.2" /><line x1="4" y1="0" x2="0" y2="4" stroke="#E9D7B4" strokeWidth="1.2" /></pattern>
+                        <pattern id={`leg-hz`} width="3" height="3" patternUnits="userSpaceOnUse"><line x1="0" y1="1.5" x2="3" y2="1.5" stroke="#E9D7B4" strokeWidth="1" /></pattern>
+                      </defs>
+                      <circle
+                        cx="6" cy="6" r="5"
+                        fill={item.pat === "solid" ? "#E9D7B4" : item.pat === "hollow" ? "none" : `url(#leg-${item.pat.replace("pat-", "")})`}
+                        stroke="#E9D7B4"
+                        strokeWidth={item.pat === "hollow" ? 1.5 : item.pat === "solid" ? 0 : 1}
+                      />
+                    </svg>
                     <span className="text-xs text-muted-foreground">{item.label}</span>
                   </div>
                 ))}
