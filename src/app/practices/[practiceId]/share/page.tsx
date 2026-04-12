@@ -1,12 +1,15 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import html2canvas from "html2canvas";
 import { supabase } from "@/lib/supabase";
 import type { Practice, Drill, PracticePlanItem, PracticeNote, ActionItem, PracticeAttendance, Player, SquadGroup, SquadMember } from "@/lib/scoring/types";
 import { firstName, fullName } from "@/lib/player-name";
+
+const LETTER_RATIO = 11 / 8.5; // height / width
+const PAD = 16; // px padding inside each page
 
 function isEmptyHtml(html: string) {
   return html.replace(/<[^>]*>/g, "").trim().length === 0;
@@ -37,7 +40,9 @@ export default function SharedPracticePage() {
   const [loading, setLoading] = useState(true);
   const [shareMsg, setShareMsg] = useState("");
   const [capturing, setCapturing] = useState(false);
+  const [pageCount, setPageCount] = useState(1);
   const paperRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     async function load() {
@@ -74,6 +79,21 @@ export default function SharedPracticePage() {
     }
     load();
   }, [practiceId]);
+
+  const measure = useCallback(() => {
+    if (!paperRef.current || !contentRef.current) return;
+    const w = paperRef.current.offsetWidth;
+    const onePageH = w * LETTER_RATIO;
+    const contentH = contentRef.current.scrollHeight + PAD * 2 + 20; // content + padding + footer
+    setPageCount(Math.max(1, Math.ceil(contentH / onePageH)));
+  }, []);
+
+  useLayoutEffect(() => { measure(); });
+
+  useEffect(() => {
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, [measure]);
 
   if (loading) {
     return (
@@ -123,7 +143,6 @@ export default function SharedPracticePage() {
           await navigator.share({ title: `${practice?.title ?? "Practice"} Recap`, files: [file] });
         } catch { /* cancelled */ }
       } else {
-        // Fallback: download
         const a = document.createElement("a");
         a.href = URL.createObjectURL(blob);
         a.download = file.name;
@@ -139,7 +158,21 @@ export default function SharedPracticePage() {
     setCapturing(false);
   }
 
-  // ============ PAPER DOCUMENT ============
+  // Page break overlay lines
+  const pageBreaks: React.ReactNode[] = [];
+  for (let i = 1; i < pageCount; i++) {
+    pageBreaks.push(
+      <div key={i} style={{
+        position: "absolute",
+        left: 0,
+        right: 0,
+        top: `calc(${(i / pageCount) * 100}%)`,
+        borderTop: "1px dashed #D0D0D0",
+        pointerEvents: "none",
+      }} />
+    );
+  }
+
   return (
     <div style={{ background: "#E8E8E8", minHeight: "100vh", padding: "16px 12px", fontFamily: "'Montserrat', sans-serif" }}>
       {/* Nav bar */}
@@ -161,169 +194,175 @@ export default function SharedPracticePage() {
           </button>
         </div>
       </div>
+
+      {/* Paper — snaps to letter‑ratio multiples */}
       <div ref={paperRef} style={{
+        position: "relative",
         background: "#FFFFFF",
         color: "#1a1a1a",
         width: "100%",
         maxWidth: "540px",
-        aspectRatio: "8.5 / 11",
+        aspectRatio: `8.5 / ${11 * pageCount}`,
         margin: "0 auto",
         borderRadius: "6px",
         boxShadow: "0 2px 16px rgba(0,0,0,0.10)",
-        padding: "20px 20px",
-        fontSize: "11px",
+        padding: `${PAD}px ${PAD}px`,
+        fontSize: "10px",
         display: "flex",
         flexDirection: "column",
+        overflow: "hidden",
       }}>
-        {/* Content area — grows to fill, pushes footer down */}
-        <div style={{ flex: 1 }}>
-        {/* Logo + Header */}
-        <div style={{ display: "flex", alignItems: "flex-start", marginBottom: "10px" }}>
-          <svg width="18" height="16" viewBox="0 0 33 28" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0, marginRight: "10px", marginTop: "1px" }}>
-            <path fillRule="evenodd" clipRule="evenodd" d="M6.82602 3.80953C11.9054 -1.26984 20.1407 -1.26984 25.2201 3.80953L31.3444 9.93381C32.28 10.8695 32.2801 12.3865 31.3444 13.3222L17.7173 26.9492C16.7816 27.8849 15.2646 27.8849 14.3289 26.9492L0.701741 13.3222C-0.233923 12.3865 -0.233904 10.8695 0.701741 9.93381L6.82602 3.80953ZM16.9149 3.21411C16.3178 3.15929 15.7168 3.16214 15.1202 3.22257L14.8005 3.255C13.4619 3.3906 12.1692 3.81828 11.0138 4.50791C10.5194 4.80305 10.0537 5.14404 9.62298 5.52628L9.19067 5.91001C8.90516 6.1634 9.03836 6.63444 9.41429 6.70075L14.6669 7.62732C17.3189 8.09514 19.9345 8.75021 22.4939 9.58752L27.7916 11.3205C28.0221 11.3959 28.1955 11.1072 28.0207 10.9391L22.758 5.88093L21.7436 5.103C20.3447 4.03017 18.6705 3.37528 16.9149 3.21411Z" fill="#111111"/>
-          </svg>
-          <div>
-            <h1 style={{ fontSize: "14px", fontWeight: 700, margin: 0, letterSpacing: "-0.02em", color: "#000" }}>
-              {practice.title}
-            </h1>
-            <p style={{ fontSize: "9px", fontWeight: 400, margin: "2px 0 0", color: "#666" }}>
-              {formatFullDate(practice.date)}
-              {practice.venue ? ` · ${practice.venue}` : ""}
-            </p>
-          </div>
-        </div>
+        {pageBreaks}
 
-        <hr style={{ border: "none", borderTop: "1px solid #E0E0E0", margin: "0 0 10px" }} />
-
-        {/* Attendance */}
-        {attendance.size > 0 && (
-          <div style={{ marginBottom: "10px" }}>
-            <h2 style={{ fontSize: "7px", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#999", margin: "0 0 3px" }}>Attendance</h2>
-            <p style={{ fontSize: "9px", fontWeight: 300, margin: "0 0 2px", color: "#333" }}>
-              {presentPlayers.length} present{absentPlayers.length > 0 ? ` · ${absentPlayers.length} absent` : ""}
-            </p>
-            {absentPlayers.length > 0 && (
-              <p style={{ fontSize: "9px", fontWeight: 300, color: "#888", margin: 0 }}>
-                Absent: {absentPlayers.map((p) => `${firstName(p)}`).join(", ")}
+        {/* Content */}
+        <div ref={contentRef} style={{ flex: 1 }}>
+          {/* Logo + Header */}
+          <div style={{ display: "flex", alignItems: "flex-start", marginBottom: "8px" }}>
+            <svg width="16" height="14" viewBox="0 0 33 28" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0, marginRight: "8px", marginTop: "1px" }}>
+              <path fillRule="evenodd" clipRule="evenodd" d="M6.82602 3.80953C11.9054 -1.26984 20.1407 -1.26984 25.2201 3.80953L31.3444 9.93381C32.28 10.8695 32.2801 12.3865 31.3444 13.3222L17.7173 26.9492C16.7816 27.8849 15.2646 27.8849 14.3289 26.9492L0.701741 13.3222C-0.233923 12.3865 -0.233904 10.8695 0.701741 9.93381L6.82602 3.80953ZM16.9149 3.21411C16.3178 3.15929 15.7168 3.16214 15.1202 3.22257L14.8005 3.255C13.4619 3.3906 12.1692 3.81828 11.0138 4.50791C10.5194 4.80305 10.0537 5.14404 9.62298 5.52628L9.19067 5.91001C8.90516 6.1634 9.03836 6.63444 9.41429 6.70075L14.6669 7.62732C17.3189 8.09514 19.9345 8.75021 22.4939 9.58752L27.7916 11.3205C28.0221 11.3959 28.1955 11.1072 28.0207 10.9391L22.758 5.88093L21.7436 5.103C20.3447 4.03017 18.6705 3.37528 16.9149 3.21411Z" fill="#111111"/>
+            </svg>
+            <div>
+              <h1 style={{ fontSize: "12px", fontWeight: 700, margin: 0, letterSpacing: "-0.02em", color: "#000" }}>
+                {practice.title}
+              </h1>
+              <p style={{ fontSize: "8px", fontWeight: 400, margin: "1px 0 0", color: "#666" }}>
+                {formatFullDate(practice.date)}
+                {practice.venue ? ` · ${practice.venue}` : ""}
               </p>
-            )}
+            </div>
           </div>
-        )}
 
-        {/* What We Covered */}
-        {topLevelItems.length > 0 && (
-          <div style={{ marginBottom: "10px" }}>
-            <h2 style={{ fontSize: "7px", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#999", margin: "0 0 3px" }}>
-              What We Covered
-            </h2>
-            <ul style={{ margin: 0, paddingLeft: "12px", fontSize: "9px", fontWeight: 300, lineHeight: 1.6, color: "#333" }}>
-              {topLevelItems.map((item) => {
-                const drill = getDrill(item.drill_id);
-                const isSquadSplit = item.label === "Squad Split" && !item.drill_id;
+          <hr style={{ border: "none", borderTop: "1px solid #E0E0E0", margin: "0 0 8px" }} />
+
+          {/* Attendance */}
+          {attendance.size > 0 && (
+            <div style={{ marginBottom: "8px" }}>
+              <h2 style={{ fontSize: "6px", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#999", margin: "0 0 2px" }}>Attendance</h2>
+              <p style={{ fontSize: "8px", fontWeight: 300, margin: "0 0 1px", color: "#333" }}>
+                {presentPlayers.length} present{absentPlayers.length > 0 ? ` · ${absentPlayers.length} absent` : ""}
+              </p>
+              {absentPlayers.length > 0 && (
+                <p style={{ fontSize: "8px", fontWeight: 300, color: "#888", margin: 0 }}>
+                  Absent: {absentPlayers.map((p) => `${firstName(p)}`).join(", ")}
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* What We Covered */}
+          {topLevelItems.length > 0 && (
+            <div style={{ marginBottom: "8px" }}>
+              <h2 style={{ fontSize: "6px", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#999", margin: "0 0 2px" }}>
+                What We Covered
+              </h2>
+              <ul style={{ margin: 0, paddingLeft: "10px", fontSize: "8px", fontWeight: 300, lineHeight: 1.5, color: "#333" }}>
+                {topLevelItems.map((item) => {
+                  const drill = getDrill(item.drill_id);
+                  const isSquadSplit = item.label === "Squad Split" && !item.drill_id;
+                  return (
+                    <li key={item.id}>
+                      <span style={{ fontWeight: item.completed ? 400 : 300 }}>
+                        {item.completed ? "✓ " : "○ "}
+                        {item.label}
+                      </span>
+                      {!isSquadSplit && item.duration_minutes > 0 && (
+                        <span style={{ color: "#999", fontSize: "7px" }}> ({item.duration_minutes} min)</span>
+                      )}
+                      {isSquadSplit && squadGroups.length > 0 && (
+                        <span style={{ color: "#999", fontSize: "7px" }}> ({squadGroups.length} groups)</span>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+              <p style={{ fontSize: "7px", fontWeight: 300, color: "#999", margin: "2px 0 0" }}>
+                {completedItems.length}/{topLevelItems.length} completed
+              </p>
+            </div>
+          )}
+
+          {/* Team Notes */}
+          {practice.notes && !isEmptyHtml(practice.notes) && (
+            <div style={{ marginBottom: "8px" }}>
+              <h2 style={{ fontSize: "6px", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#999", margin: "0 0 2px" }}>Team Notes</h2>
+              <div
+                style={{ fontSize: "8px", fontWeight: 300, lineHeight: 1.4, color: "#333" }}
+                dangerouslySetInnerHTML={{ __html: practice.notes }}
+              />
+            </div>
+          )}
+
+          {/* Player Notes */}
+          {notesByPlayer.size > 0 && (
+            <div style={{ marginBottom: "8px" }}>
+              <h2 style={{ fontSize: "6px", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#999", margin: "0 0 2px" }}>Player Notes</h2>
+              {[...notesByPlayer.entries()].map(([pid, playerNotes]) => {
+                const player = players.find((p) => p.id === pid);
+                if (!player) return null;
                 return (
-                  <li key={item.id}>
-                    <span style={{ fontWeight: item.completed ? 400 : 300 }}>
-                      {item.completed ? "✓ " : "○ "}
-                      {item.label}
-                    </span>
-                    {!isSquadSplit && item.duration_minutes > 0 && (
-                      <span style={{ color: "#999", fontSize: "8px" }}> ({item.duration_minutes} min)</span>
-                    )}
-                    {isSquadSplit && squadGroups.length > 0 && (
-                      <span style={{ color: "#999", fontSize: "8px" }}> ({squadGroups.length} groups)</span>
-                    )}
-                  </li>
+                  <div key={pid} style={{ marginBottom: "3px" }}>
+                    <p style={{ fontSize: "8px", fontWeight: 600, color: "#222", margin: "0 0 1px" }}>
+                      #{player.number} {fullName(player)}
+                    </p>
+                    {playerNotes.map((n) => (
+                      <div key={n.id} style={{ fontSize: "8px", fontWeight: 300, lineHeight: 1.3, color: "#444", marginBottom: "1px", paddingLeft: "6px" }}>
+                        {n.focus_area && (
+                          <span style={{ fontSize: "6px", fontWeight: 700, color: "#888", textTransform: "uppercase", marginRight: "3px" }}>
+                            {n.focus_area}
+                          </span>
+                        )}
+                        {stripHtml(n.note)}
+                      </div>
+                    ))}
+                  </div>
                 );
               })}
-            </ul>
-            <p style={{ fontSize: "8px", fontWeight: 300, color: "#999", margin: "3px 0 0" }}>
-              {completedItems.length}/{topLevelItems.length} completed
-            </p>
-          </div>
-        )}
+            </div>
+          )}
 
-        {/* Team Notes */}
-        {practice.notes && !isEmptyHtml(practice.notes) && (
-          <div style={{ marginBottom: "10px" }}>
-            <h2 style={{ fontSize: "7px", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#999", margin: "0 0 3px" }}>Team Notes</h2>
-            <div
-              style={{ fontSize: "9px", fontWeight: 300, lineHeight: 1.5, color: "#333" }}
-              dangerouslySetInnerHTML={{ __html: practice.notes }}
-            />
-          </div>
-        )}
-
-        {/* Player Notes */}
-        {notesByPlayer.size > 0 && (
-          <div style={{ marginBottom: "10px" }}>
-            <h2 style={{ fontSize: "7px", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#999", margin: "0 0 3px" }}>Player Notes</h2>
-            {[...notesByPlayer.entries()].map(([pid, playerNotes]) => {
-              const player = players.find((p) => p.id === pid);
-              if (!player) return null;
-              return (
-                <div key={pid} style={{ marginBottom: "4px" }}>
-                  <p style={{ fontSize: "9px", fontWeight: 600, color: "#222", margin: "0 0 1px" }}>
-                    #{player.number} {fullName(player)}
-                  </p>
-                  {playerNotes.map((n) => (
-                    <div key={n.id} style={{ fontSize: "9px", fontWeight: 300, lineHeight: 1.4, color: "#444", marginBottom: "1px", paddingLeft: "6px" }}>
-                      {n.focus_area && (
-                        <span style={{ fontSize: "7px", fontWeight: 700, color: "#888", textTransform: "uppercase", marginRight: "3px" }}>
-                          {n.focus_area}
-                        </span>
-                      )}
-                      {stripHtml(n.note)}
-                    </div>
-                  ))}
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        {/* Action Items */}
-        {actionItems.length > 0 && (
-          <div style={{ marginBottom: "4px" }}>
-            <h2 style={{ fontSize: "7px", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#999", margin: "0 0 3px" }}>Action Items</h2>
-            <ul style={{ margin: 0, padding: 0, listStyle: "none", fontSize: "9px", fontWeight: 300, lineHeight: 1.6, color: "#333" }}>
-              {actionItems.map((item) => {
-                const player = item.player_id ? players.find((p) => p.id === item.player_id) : null;
-                return (
-                  <li key={item.id} style={{ display: "flex", alignItems: "flex-start", gap: "6px" }}>
-                    <span style={{
-                      display: "inline-block",
-                      width: "10px",
-                      height: "10px",
-                      border: item.completed ? "none" : "1px solid #CCC",
-                      borderRadius: "2px",
-                      flexShrink: 0,
-                      marginTop: "2px",
-                      background: item.completed ? "#DDD" : "none",
-                      textAlign: "center",
-                      lineHeight: "10px",
-                      fontSize: "7px",
-                      color: "#888",
-                    }}>
-                      {item.completed ? "✓" : ""}
-                    </span>
-                    <span style={{ textDecoration: item.completed ? "line-through" : "none", color: item.completed ? "#999" : "#333" }}>
-                      {item.text}
-                      {player && (
-                        <span style={{ fontSize: "8px", color: "#999" }}> (#{player.number})</span>
-                      )}
-                    </span>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-        )}
-
+          {/* Action Items */}
+          {actionItems.length > 0 && (
+            <div style={{ marginBottom: "4px" }}>
+              <h2 style={{ fontSize: "6px", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#999", margin: "0 0 2px" }}>Action Items</h2>
+              <ul style={{ margin: 0, padding: 0, listStyle: "none", fontSize: "8px", fontWeight: 300, lineHeight: 1.5, color: "#333" }}>
+                {actionItems.map((item) => {
+                  const player = item.player_id ? players.find((p) => p.id === item.player_id) : null;
+                  return (
+                    <li key={item.id} style={{ display: "flex", alignItems: "flex-start", gap: "4px" }}>
+                      <span style={{
+                        display: "inline-block",
+                        width: "8px",
+                        height: "8px",
+                        border: item.completed ? "none" : "1px solid #CCC",
+                        borderRadius: "2px",
+                        flexShrink: 0,
+                        marginTop: "2px",
+                        background: item.completed ? "#DDD" : "none",
+                        textAlign: "center",
+                        lineHeight: "8px",
+                        fontSize: "6px",
+                        color: "#888",
+                      }}>
+                        {item.completed ? "✓" : ""}
+                      </span>
+                      <span style={{ textDecoration: item.completed ? "line-through" : "none", color: item.completed ? "#999" : "#333" }}>
+                        {item.text}
+                        {player && (
+                          <span style={{ fontSize: "7px", color: "#999" }}> (#{player.number})</span>
+                        )}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          )}
         </div>
-        {/* Footer — pinned to bottom of letter */}
+
+        {/* Footer — pinned to bottom of last page */}
         <div style={{ marginTop: "auto" }}>
-          <hr style={{ border: "none", borderTop: "1px solid #EEE", margin: "0 0 6px" }} />
-          <p style={{ fontSize: "7px", fontWeight: 300, color: "#BBB", textAlign: "center", margin: 0 }}>
+          <hr style={{ border: "none", borderTop: "1px solid #EEE", margin: "0 0 4px" }} />
+          <p style={{ fontSize: "6px", fontWeight: 300, color: "#BBB", textAlign: "center", margin: 0 }}>
             Shared from Six43
           </p>
         </div>
