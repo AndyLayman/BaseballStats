@@ -314,55 +314,23 @@ function PlayerCard({ stats, game, opponentName, gameDate }: {
                 <span className="text-[10px] text-zinc-500 tabular-nums">{gameDate}</span>
               </div>
 
-              {/* Batter silhouette — large centered hero */}
+              {/* Giant jersey number — centered hero */}
               <div className="flex-1 flex items-center justify-center relative">
-                {/* Glow behind silhouette */}
+                {/* Glow behind number */}
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  <div className="w-40 h-40 rounded-full" style={{
+                  <div className="w-48 h-48 rounded-full" style={{
                     background: `radial-gradient(circle, ${config.glow}, transparent 70%)`,
-                    filter: "blur(20px)",
+                    filter: "blur(25px)",
                   }} />
                 </div>
-                <svg viewBox="0 0 120 200" className="w-44 h-64 relative z-10" style={{ filter: `drop-shadow(0 0 18px ${config.glow})` }}>
-                  <defs>
-                    <linearGradient id={`batter-grad-${stats.playerId}`} x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor={config.colors[1]} />
-                      <stop offset="50%" stopColor={config.colors[0]} />
-                      <stop offset="100%" stopColor={config.colors[2] ?? config.colors[0]} />
-                    </linearGradient>
-                  </defs>
-                  {/* Batter silhouette — left-handed batting stance */}
-                  <g fill={`url(#batter-grad-${stats.playerId})`} opacity="0.9">
-                    {/* Helmet / head */}
-                    <ellipse cx="72" cy="42" rx="12" ry="13" />
-                    <rect x="63" y="32" width="20" height="6" rx="3" /> {/* brim */}
-                    {/* Torso */}
-                    <path d="M 58 54 Q 54 80 56 105 L 78 105 Q 80 80 76 54 Z" />
-                    {/* Front arm (bottom hand on bat) */}
-                    <path d="M 58 62 Q 44 68 38 60 Q 34 54 38 44 L 42 44 Q 40 52 42 56 Q 46 62 56 58 Z" />
-                    {/* Back arm (top hand) */}
-                    <path d="M 76 60 Q 82 52 80 44 L 84 42 Q 88 52 82 64 Z" />
-                    {/* Bat */}
-                    <rect x="36" y="10" width="4" height="38" rx="2" transform="rotate(15 38 30)" />
-                    <rect x="34" y="8" width="8" height="6" rx="2" transform="rotate(15 38 11)" /> {/* knob */}
-                    {/* Front leg */}
-                    <path d="M 58 102 Q 50 135 48 160 L 42 162 L 40 170 L 54 170 L 54 164 L 52 160 Q 54 138 62 108 Z" />
-                    {/* Back leg */}
-                    <path d="M 72 102 Q 78 130 82 155 L 78 162 L 76 170 L 90 170 L 90 164 L 86 158 Q 82 132 76 108 Z" />
-                  </g>
-                </svg>
-              </div>
-
-              {/* Jersey number — big, bottom-left */}
-              <div className="absolute bottom-16 left-5 z-20">
                 <span
-                  className="text-6xl font-black leading-none"
+                  className="relative z-10 font-black leading-none"
                   style={{
+                    fontSize: "10rem",
                     backgroundImage: gradientStr,
                     WebkitBackgroundClip: "text",
                     WebkitTextFillColor: "transparent",
-                    filter: `drop-shadow(0 0 10px ${config.glow})`,
-                    opacity: 0.9,
+                    filter: `drop-shadow(0 0 20px ${config.glow})`,
                   }}
                 >
                   {stats.player.number}
