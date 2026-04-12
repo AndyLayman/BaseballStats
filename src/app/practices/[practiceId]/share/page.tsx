@@ -118,7 +118,10 @@ export default function SharedPracticePage() {
   const topLevelItems = planItems.filter((i) => !i.group_id);
   const completedItems = topLevelItems.filter((i) => i.completed);
   const presentPlayers = players.filter((p) => attendance.get(p.id) === true);
-  const absentPlayers = players.filter((p) => attendance.get(p.id) === false);
+  // If attendance was tracked, any player not marked present is absent
+  const absentPlayers = attendance.size > 0
+    ? players.filter((p) => attendance.get(p.id) !== true)
+    : [];
 
   const notesByPlayer = new Map<number, PracticeNote[]>();
   for (const n of notes) {

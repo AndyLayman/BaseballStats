@@ -162,12 +162,13 @@ export default function LivePracticePage() {
         attMap.set(a.player_id, a.present);
       }
 
-      // Auto-populate attendance: if no rows exist yet, mark all players present
+      // Auto-populate attendance: fill in any players without a row as present
       const allPlayers = playersRes.data ?? [];
-      if (attMap.size === 0 && allPlayers.length > 0) {
-        const rows = allPlayers.map((p: Player) => ({ practice_id: practiceId, player_id: p.id, present: true }));
+      const missing = allPlayers.filter((p: Player) => !attMap.has(p.id));
+      if (missing.length > 0) {
+        const rows = missing.map((p: Player) => ({ practice_id: practiceId, player_id: p.id, present: true }));
         await supabase.from("practice_attendance").insert(rows);
-        for (const p of allPlayers) {
+        for (const p of missing) {
           attMap.set(p.id, true);
         }
       }
