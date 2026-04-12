@@ -363,7 +363,7 @@ export default function LivePracticePage() {
     setEnding(true);
     await supabase.from("practices").update({ completed: true }).eq("id", practiceId);
     setEnding(false);
-    router.push("/schedule");
+    router.push(`/practices/${practiceId}/share`);
   }
 
   return (

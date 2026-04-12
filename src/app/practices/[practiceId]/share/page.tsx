@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import type { Practice, Drill, PracticePlanItem, PracticeNote, ActionItem, PracticeAttendance, Player, SquadGroup, SquadMember } from "@/lib/scoring/types";
 import { firstName, fullName } from "@/lib/player-name";
@@ -33,6 +34,7 @@ export default function SharedPracticePage() {
   const [squadGroups, setSquadGroups] = useState<SquadGroup[]>([]);
   const [squadMembers, setSquadMembers] = useState<SquadMember[]>([]);
   const [loading, setLoading] = useState(true);
+  const [shareMsg, setShareMsg] = useState("");
 
   useEffect(() => {
     async function load() {
@@ -99,9 +101,40 @@ export default function SharedPracticePage() {
     return drills.find((d) => d.id === drillId);
   }
 
+  async function handleShare() {
+    const url = window.location.href;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: `${practice?.title ?? "Practice"} Recap`, url });
+      } catch { /* cancelled */ }
+    } else {
+      await navigator.clipboard.writeText(url);
+      setShareMsg("Link copied!");
+      setTimeout(() => setShareMsg(""), 2000);
+    }
+  }
+
   // ============ PAPER DOCUMENT ============
   return (
     <div style={{ background: "#E8E8E8", minHeight: "100vh", padding: "24px 16px", fontFamily: "'Montserrat', sans-serif" }}>
+      {/* Nav bar */}
+      <div style={{ maxWidth: "640px", margin: "0 auto 12px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <Link href="/schedule" style={{ fontSize: "13px", fontWeight: 500, color: "#666", textDecoration: "none" }}>
+          ← Schedule
+        </Link>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          {shareMsg && <span style={{ fontSize: "12px", color: "#3b82f6" }}>{shareMsg}</span>}
+          <button
+            onClick={handleShare}
+            style={{
+              fontSize: "13px", fontWeight: 600, color: "#FFF", background: "#111",
+              border: "none", borderRadius: "8px", padding: "8px 16px", cursor: "pointer",
+            }}
+          >
+            Share Recap
+          </button>
+        </div>
+      </div>
       <div style={{
         background: "#FFFFFF",
         color: "#1a1a1a",
