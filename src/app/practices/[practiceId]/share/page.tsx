@@ -215,7 +215,7 @@ export default function SharedPracticePage() {
         {pageBreaks}
 
         {/* Content */}
-        <div ref={contentRef} style={{ flex: 1 }}>
+        <div ref={contentRef}>
           {/* Logo + Header */}
           <div style={{ display: "flex", alignItems: "flex-start", marginBottom: "8px" }}>
             <svg width="16" height="14" viewBox="0 0 33 28" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0, marginRight: "8px", marginTop: "1px" }}>
@@ -359,8 +359,10 @@ export default function SharedPracticePage() {
           )}
         </div>
 
+        {/* Spacer pushes footer to bottom */}
+        <div style={{ flex: 1 }} />
         {/* Footer — pinned to bottom of last page */}
-        <div style={{ marginTop: "auto" }}>
+        <div>
           <hr style={{ border: "none", borderTop: "1px solid #EEE", margin: "0 0 4px" }} />
           <p style={{ fontSize: "6px", fontWeight: 300, color: "#BBB", textAlign: "center", margin: 0 }}>
             Shared from Six43
