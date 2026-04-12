@@ -164,13 +164,19 @@ export default function SharedPracticePage() {
       <div ref={paperRef} style={{
         background: "#FFFFFF",
         color: "#1a1a1a",
+        width: "100%",
         maxWidth: "540px",
+        aspectRatio: "8.5 / 11",
         margin: "0 auto",
         borderRadius: "6px",
         boxShadow: "0 2px 16px rgba(0,0,0,0.10)",
         padding: "20px 20px",
         fontSize: "11px",
+        display: "flex",
+        flexDirection: "column",
       }}>
+        {/* Content area — grows to fill, pushes footer down */}
+        <div style={{ flex: 1 }}>
         {/* Logo + Header */}
         <div style={{ display: "flex", alignItems: "flex-start", marginBottom: "10px" }}>
           <svg width="18" height="16" viewBox="0 0 33 28" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0, marginRight: "10px", marginTop: "1px" }}>
@@ -313,11 +319,14 @@ export default function SharedPracticePage() {
           </div>
         )}
 
-        {/* Footer */}
-        <hr style={{ border: "none", borderTop: "1px solid #EEE", margin: "10px 0 6px" }} />
-        <p style={{ fontSize: "7px", fontWeight: 300, color: "#BBB", textAlign: "center", margin: 0 }}>
-          Shared from Baseball Stats
-        </p>
+        </div>
+        {/* Footer — pinned to bottom of letter */}
+        <div style={{ marginTop: "auto" }}>
+          <hr style={{ border: "none", borderTop: "1px solid #EEE", margin: "0 0 6px" }} />
+          <p style={{ fontSize: "7px", fontWeight: 300, color: "#BBB", textAlign: "center", margin: 0 }}>
+            Shared from Six43
+          </p>
+        </div>
       </div>
     </div>
   );
