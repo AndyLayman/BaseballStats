@@ -115,6 +115,9 @@ export default function NewGamePage() {
   const [players, setPlayers] = useState<Player[]>([]);
   const [selectedPlayers, setSelectedPlayers] = useState<number[]>([]);
   const [positions, setPositions] = useState<Record<number, string>>({});
+  const [logoSvg, setLogoSvg] = useState("");
+  const [colorFg, setColorFg] = useState("#ffffff");
+  const [colorBg, setColorBg] = useState("#000000");
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -148,6 +151,9 @@ export default function NewGamePage() {
         game_time: gameTime.trim() || null,
         venue: venue.trim() || null,
         venue_address: venueAddress.trim() || null,
+        opponent_logo_svg: logoSvg.trim() || null,
+        opponent_color_fg: colorFg,
+        opponent_color_bg: colorBg,
         num_innings: 5,
         status: "scheduled",
       })
@@ -241,6 +247,59 @@ export default function NewGamePage() {
                 className="h-12 text-base bg-input/50 border-border/50 focus:border-primary/50"
               />
             </div>
+            {/* Opponent Branding */}
+            <div>
+              <Label>Team Colors</Label>
+              <div className="flex items-center gap-3 mt-1">
+                <div className="flex items-center gap-2">
+                  <label className="text-xs text-muted-foreground">Logo</label>
+                  <input
+                    type="color"
+                    value={colorFg}
+                    onChange={(e) => setColorFg(e.target.value)}
+                    className="w-10 h-10 rounded-lg border border-border/50 cursor-pointer bg-transparent p-0.5"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className="text-xs text-muted-foreground">BG</label>
+                  <input
+                    type="color"
+                    value={colorBg}
+                    onChange={(e) => setColorBg(e.target.value)}
+                    className="w-10 h-10 rounded-lg border border-border/50 cursor-pointer bg-transparent p-0.5"
+                  />
+                </div>
+                {/* Live preview */}
+                <div
+                  className="w-12 h-12 rounded-lg border border-border/50 flex items-center justify-center overflow-hidden shrink-0"
+                  style={{ backgroundColor: colorBg }}
+                >
+                  {logoSvg.trim() ? (
+                    <div
+                      className="w-8 h-8 [&>svg]:w-full [&>svg]:h-full"
+                      style={{ color: colorFg }}
+                      dangerouslySetInnerHTML={{ __html: logoSvg.replace(/fill="[^"]*"/g, 'fill="currentColor"').replace(/stroke="[^"]*"/g, 'stroke="currentColor"') }}
+                    />
+                  ) : (
+                    <span className="text-lg font-bold" style={{ color: colorFg }}>
+                      {opponent.trim() ? opponent.trim()[0].toUpperCase() : "?"}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="logoSvg">Logo SVG Code</Label>
+              <textarea
+                id="logoSvg"
+                value={logoSvg}
+                onChange={(e) => setLogoSvg(e.target.value)}
+                placeholder='<svg viewBox="0 0 24 24">...</svg>'
+                rows={3}
+                className="w-full mt-1 rounded-xl border border-border/50 bg-input/50 px-3 py-2 text-sm font-mono focus:border-primary/50 focus:outline-none focus:ring-1 focus:ring-primary/30 resize-y"
+              />
+            </div>
+
             <div className="grid grid-cols-2 gap-4 [&>*]:min-w-0">
               <div>
                 <Label htmlFor="date">Date</Label>
