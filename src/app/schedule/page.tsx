@@ -720,6 +720,23 @@ function GameRow({
         </div>
       </div>
 
+      {/* Opponent logo badge */}
+      <div
+        className="w-9 h-9 rounded-lg flex items-center justify-center overflow-hidden shrink-0"
+        style={{ backgroundColor: game.opponent_color_bg || "#1a1a1a" }}
+      >
+        {game.opponent_logo_svg ? (
+          <div
+            className="w-6 h-6 [&>svg]:w-full [&>svg]:h-full"
+            dangerouslySetInnerHTML={{ __html: game.opponent_logo_svg }}
+          />
+        ) : (
+          <span className="text-sm font-bold" style={{ color: game.opponent_color_fg || "#ffffff" }}>
+            {game.opponent?.[0]?.toUpperCase() || "?"}
+          </span>
+        )}
+      </div>
+
       {/* Opponent + venue */}
       <div className="flex-1 min-w-0">
         <div className="font-semibold text-sm truncate">{opponentLabel}</div>
