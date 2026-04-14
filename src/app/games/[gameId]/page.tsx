@@ -358,7 +358,23 @@ export default function GameDetailPage() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
+        <div className="flex items-center gap-3">
+          <div
+            className="w-12 h-12 rounded-xl flex items-center justify-center overflow-hidden shrink-0"
+            style={{ backgroundColor: game.opponent_color_bg || "#1a1a1a" }}
+          >
+            {game.opponent_logo_svg ? (
+              <div
+                className="w-8 h-8 [&>svg]:w-full [&>svg]:h-full"
+                dangerouslySetInnerHTML={{ __html: game.opponent_logo_svg }}
+              />
+            ) : (
+              <span className="text-xl font-bold" style={{ color: game.opponent_color_fg || "#ffffff" }}>
+                {game.opponent?.[0]?.toUpperCase() || "?"}
+              </span>
+            )}
+          </div>
+          <div>
           <h1 className="text-3xl font-extrabold tracking-tight text-gradient">
             {game.location === "home" ? "vs" : "@"} {game.opponent}
           </h1>
@@ -366,6 +382,7 @@ export default function GameDetailPage() {
             {gameDate.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric", year: "numeric" })}
             {game.game_time ? ` · ${formatTime12(game.game_time)}` : ""}
           </p>
+          </div>
         </div>
         <div className="flex items-center gap-3">
           {game.status === "final" && (
