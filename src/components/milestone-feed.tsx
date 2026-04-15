@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { supabase, sessionReady } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase";
+import { cachedQuery } from "@/lib/query-cache";
 import type { PlateAppearance, Game, Player } from "@/lib/scoring/types";
 import { fullName } from "@/lib/player-name";
 
@@ -20,15 +21,21 @@ export function MilestoneFeed() {
 
   useEffect(() => {
     async function compute() {
-      await sessionReady;
+      // Use cachedQuery so we share data with the dashboard (players, games)
       const [pasRes, gamesRes, playersRes] = await Promise.all([
-        supabase.from("plate_appearances").select("*").eq("team", "us").order("created_at"),
-        supabase.from("games").select("*").eq("status", "final").order("date"),
-        supabase.from("players").select("*"),
+        cachedQuery<PlateAppearance[]>("plate_appearances:us", () =>
+          supabase.from("plate_appearances").select("*").eq("team", "us").order("created_at")
+        ),
+        cachedQuery<Game[]>("games:all", () =>
+          supabase.from("games").select("*")
+        ),
+        cachedQuery<Player[]>("players", () =>
+          supabase.from("players").select("*")
+        ),
       ]);
 
       const pas: PlateAppearance[] = pasRes.data ?? [];
-      const games: Game[] = gamesRes.data ?? [];
+      const games: Game[] = (gamesRes.data ?? []).filter((g) => g.status === "final");
       const players: Player[] = playersRes.data ?? [];
       const gameMap = new Map(games.map((g) => [g.id, g]));
       const playerName = (id: number) => { const p = players.find((p) => p.id === id); return p ? fullName(p) : "Unknown"; };

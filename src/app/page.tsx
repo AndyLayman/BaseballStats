@@ -25,20 +25,17 @@ export default function Dashboard() {
 
   const load = useCallback(async () => {
     const today = new Date().toISOString().split("T")[0];
-    const fiveDaysAgo = new Date(Date.now() - 5 * 86400000).toISOString().split("T")[0];
 
-    const [playersRes, recentRes, upcomingRes, allGamesRes, statsRes, gameChainRes, hardWorkerRes] = await Promise.all([
+    // 3 queries instead of 7: all games in one, both chain awards in one
+    const [playersRes, gamesRes, statsRes, chainRes] = await Promise.all([
       cachedQuery<Player[]>("players", () => supabase.from("players").select("*").order("sort_order")),
-      cachedQuery<Game[]>(`games:recent:${fiveDaysAgo}`, () => supabase.from("games").select("*").gte("date", fiveDaysAgo).lte("date", today).order("date", { ascending: false }).limit(5)),
-      cachedQuery<Game[]>(`games:upcoming:${today}`, () => supabase.from("games").select("*").gt("date", today).order("date", { ascending: true }).limit(5)),
-      cachedQuery<Game[]>("games:final", () => supabase.from("games").select("*").eq("status", "final")),
+      cachedQuery<Game[]>("games:all", () => supabase.from("games").select("*")),
       cachedQuery<BattingStats[]>("batting_stats", () => supabase.from("batting_stats_season").select("*").order("avg", { ascending: false }).limit(5)),
-      cachedQuery<ChainAward[]>("chain:game_chain", () => supabase.from("chain_awards").select("*").eq("award_type", "game_chain").order("date", { ascending: false }).limit(1)),
-      cachedQuery<ChainAward[]>("chain:hard_worker", () => supabase.from("chain_awards").select("*").eq("award_type", "hard_worker").order("date", { ascending: false }).limit(1)),
+      cachedQuery<ChainAward[]>("chain:all", () => supabase.from("chain_awards").select("*").order("date", { ascending: false }).limit(10)),
     ]);
 
     // Surface any Supabase errors
-    const results = { playersRes, recentRes, upcomingRes, allGamesRes, statsRes, gameChainRes, hardWorkerRes };
+    const results = { playersRes, gamesRes, statsRes, chainRes };
     const errors = Object.entries(results)
       .filter(([, res]) => res.error)
       .map(([key, res]) => `${key}: ${res.error!.message}`);
@@ -49,17 +46,30 @@ export default function Dashboard() {
       setFetchError(null);
     }
 
-    const recent = recentRes.data ?? [];
-    const upcoming = upcomingRes.data ?? [];
     const allPlayers: Player[] = playersRes.data ?? [];
+    const allGames: Game[] = gamesRes.data ?? [];
+    const allChainAwards: ChainAward[] = chainRes.data ?? [];
 
-    const gcAward: ChainAward | null = gameChainRes.data?.[0] ?? null;
-    const hwAward: ChainAward | null = hardWorkerRes.data?.[0] ?? null;
+    // Derive recent, upcoming, and final games from the single query
+    const fiveDaysAgo = new Date(Date.now() - 5 * 86400000).toISOString().split("T")[0];
+    const recent = allGames
+      .filter((g) => g.date >= fiveDaysAgo && g.date <= today)
+      .sort((a, b) => b.date.localeCompare(a.date))
+      .slice(0, 5);
+    const upcoming = allGames
+      .filter((g) => g.date > today)
+      .sort((a, b) => a.date.localeCompare(b.date))
+      .slice(0, 5);
+    const finalGames = allGames.filter((g) => g.status === "final");
+
+    // Derive chain holders from single query
+    const gcAward = allChainAwards.find((a) => a.award_type === "game_chain") ?? null;
+    const hwAward = allChainAwards.find((a) => a.award_type === "hard_worker") ?? null;
 
     setPlayers(allPlayers);
     setRecentGames(recent);
     setUpcomingGames(upcoming);
-    setAllFinalGames(allGamesRes.data ?? []);
+    setAllFinalGames(finalGames);
     setBattingStats(statsRes.data ?? []);
     setChainHolders({
       gameChain: gcAward ? { player: allPlayers.find(p => p.id === gcAward.player_id)!, award: gcAward } : null,
