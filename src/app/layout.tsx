@@ -1,8 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import Link from "next/link";
-import { MobileNav } from "@/components/mobile-nav";
 import { LiveGameTicker } from "@/components/live-game-ticker";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { BottomNav } from "@/components/bottom-nav";
 import { RefreshProvider } from "@/components/pull-to-refresh";
 import { ToastContainer } from "@/components/toast";
 import "./globals.css";
@@ -97,15 +97,18 @@ export default function RootLayout({
               <ThemeToggle />
             </nav>
 
-            {/* Mobile hamburger */}
-            <MobileNav links={NAV_LINKS} />
+            {/* Mobile: theme toggle only (nav is in bottom bar) */}
+            <div className="md:hidden">
+              <ThemeToggle />
+            </div>
           </div>
         </header>
         <RefreshProvider>
-          <main className="flex-1 container mx-auto px-4 py-4 sm:py-6 animate-fade-in">
+          <main className="flex-1 container mx-auto px-4 py-4 sm:py-6 pb-20 md:pb-6 animate-fade-in">
             {children}
           </main>
         </RefreshProvider>
+        <BottomNav />
         <ToastContainer />
       </body>
     </html>
