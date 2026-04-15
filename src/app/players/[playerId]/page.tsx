@@ -12,11 +12,12 @@ import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "rec
 import { formatAvg } from "@/lib/stats/calculations";
 import { SprayChart } from "@/components/scoring/SprayChart";
 import { ProgressionChart } from "@/components/progression-chart";
-import type { Player, PlateAppearance, PlateAppearanceResult, BattingStats, FieldingStats, HitType, ChainAward } from "@/lib/scoring/types";
+import type { Player, PlateAppearance, PlateAppearanceResult, BattingStats, FieldingStats, HitType, ChainAward, Game } from "@/lib/scoring/types";
 import { fullName } from "@/lib/player-name";
 import { StatTip } from "@/components/stat-tip";
 import { NavArrowLeft, Trophy, Gym } from "iconoir-react";
 import { PlayerDetailSkeleton } from "@/components/skeleton";
+import { computePlayerMilestones } from "@/components/milestone-feed";
 
 type SprayFilter = "both" | "hits" | "outs";
 
@@ -190,6 +191,15 @@ export default function PlayerDetailPage() {
     if (["AVG", "OBP", "SLG", "OPS"].includes(key)) return formatAvg(v);
     return String(v);
   }, []);
+
+  const playerTimeline = useMemo(() => {
+    if (allPAs.length === 0 || gameLog.length === 0 || !player) return [];
+    const gameMap = new Map<string, Game>();
+    for (const g of gameLog) {
+      gameMap.set(g.game_id, { id: g.game_id, date: g.date, opponent: g.opponent } as Game);
+    }
+    return computePlayerMilestones(playerId, fullName(player), allPAs, gameMap);
+  }, [allPAs, gameLog, player, playerId]);
 
   const milestones = useMemo(() => {
     if (!battingStats || Number(battingStats.at_bats) === 0) return [];
@@ -783,6 +793,33 @@ export default function PlayerDetailPage() {
           )}
         </TabsContent>
       </Tabs>
+
+      {/* Player Timeline */}
+      {playerTimeline.length > 0 && (
+        <Card className="glass border-border/50">
+          <CardHeader className="px-3 sm:px-6">
+            <CardTitle className="text-gradient">Season Timeline</CardTitle>
+          </CardHeader>
+          <CardContent className="px-3 sm:px-6">
+            <div className="space-y-2 stagger-children">
+              {playerTimeline.map((m, i) => (
+                <div
+                  key={i}
+                  className="flex items-center gap-3 rounded-xl border border-border/50 p-3"
+                >
+                  <m.icon width={20} height={20} className="shrink-0 text-primary" />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium">{m.text}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {new Date(m.date + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
