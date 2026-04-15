@@ -145,10 +145,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const hasRole = useCallback(
     (...roles: TeamRole[]) => {
-      if (!activeTeam) return false;
+      // If no memberships loaded (e.g. teams tables don't exist yet),
+      // grant access rather than blocking everyone
+      if (!activeTeam) return memberships.length === 0 && !loading;
       return roles.includes(activeTeam.role);
     },
-    [activeTeam]
+    [activeTeam, memberships.length, loading]
   );
 
   return (
