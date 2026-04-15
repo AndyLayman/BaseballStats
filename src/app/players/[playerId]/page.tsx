@@ -14,7 +14,7 @@ import { ProgressionChart } from "@/components/progression-chart";
 import type { Player, PlateAppearance, PlateAppearanceResult, BattingStats, FieldingStats, HitType, ChainAward } from "@/lib/scoring/types";
 import { fullName } from "@/lib/player-name";
 import { StatTip } from "@/components/stat-tip";
-import { NavArrowLeft } from "iconoir-react";
+import { NavArrowLeft, Trophy, Gym } from "iconoir-react";
 
 type SprayFilter = "both" | "hits" | "outs";
 
@@ -195,19 +195,14 @@ export default function PlayerDetailPage() {
               {chainAwards.map((award) => (
                 <div
                   key={award.id}
-                  className={`flex items-center gap-3 rounded-xl px-3 py-2 border ${
-                    award.award_type === "game_chain"
-                      ? "bg-amber-500/10 border-amber-500/30"
-                      : "bg-blue-500/10 border-blue-500/30"
-                  }`}
+                  className="flex items-center gap-3 rounded-xl px-3 py-2 border bg-primary/10 border-primary/30"
                 >
-                  <span className="text-xl">
-                    {award.award_type === "game_chain" ? "🏆" : "💪"}
-                  </span>
+                  {award.award_type === "game_chain"
+                    ? <Trophy className="w-5 h-5 text-primary shrink-0" />
+                    : <Gym className="w-5 h-5 text-primary shrink-0" />
+                  }
                   <div className="flex-1 min-w-0">
-                    <div className={`text-sm font-bold ${
-                      award.award_type === "game_chain" ? "text-amber-400" : "text-blue-400"
-                    }`}>
+                    <div className="text-sm font-bold text-primary">
                       {award.award_type === "game_chain" ? "Game Chain" : "Hard Worker"}
                     </div>
                     <div className="text-xs text-muted-foreground">
