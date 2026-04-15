@@ -70,18 +70,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       // First user auto-join: assign as admin of the default team
-      const { data: defaultTeam } = await supabase
+      const { data: defaultTeam, error: teamError } = await supabase
         .from("teams")
         .select("id, name, slug")
         .eq("slug", "default")
         .single();
 
+      if (teamError) {
+        console.error("[Auth] Failed to find default team:", teamError);
+      }
+
       if (defaultTeam) {
-        await supabase.from("team_members").insert({
+        const { error: insertError } = await supabase.from("team_members").insert({
           team_id: defaultTeam.id,
           user_id: userId,
           role: "admin",
         });
+        if (insertError) {
+          console.error("[Auth] Failed to auto-join team:", insertError);
+        }
         const membership: TeamMembership = {
           team_id: defaultTeam.id,
           team_name: defaultTeam.name,
