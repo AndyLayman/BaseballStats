@@ -129,10 +129,10 @@ export default function SharedPracticePage() {
   const hardWorkerPlayer = hardWorker ? players.find(p => p.id === hardWorker.player_id) : null;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background -mx-4 -mt-4 sm:-mt-6">
       {/* Header */}
-      <header className="border-b border-border/50 bg-sidebar">
-        <div className="max-w-xl mx-auto px-4 py-4">
+      <header className="border-b border-border/50 bg-sidebar px-4 py-4">
+        <div className="max-w-xl mx-auto">
           <div className="flex items-center justify-between mb-3">
             <Link href="/schedule" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors">
               <NavArrowLeft width={16} height={16} />
