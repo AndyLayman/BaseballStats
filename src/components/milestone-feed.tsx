@@ -6,9 +6,11 @@ import { supabase } from "@/lib/supabase";
 import { cachedQuery } from "@/lib/query-cache";
 import type { PlateAppearance, Game, Player } from "@/lib/scoring/types";
 import { fullName } from "@/lib/player-name";
+import { Star, Bonfire, Flash, FireFlame, Running, Archery, Medal } from "iconoir-react";
+import type { ComponentType, SVGProps } from "react";
 
 interface Milestone {
-  emoji: string;
+  icon: ComponentType<SVGProps<SVGSVGElement> & { width?: number; height?: number }>;
   text: string;
   date: string;
   playerId: number;
@@ -59,7 +61,7 @@ export function MilestoneFeed() {
         if (firstHit) {
           const game = gameMap.get(firstHit.game_id);
           found.push({
-            emoji: "\u2B50",
+            icon: Star,
             text: `${name} got their first hit of the season (${firstHit.result})`,
             date: game?.date ?? firstHit.created_at.slice(0, 10),
             playerId: pid,
@@ -72,7 +74,7 @@ export function MilestoneFeed() {
         if (firstHR) {
           const game = gameMap.get(firstHR.game_id);
           found.push({
-            emoji: "\uD83D\uDCA3",
+            icon: Bonfire,
             text: `${name} hit their first home run!`,
             date: game?.date ?? firstHR.created_at.slice(0, 10),
             playerId: pid,
@@ -85,7 +87,7 @@ export function MilestoneFeed() {
         if (firstSB) {
           const game = gameMap.get(firstSB.game_id);
           found.push({
-            emoji: "\u26A1",
+            icon: Flash,
             text: `${name} stole their first base`,
             date: game?.date ?? firstSB.created_at.slice(0, 10),
             playerId: pid,
@@ -98,7 +100,7 @@ export function MilestoneFeed() {
         if (firstXBH) {
           const game = gameMap.get(firstXBH.game_id);
           found.push({
-            emoji: "\uD83D\uDD25",
+            icon: FireFlame,
             text: `${name} hit their first ${firstXBH.result === "2B" ? "double" : "triple"}`,
             date: game?.date ?? firstXBH.created_at.slice(0, 10),
             playerId: pid,
@@ -122,7 +124,7 @@ export function MilestoneFeed() {
             if (multiHitCount <= 2) {
               const game = gameMap.get(gid);
               found.push({
-                emoji: "\uD83D\uDD25",
+                icon: FireFlame,
                 text: `${name} went ${hits}-for-${gPAs.filter((pa) => pa.is_at_bat).length}!`,
                 date: game?.date ?? gPAs[0].created_at.slice(0, 10),
                 playerId: pid,
@@ -153,7 +155,7 @@ export function MilestoneFeed() {
         if (bestStreak >= 3) {
           const game = gameMap.get(streakEndGame);
           found.push({
-            emoji: "\uD83D\uDCAA",
+            icon: Running,
             text: `${name} had a ${bestStreak}-game hit streak!`,
             date: game?.date ?? "",
             playerId: pid,
@@ -171,7 +173,7 @@ export function MilestoneFeed() {
             lastRBIMilestone = milestone;
             const game = gameMap.get(pa.game_id);
             found.push({
-              emoji: "\uD83C\uDFAF",
+              icon: Archery,
               text: `${name} reached ${milestone} RBIs on the season`,
               date: game?.date ?? pa.created_at.slice(0, 10),
               playerId: pid,
@@ -190,7 +192,7 @@ export function MilestoneFeed() {
             lastHitMilestone = milestone;
             const game = gameMap.get(pa.game_id);
             found.push({
-              emoji: "\uD83C\uDFB0",
+              icon: Medal,
               text: `${name} recorded hit #${milestone}`,
               date: game?.date ?? pa.created_at.slice(0, 10),
               playerId: pid,
@@ -219,7 +221,7 @@ export function MilestoneFeed() {
           href={`/players/${m.playerId}`}
           className="flex items-center gap-3 rounded-xl border border-border/50 p-3 hover:bg-accent hover:border-primary/20 transition-all group"
         >
-          <span className="text-xl" style={{ filter: "grayscale(0)" }}>{m.emoji}</span>
+          <m.icon width={20} height={20} className="shrink-0" style={{ color: m.color }} />
           <div className="flex-1 min-w-0">
             <div className="text-sm font-medium group-hover:text-primary transition-colors">{m.text}</div>
             <div className="text-xs text-muted-foreground">
