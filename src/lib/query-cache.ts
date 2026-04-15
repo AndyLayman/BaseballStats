@@ -1,5 +1,3 @@
-import { sessionReady } from "./supabase";
-
 interface CacheEntry {
   data: unknown;
   timestamp: number;
@@ -23,8 +21,6 @@ export async function cachedQuery<T>(
     return { data: cached.data as T, error: null };
   }
 
-  // Ensure auth session is resolved before querying to avoid lock contention
-  await sessionReady;
   const result = await queryFn();
   if (!result.error && result.data) {
     cache.set(key, { data: result.data, timestamp: Date.now() });

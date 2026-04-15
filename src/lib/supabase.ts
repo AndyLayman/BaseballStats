@@ -5,17 +5,17 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
 
 export const supabase = createBrowserClient(
   supabaseUrl || "https://placeholder.supabase.co",
-  supabaseAnonKey || "placeholder"
+  supabaseAnonKey || "placeholder",
+  {
+    auth: {
+      // Bypass the Web Locks API for auth token reads.
+      // The default lock causes every parallel Supabase request to serialize
+      // (each .from().select() internally acquires the lock to read the token),
+      // resulting in 30s+ page loads. Safe to disable for single-user mobile apps.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      lock: async (_name: string, _acquireTimeout: number, fn: () => Promise<any>) => {
+        return fn();
+      },
+    },
+  }
 );
-
-/**
- * Resolves once the auth session is initialized.
- * Await this before firing parallel queries to prevent auth-token lock contention.
- * (The Supabase client uses a browser Lock internally — concurrent requests
- *  that all try to read/refresh the token simultaneously will steal the lock
- *  from each other and fail.)
- */
-export const sessionReady: Promise<void> =
-  typeof window !== "undefined"
-    ? supabase.auth.getSession().then(() => {})
-    : Promise.resolve();
