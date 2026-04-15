@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { cachedQuery, invalidateCache } from "@/lib/query-cache";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -137,8 +138,8 @@ export default function SchedulePage() {
 
   const loadSchedule = useCallback(async () => {
     const [gamesRes, practicesRes] = await Promise.all([
-      supabase.from("games").select("*"),
-      supabase.from("practices").select("*"),
+      cachedQuery("games:all", () => supabase.from("games").select("*")),
+      cachedQuery("practices:all", () => supabase.from("practices").select("*")),
     ]);
     setGames(gamesRes.data ?? []);
     setPractices(practicesRes.data ?? []);
@@ -184,6 +185,7 @@ export default function SchedulePage() {
     await supabase.from("opponent_lineup").delete().eq("game_id", gameId);
     await supabase.from("game_lineup").delete().eq("game_id", gameId);
     await supabase.from("games").delete().eq("id", gameId);
+    invalidateCache("games");
     setGames((prev) => prev.filter((g) => g.id !== gameId));
     setDeleteTarget(null);
     setDeleting(false);
@@ -192,6 +194,7 @@ export default function SchedulePage() {
   async function handleDeletePractice(practice: Practice) {
     setDeleting(true);
     await supabase.from("practices").delete().eq("id", practice.id);
+    invalidateCache("practices");
     setPractices((prev) => prev.filter((p) => p.id !== practice.id));
     setDeleteTarget(null);
     setDeleting(false);

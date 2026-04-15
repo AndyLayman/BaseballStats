@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
+import { cachedQuery } from "@/lib/query-cache";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -27,8 +28,8 @@ export default function LeaderboardPage() {
 
   const load = useCallback(async () => {
     const [battingRes, fieldingRes] = await Promise.all([
-      supabase.from("batting_stats_season").select("*"),
-      supabase.from("fielding_stats_season").select("*"),
+      cachedQuery<BattingStats[]>("batting_stats_all", () => supabase.from("batting_stats_season").select("*")),
+      cachedQuery<FieldingStats[]>("fielding_stats_all", () => supabase.from("fielding_stats_season").select("*")),
     ]);
     setBattingStats(battingRes.data ?? []);
     setFieldingStats(fieldingRes.data ?? []);
