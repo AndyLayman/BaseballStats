@@ -11,10 +11,14 @@ import type { BattingStats, FieldingStats } from "@/lib/scoring/types";
 import { StatTip } from "@/components/stat-tip";
 import { computeBadges, BadgeRow } from "@/components/leaderboard-badges";
 import { useRefresh } from "@/components/pull-to-refresh";
+import { useAuth } from "@/components/auth-provider";
+import { Lock } from "iconoir-react";
 
 type SortKey = keyof BattingStats;
 
 export default function LeaderboardPage() {
+  const { hasRole, loading: authLoading } = useAuth();
+
   const [battingStats, setBattingStats] = useState<BattingStats[]>([]);
   const [fieldingStats, setFieldingStats] = useState<FieldingStats[]>([]);
   const [sortBy, setSortBy] = useState<SortKey>("avg");
@@ -96,6 +100,24 @@ export default function LeaderboardPage() {
     { label: "OPS", field: "ops" },
     { label: "SB", field: "stolen_bases" },
   ];
+
+  if (authLoading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="text-muted-foreground animate-pulse">Loading...</div>
+      </div>
+    );
+  }
+
+  if (!hasRole("admin", "manager")) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 gap-3">
+        <Lock width={32} height={32} className="text-muted-foreground" />
+        <h1 className="text-xl font-bold text-foreground">Access Restricted</h1>
+        <p className="text-sm text-muted-foreground">Leaderboards are available to coaches and managers.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4 sm:space-y-6">
