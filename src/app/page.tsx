@@ -10,6 +10,7 @@ import { MilestoneFeed } from "@/components/milestone-feed";
 import { useRefresh } from "@/components/pull-to-refresh";
 import { formatTime12 } from "@/lib/stats/calculations";
 import { fullName } from "@/lib/player-name";
+import { Trophy, Gym } from "iconoir-react";
 import type { Game, Player, BattingStats, ChainAward } from "@/lib/scoring/types";
 
 export default function Dashboard() {
@@ -244,7 +245,7 @@ export default function Dashboard() {
                 >
                   <div className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground mb-1">Game Chain</div>
                   <div className="flex items-center gap-2">
-                    <span className="text-lg">🏆</span>
+                    <Trophy className="w-5 h-5 text-primary shrink-0" />
                     <div className="min-w-0">
                       <div className="font-bold text-sm truncate group-hover:text-primary transition-colors">
                         #{chainHolders.gameChain.player.number} {fullName(chainHolders.gameChain.player)}
@@ -263,7 +264,7 @@ export default function Dashboard() {
                 >
                   <div className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground mb-1">Hard Worker</div>
                   <div className="flex items-center gap-2">
-                    <span className="text-lg">💪</span>
+                    <Gym className="w-5 h-5 text-primary shrink-0" />
                     <div className="min-w-0">
                       <div className="font-bold text-sm truncate group-hover:text-primary transition-colors">
                         #{chainHolders.hardWorker.player.number} {fullName(chainHolders.hardWorker.player)}
