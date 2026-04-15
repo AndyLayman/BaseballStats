@@ -14,9 +14,10 @@ const DEFAULT_TTL = 30_000; // 30 seconds
  */
 export async function cachedQuery<T>(
   key: string,
-  queryFn: () => ReturnType<typeof supabase.from>,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  queryFn: () => PromiseLike<{ data: any; error: any }>,
   ttl = DEFAULT_TTL
-): Promise<{ data: T | null; error: unknown }> {
+): Promise<{ data: T | null; error: { message: string } | null }> {
   const cached = cache.get(key);
   if (cached && Date.now() - cached.timestamp < ttl) {
     return { data: cached.data as T, error: null };

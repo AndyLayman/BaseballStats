@@ -153,7 +153,7 @@ export default function PlayersPage() {
   const load = useCallback(async () => {
     const [playersRes, statsRes] = await Promise.all([
       cachedQuery<Player[]>("players", () => supabase.from("players").select("*")),
-      cachedQuery("batting_stats_all", () => supabase.from("batting_stats_season").select("*")),
+      cachedQuery<Record<string, unknown>[]>("batting_stats_all", () => supabase.from("batting_stats_season").select("*")),
     ]);
 
     const allPlayers: Player[] = playersRes.data ?? [];

@@ -138,8 +138,8 @@ export default function SchedulePage() {
 
   const loadSchedule = useCallback(async () => {
     const [gamesRes, practicesRes] = await Promise.all([
-      cachedQuery("games:all", () => supabase.from("games").select("*")),
-      cachedQuery("practices:all", () => supabase.from("practices").select("*")),
+      cachedQuery<Game[]>("games:all", () => supabase.from("games").select("*")),
+      cachedQuery<Practice[]>("practices:all", () => supabase.from("practices").select("*")),
     ]);
     setGames(gamesRes.data ?? []);
     setPractices(practicesRes.data ?? []);
