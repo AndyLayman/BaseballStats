@@ -1777,7 +1777,7 @@ export default function LiveScoringPage() {
 
       {/* Confirm bar — fixed at bottom of screen */}
       {activeBatter && selectedResult && (
-        <div className="fixed bottom-0 left-0 right-0 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] glass-strong border-t border-border/50 z-40">
+        <div className="fixed bottom-[calc(3.25rem+env(safe-area-inset-bottom))] md:bottom-0 left-0 right-0 p-3 md:pb-[max(0.75rem,env(safe-area-inset-bottom))] glass-strong border-t border-border/50 z-40">
           <div className="max-w-lg md:max-w-4xl mx-auto flex gap-2 items-center">
             <input
               type="text"
