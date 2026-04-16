@@ -31,8 +31,8 @@ This version has breaking changes — APIs, conventions, and file structure may 
 ### Foundation (always read first)
 `references/DESIGN-SYSTEM.md`
  
-### Patterns (always read second)
-`references/patterns.md`
+### League Info (always read second)
+`references/LEAGUEINFO.md`
 
 ---
 
@@ -103,7 +103,7 @@ All four apps connect to the same Supabase project using the same anon key and p
 | Walk-up song assignments | Sound | — |
 | Stream status, overlay config | Live | — |
 | Reactions / viewer chat | Live | — |
-| League config (innings, rules) | _TBD — shared config_ | All |
+| League config (innings, rules) | Any app (via `league_config` table) | All |
 
 ### Real-time sync via Supabase Realtime
 
@@ -121,12 +121,12 @@ Apps stay in sync during a live game using **Supabase Realtime subscriptions** o
 **Implementation pattern:**
 
 ```typescript
-import { createClient } from '@supabase/supabase-js'
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
+import { createBrowserClient } from '@supabase/ssr'                                       
+                                                                                            
+  const supabase = createBrowserClient(                                                     
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,                                                  
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!                                            
+  )              
 
 // Subscribe to game state changes for a specific game
 const channel = supabase
@@ -220,6 +220,10 @@ These come up constantly. Don't assume standard sports logic — baseball has qu
 - **Extra hitters (EH)** — some youth leagues allow more than 9 batters. Batting order length must be configurable.
 - **Continuous batting order** — some leagues bat the entire roster. Support this as a config option.
 
+> **Implementation:** These configurable rules are stored in the `league_config` Supabase 
+  table and accessed via `src/lib/league-config.ts`. See `references/LEAGUEINFO.md` for the 
+  full type definition.    
+
 ---
 
 ## Supabase Conventions [SHARED]
@@ -240,8 +244,6 @@ export const createClient = () =>
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   )
 ```
-
-> **⚠️ ASSUMPTION:** Using `@supabase/ssr` for Next.js App Router integration. Adjust if using the older `@supabase/auth-helpers-nextjs`.
 
 ### Database schema as shared contract
 
@@ -271,15 +273,9 @@ Organize buckets by concern: `walk-up-songs`, `team-assets`, etc.
 
 ### Generated types
 
-Use the Supabase CLI to generate TypeScript types from the database schema:
-
-```bash
-npx supabase gen types typescript --project-id <project-id> > types/database.ts
-```
-
-Run this after every migration and commit the output. This is the closest thing to a shared type package across repos — the database schema IS the contract, and the generated types enforce it in code.
-
-> **Status:** `types/database.ts` has not been generated yet for this repo. Types are currently defined manually.
+> **Status:** Generated types live in `types/database.ts`. Regenerate after every         
+  migration with `npx supabase gen types typescript --project-id xrtetfxvyicdqfpwnpzt >     
+  types/database.ts`.
 
 ---
 
