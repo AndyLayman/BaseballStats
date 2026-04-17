@@ -157,7 +157,35 @@ export default function SettingsPage() {
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="teamLogoSvg">Logo SVG Code</Label>
+            <div className="flex items-center justify-between gap-2">
+              <Label htmlFor="teamLogoSvg">Logo SVG</Label>
+              <label className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:text-primary/80 cursor-pointer">
+                <input
+                  type="file"
+                  accept=".svg,image/svg+xml"
+                  className="sr-only"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    setSaveError(null);
+                    try {
+                      const text = await file.text();
+                      if (!/<svg[\s>]/i.test(text)) {
+                        setSaveError("That file doesn't look like an SVG.");
+                      } else {
+                        updateBranding("logoSvg", text);
+                      }
+                    } catch (err) {
+                      setSaveError(err instanceof Error ? err.message : "Couldn't read the file");
+                    } finally {
+                      // Allow re-selecting the same file
+                      e.target.value = "";
+                    }
+                  }}
+                />
+                Upload .svg
+              </label>
+            </div>
             <textarea
               id="teamLogoSvg"
               value={branding.logoSvg}
@@ -166,7 +194,7 @@ export default function SettingsPage() {
               rows={3}
               className="w-full rounded-xl border border-border/50 bg-input/50 px-3 py-2 text-sm font-mono focus:border-primary/50 focus:outline-none focus:ring-1 focus:ring-primary/30 resize-y"
             />
-            <p className="text-xs text-muted-foreground">Paste the full &lt;svg&gt; source. Leave empty to show the first letter of your team name instead.</p>
+            <p className="text-xs text-muted-foreground">Paste the full &lt;svg&gt; source or upload an .svg file. Leave empty to show the first letter of your team name instead.</p>
           </div>
         </CardContent>
       </Card>
