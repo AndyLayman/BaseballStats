@@ -177,14 +177,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // If iOS suspended the initial getSession() and we fell through
     // unauthenticated, retry on tab return. A valid session will
     // repopulate user without requiring a page reload.
+    //
+    // IMPORTANT: never clear user/memberships on a post-wake getSession
+    // result — auth-js can return { session: null } while its internal
+    // state is stuck after an iOS suspend, which would nuke the active
+    // team and leave every page stuck on a skeleton. Real sign-outs
+    // still flow through onAuthStateChange above.
     const onVisibility = () => {
       if (document.visibilityState !== "visible") return;
       supabase.auth.getSession().then(({ data: { session } }) => {
         const u = session?.user ?? null;
+        if (!u) return;
         setUser((prev) => {
-          if (prev?.id === u?.id) return prev;
-          if (u) loadMemberships(u.id);
-          else setMemberships([]);
+          if (prev?.id === u.id) return prev;
+          loadMemberships(u.id);
           return u;
         });
       }).catch(() => { /* ignore; nothing changed */ });
