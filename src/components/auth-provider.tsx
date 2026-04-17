@@ -22,6 +22,7 @@ interface AuthContextValue {
   memberships: TeamMembership[];
   activeTeam: TeamMembership | null;
   setActiveTeam: (team: TeamMembership) => void;
+  refreshMemberships: () => Promise<void>;
   loading: boolean;
   signOut: () => Promise<void>;
   hasRole: (...roles: TeamRole[]) => boolean;
@@ -32,6 +33,7 @@ const AuthContext = createContext<AuthContextValue>({
   memberships: [],
   activeTeam: null,
   setActiveTeam: () => {},
+  refreshMemberships: async () => {},
   loading: true,
   signOut: async () => {},
   hasRole: () => false,
@@ -159,6 +161,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setMemberships([]);
   }, []);
 
+  const refreshMemberships = useCallback(async () => {
+    if (user) await loadMemberships(user.id);
+  }, [user, loadMemberships]);
+
   const activeTeam = memberships.find((m) => m.team_id === activeTeamId) ?? memberships[0] ?? null;
 
   const setActiveTeam = useCallback((team: TeamMembership) => {
@@ -185,7 +191,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   return (
-    <AuthContext.Provider value={{ user, memberships, activeTeam, setActiveTeam, loading, signOut, hasRole }}>
+    <AuthContext.Provider value={{ user, memberships, activeTeam, setActiveTeam, refreshMemberships, loading, signOut, hasRole }}>
       {children}
     </AuthContext.Provider>
   );
