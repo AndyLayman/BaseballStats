@@ -13,30 +13,69 @@ interface LockEntry {
   promise: Promise<unknown>;
   reject: (err: unknown) => void;
 }
-const activeLocks = new Map<string, LockEntry>();
+let activeLocks = new Map<string, LockEntry>();
 
-// iOS can leave the fetch from a lock-holding fn() pending forever after
-// a tab is briefly suspended. That permanently blocks every subsequent
-// auth-gated query. When the tab transitions hidden → visible:
-//   1. Reject and drop any entry in our outer lock map.
-//   2. Reset auth-js's internal lockAcquired / pendingInLock state —
-//      those guard a fast-path that would otherwise queue every new
-//      _useSession call behind the stuck fn() forever.
-// The stuck fn() is orphaned; when its fetch eventually resolves (or
-// rejects) its try/finally is a no-op against the new state.
-function resetStuckLocks(authClient: unknown) {
-  for (const [name, entry] of activeLocks) {
-    entry.reject(new Error("Lock holder suspended across tab hide"));
-    activeLocks.delete(name);
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const lockFn = async (name: string, _acquireTimeout: number, fn: () => Promise<any>) => {
+  while (activeLocks.has(name)) {
+    try {
+      await activeLocks.get(name)!.promise;
+    } catch {
+      // Previous holder threw (or was evicted on tab wake) — we still proceed
+    }
   }
-  // auth-js marks these private via TS but they are regular instance
-  // properties at runtime. Resetting is the only way to unstick the
-  // queue when iOS has orphaned the fn() that would normally clear them.
-  const a = authClient as { lockAcquired?: boolean; pendingInLock?: unknown[] };
-  if (a && typeof a === "object") {
-    a.lockAcquired = false;
-    a.pendingInLock = [];
+
+  let resolve: () => void;
+  let reject: (err: unknown) => void;
+  const gate = new Promise<void>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+  const entry: LockEntry = { promise: gate, reject: reject! };
+  activeLocks.set(name, entry);
+
+  try {
+    const result = await fn();
+    resolve!();
+    return result;
+  } catch (err) {
+    reject!(err);
+    throw err;
+  } finally {
+    if (activeLocks.get(name) === entry) {
+      activeLocks.delete(name);
+    }
   }
+};
+
+function makeClient() {
+  return createBrowserClient(
+    supabaseUrl || "https://placeholder.supabase.co",
+    supabaseAnonKey || "placeholder",
+    { auth: { lock: lockFn } }
+  );
+}
+
+// A backgrounded tab on iOS can leave an in-flight token-refresh fetch
+// permanently pending, which poisons the auth-js client's internal state
+// (lockAcquired stuck true, pendingInLock growing unbounded). No amount
+// of poking internal flags recovers cleanly — the stuck Promise keeps
+// re-holding the lock.
+//
+// Nuclear recovery on hide → visible: throw away the whole client and
+// build a new one. All module-level imports reference this wrapper via
+// a Proxy, so the next query uses the fresh client transparently. The
+// new client reads its session from localStorage so the user stays
+// logged in.
+let currentClient = makeClient();
+
+function recreateClient() {
+  // Release any orphan waiters on the old lock map so they unblock.
+  for (const entry of activeLocks.values()) {
+    entry.reject(new Error("Supabase client replaced on tab wake"));
+  }
+  activeLocks = new Map();
+  currentClient = makeClient();
 }
 
 let lastHiddenAt: number | null = null;
@@ -53,7 +92,7 @@ if (typeof document !== "undefined") {
       lastVisibleAt = Date.now();
       if (wasHidden) {
         wasHidden = false;
-        resetStuckLocks(supabase.auth);
+        recreateClient();
       }
     }
   });
@@ -68,7 +107,7 @@ export interface SupabaseDebugInfo {
 }
 
 export function getSupabaseDebugInfo(): SupabaseDebugInfo {
-  const a = (supabase?.auth as unknown as { lockAcquired?: boolean; pendingInLock?: unknown[] }) ?? {};
+  const a = (currentClient?.auth as unknown as { lockAcquired?: boolean; pendingInLock?: unknown[] }) ?? {};
   return {
     outerLocks: [...activeLocks.keys()],
     authLockAcquired: !!a.lockAcquired,
@@ -78,46 +117,14 @@ export function getSupabaseDebugInfo(): SupabaseDebugInfo {
   };
 }
 
-export const supabase = createBrowserClient(
-  supabaseUrl || "https://placeholder.supabase.co",
-  supabaseAnonKey || "placeholder",
-  {
-    auth: {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      lock: async (name: string, _acquireTimeout: number, fn: () => Promise<any>) => {
-        // Wait for the current holder of this lock name (if any) to finish
-        while (activeLocks.has(name)) {
-          try {
-            await activeLocks.get(name)!.promise;
-          } catch {
-            // Previous holder threw (or was evicted on tab wake) — we still proceed
-          }
-        }
-
-        // Now we hold the lock — store our promise so others wait
-        let resolve: () => void;
-        let reject: (err: unknown) => void;
-        const gate = new Promise<void>((res, rej) => {
-          resolve = res;
-          reject = rej;
-        });
-        const entry: LockEntry = { promise: gate, reject: reject! };
-        activeLocks.set(name, entry);
-
-        try {
-          const result = await fn();
-          resolve!();
-          return result;
-        } catch (err) {
-          reject!(err);
-          throw err;
-        } finally {
-          // Only delete if we're still the current holder
-          if (activeLocks.get(name) === entry) {
-            activeLocks.delete(name);
-          }
-        }
-      },
-    },
-  }
-);
+// Proxy that forwards every property access to the current client. When
+// recreateClient() swaps currentClient, all existing imports seamlessly
+// use the new one — no call site has to change.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const supabase: ReturnType<typeof makeClient> = new Proxy({} as any, {
+  get(_target, prop, receiver) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const value = Reflect.get(currentClient as any, prop, receiver);
+    return typeof value === "function" ? value.bind(currentClient) : value;
+  },
+});
