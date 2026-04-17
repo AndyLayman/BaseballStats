@@ -17,13 +17,27 @@ export const supabase = createBrowserClient(
   {
     auth: {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      lock: async (name: string, _acquireTimeout: number, fn: () => Promise<any>) => {
-        // Wait for the current holder of this lock name (if any) to finish
+      lock: async (name: string, acquireTimeout: number, fn: () => Promise<any>) => {
+        // Wait for the current holder of this lock name (if any) to finish.
+        // If a tab is suspended mid-request, the previous holder's promise can
+        // be left pending forever — bound the wait so we don't deadlock all
+        // future Supabase calls when the tab wakes up.
+        const timeoutMs = acquireTimeout > 0 ? acquireTimeout : 10_000;
+        const deadline = Date.now() + timeoutMs;
         while (activeLocks.has(name)) {
+          const remaining = deadline - Date.now();
+          if (remaining <= 0) {
+            // Forcibly evict the stuck holder so we can proceed
+            activeLocks.delete(name);
+            break;
+          }
           try {
-            await activeLocks.get(name);
+            await Promise.race([
+              activeLocks.get(name),
+              new Promise((_, rej) => setTimeout(() => rej(new Error("lock-timeout")), remaining)),
+            ]);
           } catch {
-            // Previous holder threw — that's fine, we still proceed
+            // Previous holder threw or we timed out — loop and re-check
           }
         }
 

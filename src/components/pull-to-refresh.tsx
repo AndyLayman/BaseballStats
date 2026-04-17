@@ -142,6 +142,26 @@ export function RefreshProvider({ children }: { children: React.ReactNode }) {
     await Promise.all([...handlers.current].map((h) => h()));
   }, []);
 
+  // Re-fetch data whenever the tab regains focus. Without this, returning to a
+  // backgrounded tab shows stale cached data (or no data at all if a Supabase
+  // call was in flight when the OS suspended the page).
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === "visible") {
+        handleRefresh();
+      }
+    };
+    const onPageShow = (e: PageTransitionEvent) => {
+      if (e.persisted) handleRefresh();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("pageshow", onPageShow);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("pageshow", onPageShow);
+    };
+  }, [handleRefresh]);
+
   return (
     <RefreshContext.Provider value={{ register }}>
       <PullToRefresh onRefresh={handleRefresh}>{children}</PullToRefresh>
