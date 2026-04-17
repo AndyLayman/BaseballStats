@@ -38,10 +38,12 @@ function withTimeout<T>(
 }
 
 /**
- * Cached Supabase query wrapper. Returns cached data instantly if fresh,
- * otherwise fetches. On fetch failure (including timeout) returns any
- * cached data we still have — even if expired or marked stale — in
- * preference to leaving the page with no data at all.
+ * Cached Supabase query wrapper. Semantics:
+ *   - Fresh cache: return immediately, no network.
+ *   - Stale cache (any prior data): return immediately, refresh in
+ *     background. This keeps page navigations snappy even when the
+ *     underlying fetch is slow or stuck (iOS suspend aftermath).
+ *   - No cache at all: await the fetch with a timeout.
  */
 export async function cachedQuery<T>(
   key: string,
@@ -55,15 +57,23 @@ export async function cachedQuery<T>(
     return { data: cached!.data as T, error: null };
   }
 
+  if (cached) {
+    // Stale-while-revalidate: return what we have now, refresh for next time.
+    // Fire-and-forget; errors and timeouts are ignored — the current cached
+    // value stays in place until a future call succeeds.
+    Promise.resolve(queryFn()).then((result) => {
+      if (!result.error && result.data) {
+        cache.set(key, { data: result.data, timestamp: Date.now() });
+      }
+    }).catch(() => { /* keep stale */ });
+    return { data: cached.data as T, error: null };
+  }
+
+  // First-ever load for this key: no cache to fall back to, must wait.
   const result = await withTimeout(queryFn(), QUERY_TIMEOUT_MS);
   if (!result.error && result.data) {
     cache.set(key, { data: result.data, timestamp: Date.now() });
     return { data: result.data as T, error: null };
-  }
-
-  // Query failed or timed out — prefer stale cached data over an empty page
-  if (cached) {
-    return { data: cached.data as T, error: null };
   }
   return { data: null, error: result.error };
 }
