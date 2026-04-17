@@ -127,11 +127,10 @@ export function BuildStamp() {
     <button
       type="button"
       onClick={onTap}
-      className="fixed bottom-1 right-1 z-[100] text-[9px] font-mono text-muted-foreground/40 select-none bg-transparent border-0 p-1"
-      style={{ marginBottom: "env(safe-area-inset-bottom)" }}
+      className="w-full text-center text-[11px] font-mono text-muted-foreground/60 select-none bg-transparent border-0 py-0.5 leading-none"
       aria-label="Build info"
     >
-      {BUILD_SHA}{enabled ? "·debug" : ""}{tapCount > 0 && tapCount < 5 ? `·${tapCount}` : ""}
+      build {BUILD_SHA}{enabled ? " · debug on" : ""}{tapCount > 0 && tapCount < 5 ? ` · ${tapCount}/5` : ""}
     </button>
   );
 }

@@ -85,6 +85,7 @@ export default function RootLayout({
 
               <HeaderNav />
             </div>
+            <BuildStamp />
           </header>
           <RefreshProvider>
             <main className="flex-1 container mx-auto px-4 py-4 sm:py-6 pb-20 md:pb-6 animate-fade-in">
@@ -93,7 +94,6 @@ export default function RootLayout({
           </RefreshProvider>
           <BottomNav />
           <ToastContainer />
-          <BuildStamp />
         </AuthProvider>
         <script src="https://www.inflight.co/widget.js" data-workspace="dhriiord" async />
       </body>
