@@ -6,8 +6,6 @@ import { BottomNav } from "@/components/bottom-nav";
 import { AuthProvider } from "@/components/auth-provider";
 import { RefreshProvider } from "@/components/pull-to-refresh";
 import { ToastContainer } from "@/components/toast";
-import { BuildStamp, DebugPanel } from "@/components/debug-panel";
-import { Suspense } from "react";
 import "./globals.css";
 
 const isStaging = process.env.NEXT_PUBLIC_APP_ENV === "staging";
@@ -65,9 +63,6 @@ export default function RootLayout({
       </head>
       <body className="min-h-full flex flex-col">
         <AuthProvider>
-          <Suspense fallback={null}>
-            <DebugPanel />
-          </Suspense>
           <header className="sticky top-0 z-50 border-b border-border/50 bg-sidebar">
             <div className="container mx-auto flex h-14 items-center justify-between px-4">
               <Link href="/" className="flex items-center gap-2 font-bold text-lg group">
@@ -85,7 +80,6 @@ export default function RootLayout({
 
               <HeaderNav />
             </div>
-            <BuildStamp />
           </header>
           <RefreshProvider>
             <main className="flex-1 container mx-auto px-4 py-4 sm:py-6 pb-20 md:pb-6 animate-fade-in">
