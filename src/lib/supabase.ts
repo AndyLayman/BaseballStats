@@ -17,9 +17,28 @@ const activeLocks = new Map<string, LockEntry>();
 
 // iOS can leave the fetch from a lock-holding fn() pending forever after
 // a tab is briefly suspended. That permanently blocks every subsequent
-// auth-gated query. When the tab transitions hidden → visible, any lock
-// that was held across the suspend is almost certainly stuck, so reject
-// its gate and drop the entry. A new request can then acquire cleanly.
+// auth-gated query. When the tab transitions hidden → visible:
+//   1. Reject and drop any entry in our outer lock map.
+//   2. Reset auth-js's internal lockAcquired / pendingInLock state —
+//      those guard a fast-path that would otherwise queue every new
+//      _useSession call behind the stuck fn() forever.
+// The stuck fn() is orphaned; when its fetch eventually resolves (or
+// rejects) its try/finally is a no-op against the new state.
+function resetStuckLocks(authClient: unknown) {
+  for (const [name, entry] of activeLocks) {
+    entry.reject(new Error("Lock holder suspended across tab hide"));
+    activeLocks.delete(name);
+  }
+  // auth-js marks these private via TS but they are regular instance
+  // properties at runtime. Resetting is the only way to unstick the
+  // queue when iOS has orphaned the fn() that would normally clear them.
+  const a = authClient as { lockAcquired?: boolean; pendingInLock?: unknown[] };
+  if (a && typeof a === "object") {
+    a.lockAcquired = false;
+    a.pendingInLock = [];
+  }
+}
+
 if (typeof document !== "undefined") {
   let wasHidden = false;
   document.addEventListener("visibilitychange", () => {
@@ -29,10 +48,7 @@ if (typeof document !== "undefined") {
     }
     if (document.visibilityState === "visible" && wasHidden) {
       wasHidden = false;
-      for (const [name, entry] of activeLocks) {
-        entry.reject(new Error("Lock holder suspended across tab hide"));
-        activeLocks.delete(name);
-      }
+      resetStuckLocks(supabase.auth);
     }
   });
 }
