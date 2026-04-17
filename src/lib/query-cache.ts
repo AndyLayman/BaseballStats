@@ -10,11 +10,11 @@ interface CacheEntry {
 const cache = new Map<string, CacheEntry>();
 const pendingQueries = new Set<string>();
 const DEFAULT_TTL = 30_000; // 30 seconds
-const QUERY_TIMEOUT_MS = 10_000; // iOS Safari can leave fetches pending
-                                 // forever after a tab is briefly backgrounded;
-                                 // race each query against a timeout so a
-                                 // stuck fetch becomes a surfaced error
-                                 // instead of a permanent spinner.
+const QUERY_TIMEOUT_MS = 4_000;  // iOS Safari can leave fetches pending
+                                 // forever after a tab is briefly backgrounded.
+                                 // Short timeout so a stuck fetch degrades
+                                 // quickly to stale-or-empty instead of hanging
+                                 // the entire Promise.all in a page's load().
 
 function withTimeout<T>(
   p: PromiseLike<{ data: T; error: { message: string } | null }>,
@@ -60,14 +60,14 @@ export async function cachedQuery<T>(
 
   if (cached) {
     // Stale-while-revalidate: return what we have now, refresh for next time.
-    // Fire-and-forget; errors and timeouts are ignored — the current cached
-    // value stays in place until a future call succeeds.
+    // Fire-and-forget WITH a timeout — without one, a hung fetch piles up in
+    // pendingQueries (and in auth-js's pendingInLock) forever.
     pendingQueries.add(key);
-    Promise.resolve(queryFn()).then((result) => {
+    withTimeout(queryFn(), QUERY_TIMEOUT_MS).then((result) => {
       if (!result.error && result.data) {
         cache.set(key, { data: result.data, timestamp: Date.now() });
       }
-    }).catch(() => { /* keep stale */ }).finally(() => {
+    }).finally(() => {
       pendingQueries.delete(key);
     });
     return { data: cached.data as T, error: null };
