@@ -137,16 +137,17 @@ export function RefreshProvider({ children }: { children: React.ReactNode }) {
     return () => { handlers.current.delete(handler); };
   }, []);
 
+  // Pull-to-refresh: user explicitly wants fresh data, so wipe the cache.
   const handleRefresh = useCallback(async () => {
     invalidateCache();
     await Promise.all([...handlers.current].map((h) => h()));
   }, []);
 
-  // When the tab regains focus after being hidden, re-run registered
-  // refresh handlers. iOS can leave in-flight fetches pending forever
-  // after a brief background, so without this a quick switch-and-return
-  // leaves pages stuck. cachedQuery's timeout makes this safe — a stuck
-  // fetch surfaces as an error rather than a hang.
+  // On tab return (hide → visible), re-run load handlers but DO NOT clear
+  // the cache. If the cached data is still fresh the handlers short-circuit;
+  // if the cache has expired the handlers refetch, and when a refetch times
+  // out (iOS-stuck fetch) cachedQuery falls back to the still-present stale
+  // cache rather than surfacing an empty page.
   useEffect(() => {
     let wasHidden = false;
     const onVisibility = () => {
@@ -156,12 +157,12 @@ export function RefreshProvider({ children }: { children: React.ReactNode }) {
       }
       if (document.visibilityState === "visible" && wasHidden) {
         wasHidden = false;
-        handleRefresh();
+        Promise.all([...handlers.current].map((h) => h())).catch(() => {});
       }
     };
     document.addEventListener("visibilitychange", onVisibility);
     return () => document.removeEventListener("visibilitychange", onVisibility);
-  }, [handleRefresh]);
+  }, []);
 
   return (
     <RefreshContext.Provider value={{ register }}>
