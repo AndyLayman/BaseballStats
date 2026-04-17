@@ -5,6 +5,33 @@ interface CacheEntry {
 
 const cache = new Map<string, CacheEntry>();
 const DEFAULT_TTL = 30_000; // 30 seconds
+const QUERY_TIMEOUT_MS = 10_000; // iOS Safari can leave fetches pending
+                                 // forever after a tab is briefly backgrounded;
+                                 // race each query against a timeout so a
+                                 // stuck fetch becomes a surfaced error
+                                 // instead of a permanent spinner.
+
+function withTimeout<T>(
+  p: PromiseLike<{ data: T; error: { message: string } | null }>,
+  ms: number
+): Promise<{ data: T | null; error: { message: string } | null }> {
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => {
+      resolve({ data: null, error: { message: "Query timed out" } });
+    }, ms);
+    Promise.resolve(p).then(
+      (res) => {
+        clearTimeout(timer);
+        resolve(res);
+      },
+      (err: unknown) => {
+        clearTimeout(timer);
+        const message = err instanceof Error ? err.message : String(err);
+        resolve({ data: null, error: { message } });
+      }
+    );
+  });
+}
 
 /**
  * Cached Supabase query wrapper. Returns cached data instantly if fresh,
@@ -21,7 +48,7 @@ export async function cachedQuery<T>(
     return { data: cached.data as T, error: null };
   }
 
-  const result = await queryFn();
+  const result = await withTimeout(queryFn(), QUERY_TIMEOUT_MS);
   if (!result.error && result.data) {
     cache.set(key, { data: result.data, timestamp: Date.now() });
   }

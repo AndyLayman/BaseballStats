@@ -142,6 +142,27 @@ export function RefreshProvider({ children }: { children: React.ReactNode }) {
     await Promise.all([...handlers.current].map((h) => h()));
   }, []);
 
+  // When the tab regains focus after being hidden, re-run registered
+  // refresh handlers. iOS can leave in-flight fetches pending forever
+  // after a brief background, so without this a quick switch-and-return
+  // leaves pages stuck. cachedQuery's timeout makes this safe — a stuck
+  // fetch surfaces as an error rather than a hang.
+  useEffect(() => {
+    let wasHidden = false;
+    const onVisibility = () => {
+      if (document.visibilityState === "hidden") {
+        wasHidden = true;
+        return;
+      }
+      if (document.visibilityState === "visible" && wasHidden) {
+        wasHidden = false;
+        handleRefresh();
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => document.removeEventListener("visibilitychange", onVisibility);
+  }, [handleRefresh]);
+
   return (
     <RefreshContext.Provider value={{ register }}>
       <PullToRefresh onRefresh={handleRefresh}>{children}</PullToRefresh>
