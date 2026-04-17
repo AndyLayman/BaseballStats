@@ -45,23 +45,42 @@ export default function SettingsPage() {
     setSaving(true);
     setSaveError(null);
     const cfgOk = await updateLeagueConfig(activeTeam.team_id, config);
-    const { error: teamErr } = await supabase
+
+    const updatePayload = {
+      name: branding.name.trim() || activeTeam.team_name,
+      logo_svg: branding.logoSvg.trim() || null,
+      color_bg: branding.colorBg,
+      color_fg: branding.colorFg,
+    };
+    // .select() forces the update to return the affected rows so we can
+    // tell the difference between a real success and an RLS silent-fail
+    // (which returns error=null, data=[]).
+    const { data: updated, error: teamErr } = await supabase
       .from("teams")
-      .update({
-        name: branding.name.trim() || activeTeam.team_name,
-        logo_svg: branding.logoSvg.trim() || null,
-        color_bg: branding.colorBg,
-        color_fg: branding.colorFg,
-      })
-      .eq("id", activeTeam.team_id);
+      .update(updatePayload)
+      .eq("id", activeTeam.team_id)
+      .select();
+
     setSaving(false);
-    if (cfgOk && !teamErr) {
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
-      await refreshMemberships();
-    } else {
-      setSaveError(teamErr?.message ?? "Failed to save settings");
+
+    if (teamErr) {
+      setSaveError(`Team branding save failed: ${teamErr.message}`);
+      return;
     }
+    if (!updated || updated.length === 0) {
+      setSaveError(
+        "Team branding didn't save — your role on this team may not have permission to update it. Check the teams-table RLS policies in Supabase."
+      );
+      return;
+    }
+    if (!cfgOk) {
+      setSaveError("Team branding saved, but league config failed to save.");
+      return;
+    }
+
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+    await refreshMemberships();
   };
 
   const update = <K extends keyof LeagueConfig>(key: K, value: LeagueConfig[K]) => {
