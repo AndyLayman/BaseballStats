@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Invite email preview</title>
+<style>
+  body { background: #1a1a1a; margin: 0; padding: 24px 12px; font-family: system-ui; }
+  .frame-label { max-width: 520px; margin: 0 auto 12px; color: #888; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; font-family: ui-monospace, monospace; }
+</style>
+</head>
+<body>
+<div class="frame-label">Preview — not an actual sent email. Template vars filled with sample data.</div>
+<!-- ===== BEGIN EMAIL HTML (this is what Supabase will send) ===== -->
+<div style="margin:0;padding:0;background:#0A0A0A;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#E9D7B4;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#0A0A0A;">
+    <tr>
+      <td align="center" style="padding:32px 16px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:520px;background:#141414;border:1px solid rgba(233,215,180,0.12);border-radius:16px;overflow:hidden;">
+          <tr>
+            <td align="center" style="padding:36px 32px 8px 32px;">
+              <div style="font-size:13px;font-weight:700;letter-spacing:0.22em;color:#E9D7B4;text-transform:uppercase;opacity:0.9;">Six43 &middot; Stats</div>
+            </td>
+          </tr>
+          <tr>
+            <td align="center" style="padding:12px 32px 8px 32px;">
+              <h1 style="margin:0;font-size:24px;line-height:1.25;font-weight:800;color:#ffffff;letter-spacing:-0.01em;">You're invited to<br>Padres</h1>
+            </td>
+          </tr>
+          <tr>
+            <td align="center" style="padding:8px 32px 24px 32px;">
+              <p style="margin:0;font-size:15px;line-height:1.55;color:rgba(233,215,180,0.75);">
+                laymanan@gmail.com invited you to join as a <strong style="color:#E9D7B4;">Manager</strong>. Tap below to accept &mdash; you'll be signed in automatically.
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td align="center" style="padding:8px 32px 8px 32px;">
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td align="center" bgcolor="#E9D7B4" style="border-radius:10px;">
+                    <a href="#" target="_blank" style="display:inline-block;padding:14px 28px;font-size:15px;font-weight:700;color:#0A0A0A;text-decoration:none;border-radius:10px;">Accept invite</a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td align="center" style="padding:24px 32px 8px 32px;">
+              <p style="margin:0;font-size:12px;line-height:1.5;color:rgba(233,215,180,0.45);">Or paste this link into your browser:</p>
+              <p style="margin:4px 0 0 0;font-size:12px;line-height:1.5;word-break:break-all;"><a href="#" style="color:#9CB4FF;text-decoration:underline;">https://six43-stats.vercel.app/auth/callback?token=abc123def456ghi789</a></p>
+            </td>
+          </tr>
+          <tr>
+            <td align="center" style="padding:24px 32px 36px 32px;">
+              <p style="margin:0;font-size:11px;line-height:1.5;color:rgba(233,215,180,0.35);">If you weren't expecting this invite, you can ignore this email &mdash; nothing will happen.</p>
+            </td>
+          </tr>
+        </table>
+        <div style="max-width:520px;margin:16px auto 0 auto;font-size:11px;color:rgba(233,215,180,0.3);">Sent to laymanan+manager@gmail.com</div>
+      </td>
+    </tr>
+  </table>
+</div>
+<!-- ===== END EMAIL HTML ===== -->
+</body>
+</html>
