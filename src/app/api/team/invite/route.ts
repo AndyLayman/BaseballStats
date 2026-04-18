@@ -91,11 +91,35 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: upsertError.message }, { status: 500 });
   }
 
+  // Look up team name so the email template can greet by team
+  const { data: team } = await admin
+    .from("teams")
+    .select("name")
+    .eq("id", teamId)
+    .single();
+
+  const roleLabels: Record<string, string> = {
+    admin: "Admin",
+    manager: "Manager",
+    teammate: "Teammate",
+    parent: "Parent",
+    guest: "Guest",
+  };
+
+  // Look up inviter's email for the "invited by" line
+  const { data: { user: inviter } } = await admin.auth.admin.getUserById(auth.user.id);
+
   // Send the Supabase magic-link email. If the user already exists in
   // auth.users this still works (Supabase sends a sign-in email). When
   // they follow the link and sign in, AuthProvider will claim the invite.
   const { error: inviteError } = await admin.auth.admin.inviteUserByEmail(email, {
-    data: { invited_team_id: teamId, invited_role: role },
+    data: {
+      invited_team_id: teamId,
+      invited_role: role,
+      team_name: team?.name ?? "",
+      role_label: roleLabels[role] ?? role,
+      inviter_email: inviter?.email ?? "",
+    },
   });
   if (inviteError) {
     // If it's "already registered" we still keep the pending invite row;
