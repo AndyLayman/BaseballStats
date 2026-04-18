@@ -315,28 +315,44 @@ export default function LiveScoringPage() {
     load();
   }, [gameId, activeTeam]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Re-fetch the lineup + fielding positions from the Lineup-owned tables
-  // (game_lineup, lineup_assignments, players). Stats is a consumer of these
-  // — the Lineup app is the authoritative writer — so whenever we re-enter
-  // the pre-game summary we should pull the latest in case the coach edited
-  // in Lineup between mount and now.
+  // Rebuild the pre-game batting order from the Lineup-owned source of truth.
+  //
+  // Batting order lives on players.sort_order (team-wide, not per-game).
+  // Lineup writes it; Stats reads it. game_lineup is Stats's per-game snapshot
+  // that we freeze at "Start Game" — reading from it here would show stale
+  // data whenever a coach edited in Lineup after the game was created.
+  //
+  // Fielding positions still come from the per-game tables: lineup_assignments
+  // (inning 1) takes precedence, game_lineup.position is the fallback seed.
   const refreshLineupFromLineup = useCallback(async () => {
     if (!activeTeam) return;
-    const [lineupRes, playersRes, assignRes] = await Promise.all([
-      supabase.from("game_lineup").select("*").eq("game_id", gameId).order("batting_order"),
+    const [playersRes, gameLineupRes, assignRes] = await Promise.all([
       supabase.from("players").select("*").eq("team_id", activeTeam.team_id),
+      supabase.from("game_lineup").select("player_id, position").eq("game_id", gameId),
       supabase.from("lineup_assignments").select("player_id, position").eq("game_id", gameId).eq("inning", 1),
     ]);
-    const lineup: GameLineup[] = lineupRes.data ?? [];
     const players: Player[] = playersRes.data ?? [];
-    // Defensive positions for inning 1 are authoritative for "starting positions".
-    // Fall back to game_lineup.position if no inning-1 assignment exists yet.
-    const assignMap = new Map((assignRes.data ?? []).map((a) => [a.player_id, a.position]));
-    const lineupWithPositions: GameLineup[] = lineup.map((l) => ({
-      ...l,
-      position: assignMap.get(l.player_id) ?? l.position,
-    }));
-    setGameState((prev) => prev ? { ...prev, lineup: lineupWithPositions, players } : prev);
+
+    const positionMap = new Map<number, string>();
+    for (const g of gameLineupRes.data ?? []) {
+      if (g.position) positionMap.set(g.player_id, g.position);
+    }
+    for (const a of assignRes.data ?? []) {
+      if (a.position) positionMap.set(a.player_id, a.position);
+    }
+
+    const lineup: GameLineup[] = players
+      .filter((p) => p.sort_order !== null && p.sort_order !== undefined)
+      .sort((a, b) => a.sort_order - b.sort_order)
+      .map((p, idx) => ({
+        id: `sort-${p.id}`,
+        game_id: gameId,
+        player_id: p.id,
+        batting_order: idx + 1,
+        position: positionMap.get(p.id) ?? "",
+      }));
+
+    setGameState((prev) => prev ? { ...prev, lineup, players } : prev);
   }, [gameId, activeTeam]);
 
   // Whenever the pre-game summary opens, pull the latest from Lineup.
@@ -961,7 +977,20 @@ export default function LiveScoringPage() {
           className="w-full h-14 text-lg font-bold glow-primary active:scale-[0.98] transition-transform"
           size="lg"
           onClick={async () => {
-            // Save any edits to the game record
+            // Snapshot the current Lineup-sourced batting order into game_lineup.
+            // game_lineup is Stats's per-game frozen copy used downstream for
+            // scoring; replace any stale seed rows with the order just derived
+            // from players.sort_order so the rest of the game flow is consistent.
+            if (gameState && gameState.lineup.length > 0) {
+              await supabase.from("game_lineup").delete().eq("game_id", gameId);
+              const rows = gameState.lineup.map((l) => ({
+                game_id: gameId,
+                player_id: l.player_id,
+                batting_order: l.batting_order,
+                position: l.position || "",
+              }));
+              await supabase.from("game_lineup").insert(rows);
+            }
             await supabase.from("games").update({
               opponent: opponentName,
               location: gameLocation,
