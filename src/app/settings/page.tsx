@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { useAuth } from "@/components/auth-provider";
 import { supabase } from "@/lib/supabase";
 import { svgToDataUrl } from "@/components/team-logo-badge";
+import { TeamMembersCard } from "@/components/team-members-card";
 import { getLeagueConfig, updateLeagueConfig, type LeagueConfig } from "@/lib/league-config";
 
 interface TeamBranding {
@@ -101,6 +102,8 @@ export default function SettingsPage() {
   return (
     <div className="max-w-lg mx-auto space-y-6">
       <h1 className="text-2xl font-bold">Settings</h1>
+
+      <TeamMembersCard />
 
       <Card>
         <CardHeader>

@@ -163,10 +163,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
+      async (event, session) => {
         const newUser = session?.user ?? null;
         setUser(newUser);
         if (newUser) {
+          // Claim any pending invites matching this user's email, then
+          // (re)load memberships so the new team shows up immediately.
+          if (event === "SIGNED_IN" || event === "INITIAL_SESSION") {
+            try {
+              const res = await fetch("/api/team/claim-invites", { method: "POST" });
+              if (res.ok) {
+                const { claimed } = await res.json();
+                if (claimed > 0) {
+                  await loadMemberships(newUser.id);
+                  return;
+                }
+              }
+            } catch {
+              // Best-effort; fall through to normal memberships load
+            }
+          }
           await loadMemberships(newUser.id);
         } else {
           setMemberships([]);
