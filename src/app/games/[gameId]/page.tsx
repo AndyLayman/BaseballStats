@@ -615,7 +615,26 @@ export default function GameDetailPage() {
               </div>
             </div>
             <div>
-              <Label htmlFor="edit-logo-svg">Logo SVG Code</Label>
+              <div className="flex items-center justify-between gap-2">
+                <Label htmlFor="edit-logo-svg">Logo SVG</Label>
+                <label className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:text-primary/80 cursor-pointer">
+                  <input
+                    type="file"
+                    accept=".svg,image/svg+xml"
+                    className="sr-only"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      try {
+                        const text = await file.text();
+                        if (/<svg[\s>]/i.test(text)) setEditLogoSvg(text);
+                      } catch { /* ignore */ }
+                      finally { e.target.value = ""; }
+                    }}
+                  />
+                  Upload .svg
+                </label>
+              </div>
               <textarea
                 id="edit-logo-svg"
                 value={editLogoSvg}
@@ -842,7 +861,26 @@ export default function GameDetailPage() {
               </div>
             </div>
             <div>
-              <Label htmlFor="edit-logo-svg">Logo SVG Code</Label>
+              <div className="flex items-center justify-between gap-2">
+                <Label htmlFor="edit-logo-svg">Logo SVG</Label>
+                <label className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:text-primary/80 cursor-pointer">
+                  <input
+                    type="file"
+                    accept=".svg,image/svg+xml"
+                    className="sr-only"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      try {
+                        const text = await file.text();
+                        if (/<svg[\s>]/i.test(text)) setEditLogoSvg(text);
+                      } catch { /* ignore */ }
+                      finally { e.target.value = ""; }
+                    }}
+                  />
+                  Upload .svg
+                </label>
+              </div>
               <textarea
                 id="edit-logo-svg"
                 value={editLogoSvg}
