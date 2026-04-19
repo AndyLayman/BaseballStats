@@ -90,6 +90,7 @@ export default function LiveScoringPage() {
   const [hitProbability, setHitProbability] = useState<number | null>(null);
   const [ourTeamName, setOurTeamName] = useState<string>("Padres");
   const [gameLocation, setGameLocation] = useState<"home" | "away">("home");
+  const [skippedPlayerIds, setSkippedPlayerIds] = useState<number[]>([]);
   const [showPregame, setShowPregame] = useState(false);
   const [showEndGame, setShowEndGame] = useState(false);
   const [gameNotes, setGameNotes] = useState("");
@@ -111,6 +112,7 @@ export default function LiveScoringPage() {
     totalPitches?: { us: number; them: number };
     totalPitchesHistory?: { us: number; them: number }[];
     pitchCount?: { balls: number; strikes: number };
+    skippedPlayerIds?: number[];
   }) {
     try {
       const existing = JSON.parse(localStorage.getItem(lsKey) || "{}");
@@ -130,6 +132,7 @@ export default function LiveScoringPage() {
       if (updates.totalPitches) existing.totalPitches = updates.totalPitches;
       if (updates.totalPitchesHistory) existing.totalPitchesHistory = updates.totalPitchesHistory;
       if (updates.pitchCount) existing.pitchCount = updates.pitchCount;
+      if (updates.skippedPlayerIds) existing.skippedPlayerIds = updates.skippedPlayerIds;
       existing.savedAt = Date.now();
       localStorage.setItem(lsKey, JSON.stringify(existing));
     } catch { /* storage full or unavailable */ }
@@ -142,6 +145,7 @@ export default function LiveScoringPage() {
     totalPitches?: { us: number; them: number };
     totalPitchesHistory?: { us: number; them: number }[];
     pitchCount?: { balls: number; strikes: number };
+    skippedPlayerIds?: number[];
     savedAt?: number;
   } | null {
     try {
@@ -190,6 +194,10 @@ export default function LiveScoringPage() {
       const oppLineup: OpponentBatter[] = opponentLineupRes.data ?? [];
       const local = loadFromLocal();
       const dbFailed = !gameRes.data && !stateRes.data && lineup.length === 0 && players.length === 0;
+
+      // Restore the skipped-batter list (lives in localStorage only — single
+      // scorekeeper per game in practice, no need to round-trip through DB).
+      if (local?.skippedPlayerIds) setSkippedPlayerIds(local.skippedPlayerIds);
 
       // If DB is completely unreachable but we have local backup, restore from it
       if (dbFailed && local?.gameState) {
@@ -411,6 +419,41 @@ export default function LiveScoringPage() {
     });
   }
 
+  // Skip-batter machinery. We keep gameState.currentBatterIndex pointing
+  // at a non-skipped player at all times, so the existing scoring path
+  // (recordAtBat etc.) doesn't need to know about skips. After any state
+  // change that could land us on a skipped player, run this to advance.
+  function findNextActiveBatterIndex(state: GameState, fromIdx: number, skipped: number[]): number {
+    const len = state.lineup.length;
+    if (len === 0) return fromIdx;
+    const skippedSet = new Set(skipped);
+    let idx = ((fromIdx % len) + len) % len;
+    for (let i = 0; i < len; i++) {
+      if (!skippedSet.has(state.lineup[idx].player_id)) return idx;
+      idx = (idx + 1) % len;
+    }
+    return fromIdx;
+  }
+
+  function handleSkipBatter() {
+    if (!gameState || !batter?.playerId) return;
+    const newSkipped = skippedPlayerIds.includes(batter.playerId)
+      ? skippedPlayerIds
+      : [...skippedPlayerIds, batter.playerId];
+    setSkippedPlayerIds(newSkipped);
+    const nextIdx = findNextActiveBatterIndex(gameState, gameState.currentBatterIndex + 1, newSkipped);
+    const newState = { ...gameState, currentBatterIndex: nextIdx };
+    setGameState(newState);
+    saveToLocal({ gameState: newState, skippedPlayerIds: newSkipped });
+    void persistState(newState);
+  }
+
+  function handleAddBackPlayer(playerId: number) {
+    const newSkipped = skippedPlayerIds.filter((id) => id !== playerId);
+    setSkippedPlayerIds(newSkipped);
+    saveToLocal({ skippedPlayerIds: newSkipped });
+  }
+
   async function handleConfirmAtBat() {
     if (!gameState || !selectedResult) return;
 
@@ -444,9 +487,17 @@ export default function LiveScoringPage() {
     setStateHistory((prev) => [...prev, gameState]);
     // Save current total pitches for undo (pitches were already counted per-click)
     setTotalPitchesHistory((prev) => [...prev, totalPitches]);
-    const newState = isOpponent
+    let newState = isOpponent
       ? recordOpponentAtBat(gameState, payload)
       : recordAtBat(gameState, payload);
+
+    // Skip past any skipped players so the next-batter indicator is right
+    if (!isOpponent && skippedPlayerIds.length > 0 && newState.lineup.length > 0) {
+      const nextIdx = findNextActiveBatterIndex(newState, newState.currentBatterIndex, skippedPlayerIds);
+      if (nextIdx !== newState.currentBatterIndex) {
+        newState = { ...newState, currentBatterIndex: nextIdx };
+      }
+    }
 
     // Detect half-inning switch
     const halfChanged = newState.currentHalf !== gameState.currentHalf || newState.currentInning !== gameState.currentInning;
@@ -1408,7 +1459,20 @@ export default function LiveScoringPage() {
                 </div>
               )}
               </div>
+              <button
+                onClick={handleSkipBatter}
+                className="ml-2 px-3 py-1.5 rounded-lg text-xs font-semibold border border-border/50 bg-background/50 hover:bg-accent active:scale-95 transition shrink-0"
+                aria-label="Skip this batter"
+              >
+                Skip
+              </button>
             </div>
+            <SkippedPlayerChips
+              skipped={skippedPlayerIds}
+              players={gameState?.players ?? []}
+              onAddBack={handleAddBackPlayer}
+              className="mt-2"
+            />
           </CardContent>
         </Card>
       )}
@@ -1588,7 +1652,20 @@ export default function LiveScoringPage() {
                       </div>
                     )}
                     </div>
+                    <button
+                      onClick={handleSkipBatter}
+                      className="ml-2 px-3 py-1.5 rounded-lg text-xs font-semibold border border-border/50 bg-background/50 hover:bg-accent active:scale-95 transition shrink-0"
+                      aria-label="Skip this batter"
+                    >
+                      Skip
+                    </button>
                   </div>
+                  <SkippedPlayerChips
+                    skipped={skippedPlayerIds}
+                    players={gameState?.players ?? []}
+                    onAddBack={handleAddBackPlayer}
+                    className="mt-2"
+                  />
                 </CardContent>
               </Card>
             )}
@@ -1974,5 +2051,39 @@ export default function LiveScoringPage() {
       )}
     </div>
     </>
+  );
+}
+
+function SkippedPlayerChips({
+  skipped,
+  players,
+  onAddBack,
+  className = "",
+}: {
+  skipped: number[];
+  players: Player[];
+  onAddBack: (playerId: number) => void;
+  className?: string;
+}) {
+  if (skipped.length === 0) return null;
+  return (
+    <div className={`flex flex-wrap items-center justify-center gap-1.5 ${className}`}>
+      <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Skipped:</span>
+      {skipped.map((id) => {
+        const p = players.find((pp) => pp.id === id);
+        const label = p ? `#${p.number} ${fullName(p)}` : `Player ${id}`;
+        return (
+          <button
+            key={id}
+            onClick={() => onAddBack(id)}
+            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] border border-border/50 bg-muted/40 hover:bg-accent active:scale-95 transition"
+            aria-label={`Add ${label} back into the lineup`}
+          >
+            <span>{label}</span>
+            <span className="text-primary">+ Add back</span>
+          </button>
+        );
+      })}
+    </div>
   );
 }
