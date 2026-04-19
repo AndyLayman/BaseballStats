@@ -288,6 +288,34 @@ export default function LiveScoringPage() {
       setGameState(state);
       saveToLocal({ gameState: state });
 
+      // Restore undo / pitch history from localStorage. These are scorer-
+      // specific and aren't round-tripped through the DB — without this
+      // they're reset on every reload and the Undo button goes dark even
+      // though at-bats are recorded in plate_appearances.
+      if (local?.stateHistory && local.stateHistory.length > 0) {
+        setStateHistory(local.stateHistory.map((ls) => ({
+          gameId,
+          currentInning: ls.currentInning ?? 1,
+          currentHalf: ls.currentHalf ?? "top",
+          outs: ls.outs ?? 0,
+          runnerFirst: ls.runnerFirst ?? null,
+          runnerSecond: ls.runnerSecond ?? null,
+          runnerThird: ls.runnerThird ?? null,
+          currentBatterIndex: ls.currentBatterIndex ?? 0,
+          opponentBatterIndex: ls.opponentBatterIndex ?? 0,
+          ourScore: ls.ourScore ?? 0,
+          opponentScore: ls.opponentScore ?? 0,
+          // lineup / players / opponentLineup are the same across all
+          // history entries — reuse the freshly loaded current-game values
+          // rather than storing them N times in localStorage.
+          lineup,
+          players,
+          opponentLineup: oppLineup,
+        })));
+      }
+      if (local?.totalPitchesHistory) setTotalPitchesHistory(local.totalPitchesHistory);
+      if (local?.pitchCount) setPitchCount(local.pitchCount);
+
       // Restore persisted pitch counts
       if (stateRes.data) {
         const tp = { us: stateRes.data.pitches_us ?? 0, them: stateRes.data.pitches_them ?? 0 };
