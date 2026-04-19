@@ -24,6 +24,7 @@ import type { GameState, PlateAppearanceResult, RecordAtBatPayload, RunnerAdvanc
 import { fullName, firstName } from "@/lib/player-name";
 import { useAuth } from "@/components/auth-provider";
 import { TeamLogoBadge } from "@/components/team-logo-badge";
+import { EditPlayDialog, type EditPlayInitial } from "@/components/edit-play-dialog";
 import { ChainAwardPicker } from "@/components/chain-award-picker";
 import { ChevronUp, ChevronDown } from "lucide-react";
 
@@ -100,6 +101,8 @@ export default function LiveScoringPage() {
   const [ourTeamName, setOurTeamName] = useState<string>("Padres");
   const [gameLocation, setGameLocation] = useState<"home" | "away">("home");
   const [skippedPlayerIds, setSkippedPlayerIds] = useState<number[]>([]);
+  const [editingPlayInitial, setEditingPlayInitial] = useState<EditPlayInitial | null>(null);
+  const [editingLoading, setEditingLoading] = useState(false);
   const [showPregame, setShowPregame] = useState(false);
   const [showEndGame, setShowEndGame] = useState(false);
   const [gameNotes, setGameNotes] = useState("");
@@ -484,6 +487,129 @@ export default function LiveScoringPage() {
     setGameState(newState);
     saveToLocal({ gameState: newState, skippedPlayerIds: newSkipped });
     void persistState(newState);
+  }
+
+  // Replay all plate_appearances through the engine to derive the
+  // canonical game state. Used after editing or deleting a past play.
+  // Lineup/players/opponentLineup are reused from current gameState
+  // (they're frozen for the game).
+  const replayAllPlateAppearances = useCallback(async (
+    upToButNotIncludingId?: string
+  ): Promise<GameState | null> => {
+    if (!gameState) return null;
+    const { data: pas } = await supabase
+      .from("plate_appearances")
+      .select("*")
+      .eq("game_id", gameId)
+      .order("created_at");
+    if (!pas) return null;
+    let s: GameState = {
+      ...createInitialGameState(gameId, gameState.lineup, gameState.players),
+      lineup: gameState.lineup,
+      players: gameState.players,
+      opponentLineup: gameState.opponentLineup,
+    };
+    for (const pa of pas) {
+      if (upToButNotIncludingId && pa.id === upToButNotIncludingId) break;
+      const isOpp = pa.team === "them";
+      const result = pa.result as PlateAppearanceResult;
+      const advances: RunnerAdvance[] = (pa.runner_advances as RunnerAdvance[] | null) ?? buildRunnerAdvances(result, s);
+      const payload: RecordAtBatPayload = {
+        result,
+        sprayX: pa.spray_x,
+        sprayY: pa.spray_y,
+        rbis: pa.rbis ?? 0,
+        stolenBases: 0,
+        scorebookNotation: pa.scorebook_notation ?? "",
+        fieldingPlays: [],
+        runnerAdvances: advances,
+      };
+      s = isOpp ? recordOpponentAtBat(s, payload) : recordAtBat(s, payload);
+    }
+    return s;
+  }, [gameId, gameState]);
+
+  async function refreshPlayLogFromDB() {
+    if (!gameState) return;
+    const { data: pas } = await supabase
+      .from("plate_appearances")
+      .select("id, scorebook_notation, result, player_id, opponent_batter_id, inning, team")
+      .eq("game_id", gameId)
+      .order("created_at");
+    if (!pas) return;
+    const log: PlayLogEntry[] = pas.map((pa) => ({
+      id: pa.id,
+      notation: pa.scorebook_notation || pa.result,
+      playerName: pa.team === "them"
+        ? gameState.opponentLineup.find((b) => b.id === pa.opponent_batter_id)?.name ?? "Opponent"
+        : (() => { const p = gameState.players.find((p) => p.id === pa.player_id); return p ? fullName(p) : ""; })(),
+      inning: pa.inning,
+      team: (pa.team ?? "us") as "us" | "them",
+    }));
+    setPlayLog(log);
+    saveToLocal({ playLog: log });
+  }
+
+  async function openEditPlay(playId: string) {
+    setEditingLoading(true);
+    setEditingPlayInitial({ id: playId, result: "1B", scorebook_notation: "", rbis: 0, runner_advances: null, stateAtPlay: null });
+    const { data: pa } = await supabase
+      .from("plate_appearances")
+      .select("id, result, scorebook_notation, rbis, runner_advances")
+      .eq("id", playId)
+      .single();
+    if (!pa) { setEditingLoading(false); setEditingPlayInitial(null); return; }
+    const stateAtPlay = await replayAllPlateAppearances(playId);
+    setEditingPlayInitial({
+      id: pa.id,
+      result: pa.result as PlateAppearanceResult,
+      scorebook_notation: pa.scorebook_notation ?? "",
+      rbis: pa.rbis ?? 0,
+      runner_advances: (pa.runner_advances as RunnerAdvance[] | null) ?? null,
+      stateAtPlay: stateAtPlay
+        ? { runnerFirst: stateAtPlay.runnerFirst, runnerSecond: stateAtPlay.runnerSecond, runnerThird: stateAtPlay.runnerThird }
+        : null,
+    });
+    setEditingLoading(false);
+  }
+
+  async function handleSavePlayEdit(updates: {
+    result: PlateAppearanceResult;
+    scorebook_notation: string;
+    rbis: number;
+    runner_advances: RunnerAdvance[];
+  }) {
+    if (!editingPlayInitial) return;
+    await supabase.from("plate_appearances").update({
+      result: updates.result,
+      scorebook_notation: updates.scorebook_notation,
+      rbis: updates.rbis,
+      runner_advances: updates.runner_advances.length > 0 ? updates.runner_advances : null,
+      is_at_bat: isAtBat(updates.result),
+      is_hit: isHit(updates.result),
+      total_bases: totalBases(updates.result),
+    }).eq("id", editingPlayInitial.id);
+    const newState = await replayAllPlateAppearances();
+    if (newState) {
+      setGameState(newState);
+      saveToLocal({ gameState: newState });
+      await persistState(newState);
+    }
+    await refreshPlayLogFromDB();
+    setEditingPlayInitial(null);
+  }
+
+  async function handleDeletePlay() {
+    if (!editingPlayInitial) return;
+    await supabase.from("plate_appearances").delete().eq("id", editingPlayInitial.id);
+    const newState = await replayAllPlateAppearances();
+    if (newState) {
+      setGameState(newState);
+      saveToLocal({ gameState: newState });
+      await persistState(newState);
+    }
+    await refreshPlayLogFromDB();
+    setEditingPlayInitial(null);
   }
 
   function handleAddBackPlayer(playerId: number) {
@@ -1712,16 +1838,34 @@ export default function LiveScoringPage() {
                   </CardHeader>
                   <CardContent className="px-3 sm:px-6 pb-3">
                     <div className="space-y-1 max-h-48 overflow-y-auto">
-                      {[...playLog].reverse().map((play, i) => (
-                        <div key={i} className="flex items-center justify-between text-sm py-2 border-b border-border/30 last:border-0">
-                          <span>
-                            <span className="text-muted-foreground">Inn {play.inning}</span>{" "}
-                            {play.team === "them" && <span className="text-xs text-orange-400 mr-1">[OPP]</span>}
-                            <span className="font-medium">{play.playerName}</span>
-                          </span>
-                          <Badge variant="outline" className="border-primary/30 text-primary">{play.notation}</Badge>
-                        </div>
-                      ))}
+                      {[...playLog].reverse().map((play, i) => {
+                        const editable = !!(play.id && gameState && play.inning === gameState.currentInning &&
+                          ((gameLocation === "home" ? gameState.currentHalf === "top" : gameState.currentHalf === "bottom")
+                            ? play.team === "them" : play.team === "us"));
+                        return editable ? (
+                          <button
+                            key={i}
+                            onClick={() => play.id && openEditPlay(play.id)}
+                            className="flex w-full items-center justify-between text-sm py-2 border-b border-border/30 last:border-0 text-left hover:bg-accent/40 px-1 -mx-1 rounded transition-colors"
+                          >
+                            <span>
+                              <span className="text-muted-foreground">Inn {play.inning}</span>{" "}
+                              {play.team === "them" && <span className="text-xs text-orange-400 mr-1">[OPP]</span>}
+                              <span className="font-medium">{play.playerName}</span>
+                            </span>
+                            <Badge variant="outline" className="border-primary/30 text-primary">{play.notation}</Badge>
+                          </button>
+                        ) : (
+                          <div key={i} className="flex items-center justify-between text-sm py-2 border-b border-border/30 last:border-0">
+                            <span>
+                              <span className="text-muted-foreground">Inn {play.inning}</span>{" "}
+                              {play.team === "them" && <span className="text-xs text-orange-400 mr-1">[OPP]</span>}
+                              <span className="font-medium">{play.playerName}</span>
+                            </span>
+                            <Badge variant="outline" className="border-primary/30 text-primary">{play.notation}</Badge>
+                          </div>
+                        );
+                      })}
                     </div>
                   </CardContent>
                 </Card>
@@ -2094,16 +2238,34 @@ export default function LiveScoringPage() {
             </CardHeader>
             <CardContent className="px-3 sm:px-6 pb-3">
               <div className="space-y-1 max-h-48 overflow-y-auto">
-                {[...playLog].reverse().map((play, i) => (
-                  <div key={i} className="flex items-center justify-between text-sm py-2 border-b border-border/30 last:border-0">
-                    <span>
-                      <span className="text-muted-foreground">Inn {play.inning}</span>{" "}
-                      {play.team === "them" && <span className="text-xs text-orange-400 mr-1">[OPP]</span>}
-                      <span className="font-medium">{play.playerName}</span>
-                    </span>
-                    <Badge variant="outline" className="border-primary/30 text-primary">{play.notation}</Badge>
-                  </div>
-                ))}
+                {[...playLog].reverse().map((play, i) => {
+                  const editable = !!(play.id && gameState && play.inning === gameState.currentInning &&
+                    ((gameLocation === "home" ? gameState.currentHalf === "top" : gameState.currentHalf === "bottom")
+                      ? play.team === "them" : play.team === "us"));
+                  return editable ? (
+                    <button
+                      key={i}
+                      onClick={() => play.id && openEditPlay(play.id)}
+                      className="flex w-full items-center justify-between text-sm py-2 border-b border-border/30 last:border-0 text-left hover:bg-accent/40 px-1 -mx-1 rounded transition-colors"
+                    >
+                      <span>
+                        <span className="text-muted-foreground">Inn {play.inning}</span>{" "}
+                        {play.team === "them" && <span className="text-xs text-orange-400 mr-1">[OPP]</span>}
+                        <span className="font-medium">{play.playerName}</span>
+                      </span>
+                      <Badge variant="outline" className="border-primary/30 text-primary">{play.notation}</Badge>
+                    </button>
+                  ) : (
+                    <div key={i} className="flex items-center justify-between text-sm py-2 border-b border-border/30 last:border-0">
+                      <span>
+                        <span className="text-muted-foreground">Inn {play.inning}</span>{" "}
+                        {play.team === "them" && <span className="text-xs text-orange-400 mr-1">[OPP]</span>}
+                        <span className="font-medium">{play.playerName}</span>
+                      </span>
+                      <Badge variant="outline" className="border-primary/30 text-primary">{play.notation}</Badge>
+                    </div>
+                  );
+                })}
               </div>
             </CardContent>
           </Card>
@@ -2164,6 +2326,15 @@ export default function LiveScoringPage() {
 
         </div>
       )}
+
+      <EditPlayDialog
+        open={editingPlayInitial !== null}
+        initial={editingPlayInitial}
+        loading={editingLoading}
+        onClose={() => setEditingPlayInitial(null)}
+        onSave={handleSavePlayEdit}
+        onDelete={handleDeletePlay}
+      />
     </div>
     </>
   );
