@@ -264,20 +264,21 @@ export default function LiveScoringPage() {
       if (gameRes.data?.location) setGameLocation(gameRes.data.location);
       if (gameRes.data?.date) setGameDate(gameRes.data.date);
 
-      let state: GameState;
+      // Resolve runners — could be our player or opponent batter
+      function resolveRunner(playerId: number | null, oppId: string | null): import("@/lib/scoring/types").BaseRunner | null {
+        if (playerId) {
+          return { playerId, opponentBatterId: null, playerName: (() => { const p = players.find((p) => p.id === playerId); return p ? fullName(p) : ""; })() };
+        }
+        if (oppId) {
+          return { playerId: null, opponentBatterId: oppId, playerName: oppLineup.find((b) => b.id === oppId)?.name ?? "" };
+        }
+        return null;
+      }
+
+      let dbState: GameState | null = null;
       if (stateRes.data) {
         const sd = stateRes.data;
-        // Resolve runners — could be our player or opponent batter
-        function resolveRunner(playerId: number | null, oppId: string | null): import("@/lib/scoring/types").BaseRunner | null {
-          if (playerId) {
-            return { playerId, opponentBatterId: null, playerName: (() => { const p = players.find((p) => p.id === playerId); return p ? fullName(p) : ""; })() };
-          }
-          if (oppId) {
-            return { playerId: null, opponentBatterId: oppId, playerName: oppLineup.find((b) => b.id === oppId)?.name ?? "" };
-          }
-          return null;
-        }
-        state = {
+        dbState = {
           gameId,
           currentInning: sd.current_inning,
           currentHalf: sd.current_half,
@@ -293,6 +294,34 @@ export default function LiveScoringPage() {
           players,
           opponentLineup: oppLineup,
         };
+      }
+
+      // Prefer localStorage if it's newer (DB writes are async and may lag)
+      let state: GameState;
+      const localSavedAt = local?.gameState ? (JSON.parse(localStorage.getItem(`live-${gameId}`) || "{}").savedAt ?? 0) : 0;
+      const dbUpdatedAt = stateRes.data?.updated_at ? new Date(stateRes.data.updated_at).getTime() : 0;
+      const useLocal = local?.gameState && localSavedAt > dbUpdatedAt;
+
+      if (useLocal && local.gameState) {
+        const ls = local.gameState;
+        state = {
+          gameId,
+          currentInning: ls.currentInning ?? 1,
+          currentHalf: ls.currentHalf ?? "top",
+          outs: ls.outs ?? 0,
+          runnerFirst: ls.runnerFirst ?? null,
+          runnerSecond: ls.runnerSecond ?? null,
+          runnerThird: ls.runnerThird ?? null,
+          currentBatterIndex: ls.currentBatterIndex ?? 0,
+          opponentBatterIndex: ls.opponentBatterIndex ?? 0,
+          ourScore: ls.ourScore ?? 0,
+          opponentScore: ls.opponentScore ?? 0,
+          lineup,
+          players,
+          opponentLineup: oppLineup,
+        };
+      } else if (dbState) {
+        state = dbState;
       } else {
         state = createInitialGameState(gameId, lineup, players);
       }
@@ -1058,12 +1087,19 @@ export default function LiveScoringPage() {
         });
     }
 
-    // Reset pitch count
+    // Reset pitch count and UI state
     setPitchCount({ balls: 0, strikes: 0 });
+    setSelectedResult(null);
+    setSprayPoint(null);
+    setHitType(null);
+    setRbis(0);
+    setRunnerAdvanceOverrides(null);
+    setNotationOverride(null);
+    setNewOpponentName("");
 
     setGameState(newState);
     persistState(newState);
-    saveToLocal({ pitchCount: { balls: 0, strikes: 0 } });
+    saveToLocal({ pitchCount: { balls: 0, strikes: 0 }, gameState: newState });
   }
 
   function handleEndGame() {
