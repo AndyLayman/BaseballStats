@@ -100,6 +100,27 @@ function showReloadingOverlay() {
 
 let lastHiddenAt: number | null = null;
 let lastVisibleAt: number | null = null;
+
+// Unstick auth-js and our outer lock when the tab was suspended. Used on
+// /live where we skip the full reload.
+function clearStuckAuthState() {
+  // Reject every waiter on our outer lock map so any in-flight supabase
+  // query wakes up and fails fast instead of hanging forever.
+  for (const [name, entry] of activeLocks) {
+    entry.reject(new Error("Lock holder suspended across tab hide"));
+    activeLocks.delete(name);
+  }
+  // auth-js marks these fields private in TS but they are plain instance
+  // properties at runtime. Resetting them releases any new _useSession
+  // call from the pendingInLock fast-path that would otherwise queue
+  // behind the dead holder.
+  const a = supabase.auth as unknown as { lockAcquired?: boolean; pendingInLock?: unknown[] };
+  if (a && typeof a === "object") {
+    a.lockAcquired = false;
+    a.pendingInLock = [];
+  }
+}
+
 if (typeof document !== "undefined") {
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "hidden") {
@@ -108,15 +129,18 @@ if (typeof document !== "undefined") {
     }
     if (document.visibilityState === "visible") {
       lastVisibleAt = Date.now();
-      if (
-        lastHiddenAt !== null &&
-        Date.now() - lastHiddenAt >= RELOAD_AFTER_HIDDEN_MS &&
-        !shouldSkipReload()
-      ) {
-        showReloadingOverlay();
-        // Give the browser a frame to paint the overlay before the
-        // reload tears the document down.
-        requestAnimationFrame(() => window.location.reload());
+      if (lastHiddenAt !== null && Date.now() - lastHiddenAt >= RELOAD_AFTER_HIDDEN_MS) {
+        if (shouldSkipReload()) {
+          // Live scoring — don't reload (would lose the in-progress at-bat
+          // UI). Instead, unstick the auth state so subsequent queries
+          // aren't blocked by a holder whose fetch got suspended.
+          clearStuckAuthState();
+        } else {
+          showReloadingOverlay();
+          // Give the browser a frame to paint the overlay before the
+          // reload tears the document down.
+          requestAnimationFrame(() => window.location.reload());
+        }
       }
     }
   });

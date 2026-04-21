@@ -393,6 +393,21 @@ export default function LiveScoringPage() {
     load();
   }, [gameId, activeTeam]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Flush any pending opponent-batter inserts on mount and whenever
+  // the tab returns to visible — catches the case where an insert
+  // died silently (iOS auth-lock) and the batter only lived in
+  // local state.
+  useEffect(() => {
+    void flushPendingOpponentBatters();
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") {
+        void flushPendingOpponentBatters();
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => document.removeEventListener("visibilitychange", onVisibility);
+  }, [gameId]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Rebuild the pre-game batting order from the Lineup-owned source of truth.
   //
   // Batting order lives on players.sort_order (team-wide, not per-game).
@@ -837,26 +852,62 @@ export default function LiveScoringPage() {
     persistState(newState);
   }
 
+  // Pending-opponent-batter queue (localStorage) survives reloads and
+  // gets flushed on mount / tab return. Without this, an insert that
+  // hangs on iOS auth-lock would lose the batter on the next reload.
+  const pendingKey = `live-scoring-${gameId}:pending-opponent-batters`;
+
+  function readPendingOpponentBatters(): OpponentBatter[] {
+    try {
+      const raw = localStorage.getItem(pendingKey);
+      return raw ? JSON.parse(raw) : [];
+    } catch { return []; }
+  }
+  function writePendingOpponentBatters(rows: OpponentBatter[]) {
+    try { localStorage.setItem(pendingKey, JSON.stringify(rows)); } catch { /* */ }
+  }
+
+  async function flushPendingOpponentBatters() {
+    const pending = readPendingOpponentBatters();
+    if (pending.length === 0) return;
+    const stillPending: OpponentBatter[] = [];
+    for (const row of pending) {
+      // upsert on id so retries are idempotent
+      const { error } = await supabase.from("opponent_lineup").upsert({
+        id: row.id,
+        game_id: row.game_id,
+        name: row.name,
+        batting_order: row.batting_order,
+      }, { onConflict: "id" });
+      if (error) stillPending.push(row);
+    }
+    writePendingOpponentBatters(stillPending);
+  }
+
   async function handleAddOpponentBatter() {
     if (!gameState || !newOpponentName.trim()) return;
     const order = gameState.opponentLineup.length + 1;
     const name = newOpponentName.trim();
-    // Generate the id client-side so we can update local state immediately
-    // without waiting on the insert. iOS can leave the insert fetch
-    // pending indefinitely; with the old flow that left the UI frozen
-    // on the "New Opponent Batter" card with no feedback.
+    // Client-generated id so local state updates immediately — an iOS-
+    // suspended fetch can't block the UI anymore.
     const id = typeof crypto !== "undefined" && crypto.randomUUID
       ? crypto.randomUUID()
       : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
     const batter: OpponentBatter = { id, game_id: gameId, name, batting_order: order };
     setGameState(addOpponentBatter(gameState, batter));
     setNewOpponentName("");
-    void supabase.from("opponent_lineup").insert({
-      id,
-      game_id: gameId,
-      name,
-      batting_order: order,
-    });
+
+    // Queue the insert so we can retry if it silently fails (iOS auth lock,
+    // network flake, etc.). Then try once — the queue gets flushed again
+    // on mount and on tab-return.
+    const pending = [...readPendingOpponentBatters(), batter];
+    writePendingOpponentBatters(pending);
+    const { error } = await supabase.from("opponent_lineup").upsert({
+      id, game_id: gameId, name, batting_order: order,
+    }, { onConflict: "id" });
+    if (!error) {
+      writePendingOpponentBatters(readPendingOpponentBatters().filter((r) => r.id !== id));
+    }
   }
 
   async function handleUndo() {
